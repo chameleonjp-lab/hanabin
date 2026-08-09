@@ -1,4 +1,4 @@
-import { DEFAULT_RULES, mergeRules } from "../config/rules.js";
+import { DEFAULT_RULES, mergeRules, waveTickAt } from "../config/rules.js";
 import { createStrategyReplayLog } from "./input-frame.js";
 import {
   advanceGame,
@@ -14,8 +14,108 @@ import {
   getStrategy,
   STRATEGY_NAMES,
 } from "./strategies.js";
+import { generateUpcomingWaves, generateWave } from "./wave-generator.js";
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const distanceSquared = (left, right) =>
+  (left.x - right.x) ** 2 + (left.y - right.y) ** 2;
+
+const waveHasSelectableGroup = (wave, rules) => {
+  const byColor = Map.groupBy(wave.entities, (entity) => entity.color);
+  const linkSquared = rules.selectionLinkDistance ** 2;
+  for (const entities of byColor.values()) {
+    if (entities.length < rules.minSelection) continue;
+    const remaining = new Set(entities.map((entity) => entity.id));
+    for (const start of entities) {
+      if (!remaining.has(start.id)) continue;
+      const queue = [start];
+      remaining.delete(start.id);
+      let componentSize = 0;
+      while (queue.length) {
+        const current = queue.shift();
+        componentSize += 1;
+        if (componentSize >= rules.minSelection) return true;
+        for (const candidate of entities) {
+          if (!remaining.has(candidate.id)) continue;
+          if (distanceSquared(current, candidate) <= linkSquared) {
+            remaining.delete(candidate.id);
+            queue.push(candidate);
+          }
+        }
+      }
+    }
+  }
+  return false;
+};
+
+const inspectGeneratedSeed = (seed, rules) => {
+  let unselectableWaves = 0;
+  let exactOverlaps = 0;
+  let forecastMismatches = 0;
+  let generationRuleViolations = 0;
+  let maxSelectableWaveGapTicks = 0;
+  let lastSelectableTick = 0;
+  let generatedWaves = 0;
+  for (let waveIndex = 0;
+    waveIndex < rules.maxWaves && waveTickAt(waveIndex, rules) < rules.maxTicks;
+    waveIndex += 1) {
+    const wave = generateWave(seed, waveIndex, rules);
+    generatedWaves += 1;
+    const ids = new Set();
+    const positions = new Set();
+    for (const entity of wave.entities) {
+      if (ids.has(entity.id)) generationRuleViolations += 1;
+      ids.add(entity.id);
+      const positionKey = `${entity.x}:${entity.y}`;
+      if (positions.has(positionKey)) exactOverlaps += 1;
+      positions.add(positionKey);
+      if (!Number.isInteger(entity.x) || !Number.isInteger(entity.y) ||
+          entity.x < 0 || entity.x > rules.boardWidth ||
+          entity.y < 0 || entity.y > rules.boardHeight ||
+          entity.color < 0 || entity.color >= rules.colorCount ||
+          entity.lifetimeTicks < rules.lifetimeMinTicks ||
+          entity.lifetimeTicks > rules.lifetimeMaxTicks) {
+        generationRuleViolations += 1;
+      }
+    }
+    if (!wave.entities.length || wave.entities.length > rules.maxPerWave) {
+      generationRuleViolations += 1;
+    }
+    const selectable = waveHasSelectableGroup(wave, rules);
+    if (!selectable) {
+      unselectableWaves += 1;
+    } else {
+      maxSelectableWaveGapTicks = Math.max(
+        maxSelectableWaveGapTicks,
+        wave.fireTick - lastSelectableTick,
+      );
+      lastSelectableTick = wave.fireTick;
+    }
+    const forecast = generateUpcomingWaves(seed, waveIndex, rules, 1)[0];
+    if (!forecast || forecast.waveId !== wave.waveId ||
+        forecast.primaryColor !== wave.primaryColor ||
+        forecast.position !== wave.position || forecast.fireTick !== wave.fireTick) {
+      forecastMismatches += 1;
+    }
+  }
+  maxSelectableWaveGapTicks = Math.max(
+    maxSelectableWaveGapTicks,
+    rules.maxTicks - lastSelectableTick,
+  );
+  const before = JSON.stringify(generateWave(seed, 0, rules));
+  const strategyContext = createStrategyContext(seed, "random");
+  for (let index = 0; index < 32; index += 1) strategyContext.rng.nextUint32();
+  const after = JSON.stringify(generateWave(seed, 0, rules));
+  return {
+    generatedWaves,
+    unselectableWaves,
+    exactOverlaps,
+    forecastMismatches,
+    generationRuleViolations,
+    maxSelectableWaveGapTicks,
+    strategyRngLeak: before === after ? 0 : 1,
+  };
+};
 
 /** Run one deterministic strategy with at most one pointer acquisition frame per decision tick. */
 export const runSimulation = (seedOrOptions = 1, optionsArg = {}) => {
@@ -167,6 +267,14 @@ export const runSafetySweep = (options = {}) => {
     waveCounts: {},
     maxTicksPerSeed: rules.maxTicks,
     strategyRngSeparated: true,
+    generatedWavesInspected: 0,
+    unselectableWaves: 0,
+    unselectableSeeds: 0,
+    exactOverlapViolations: 0,
+    forecastMismatches: 0,
+    generationRuleViolations: 0,
+    strategyRngLeaks: 0,
+    maxSelectableWaveGapTicks: 0,
   };
   for (let offset = 0; offset < Math.max(0, seedCount); offset += 1) {
     const seed = startSeed + offset;
@@ -190,9 +298,25 @@ export const runSafetySweep = (options = {}) => {
     };
     addSummary(summary, result);
     if (JSON.stringify(firstSnapshot) !== JSON.stringify(secondSnapshot)) summary.nondeterministicSeeds += 1;
+    const generation = inspectGeneratedSeed(seed, rules);
+    summary.generatedWavesInspected += generation.generatedWaves;
+    summary.unselectableWaves += generation.unselectableWaves;
+    if (generation.unselectableWaves) summary.unselectableSeeds += 1;
+    summary.exactOverlapViolations += generation.exactOverlaps;
+    summary.forecastMismatches += generation.forecastMismatches;
+    summary.generationRuleViolations += generation.generationRuleViolations;
+    summary.strategyRngLeaks += generation.strategyRngLeak;
+    summary.maxSelectableWaveGapTicks = Math.max(
+      summary.maxSelectableWaveGapTicks,
+      generation.maxSelectableWaveGapTicks,
+    );
   }
   if (summary.minScore === Number.POSITIVE_INFINITY) summary.minScore = 0;
+  summary.strategyRngSeparated = summary.strategyRngLeaks === 0;
   summary.ok = summary.faults === 0 && summary.invalidStates === 0 && summary.nondeterministicSeeds === 0 &&
+    summary.unselectableWaves === 0 && summary.exactOverlapViolations === 0 &&
+    summary.forecastMismatches === 0 && summary.generationRuleViolations === 0 &&
+    summary.strategyRngLeaks === 0 &&
     summary.processedSeeds === Math.max(0, seedCount);
   return summary;
 };

@@ -15,7 +15,15 @@ import {
   validateInputFrames,
   validateReplayLog,
 } from "../../src/core/input-frame.js";
-import { applyInputFrame, createGame, replayFrames, snapshotGame } from "../../src/core/engine.js";
+import {
+  advanceGame,
+  applyInputFrame,
+  consumePointerFrame,
+  createGame,
+  replayFrames,
+  selectEntity,
+  snapshotGame,
+} from "../../src/core/engine.js";
 import { DEFAULT_RULES, mergeRules, rulesFingerprint } from "../../src/config/rules.js";
 
 const TOTAL_TICKS = 3_600;
@@ -176,4 +184,79 @@ test("replay metadata and fixed-tick pointer-only input cannot be weakened", () 
   applyInputFrame(state, { tick: 0, actionId: 0, type: "select", targetId: 1 });
   assert.equal(state.simulationFault?.code, "INPUT_TYPE_INVALID");
   assert.deepEqual(state.selectedIds, []);
+});
+
+test("pointer cancellation clears a selection without detonating it", () => {
+  const state = createGame(9, DEFAULT_RULES);
+  for (let index = 0; index < 3; index += 1) {
+    advanceGame(state, index, DEFAULT_RULES);
+    const entity = state.fireworks[index];
+    assert.ok(selectEntity(state, entity.id, DEFAULT_RULES, { x: entity.x, y: entity.y }));
+  }
+  advanceGame(state, 3, DEFAULT_RULES);
+  state.pointerPressed = true;
+  consumePointerFrame(state, {
+    type: "pointer",
+    pressed: false,
+    x: 0,
+    y: 0,
+    actionId: 12,
+    cancelled: true,
+  }, DEFAULT_RULES);
+  assert.deepEqual(state.selectedIds, []);
+  assert.equal(state.stats.detonationCount, 0);
+  assert.equal(state.score, 0);
+  assert.deepEqual(state.lastAction, {
+    type: "selection-cancelled",
+    reason: "pointer-cancelled",
+  });
+});
+
+test("a normal release with fewer than three selections clears them", () => {
+  const state = createGame(8, DEFAULT_RULES);
+  const entity = state.fireworks[0];
+  assert.ok(selectEntity(state, entity.id, DEFAULT_RULES, { x: entity.x, y: entity.y }));
+  state.pointerPressed = true;
+  consumePointerFrame(state, {
+    type: "pointer",
+    pressed: false,
+    x: entity.x,
+    y: entity.y,
+    actionId: 2,
+  }, DEFAULT_RULES);
+  assert.deepEqual(state.selectedIds, []);
+  assert.equal(state.stats.detonationCount, 0);
+  assert.equal(state.score, 0);
+});
+
+test("a normal release attributes every explosion to that release frame", () => {
+  const state = createGame(10, DEFAULT_RULES);
+  for (let index = 0; index < 3; index += 1) {
+    advanceGame(state, index, DEFAULT_RULES);
+    const entity = state.fireworks[index];
+    assert.ok(selectEntity(state, entity.id, DEFAULT_RULES, { x: entity.x, y: entity.y }));
+  }
+  advanceGame(state, 3, DEFAULT_RULES);
+  state.pointerPressed = true;
+  consumePointerFrame(state, {
+    type: "pointer",
+    pressed: false,
+    x: 0,
+    y: 0,
+    actionId: 12,
+  }, DEFAULT_RULES);
+  assert.ok(state.scoreEvents.length >= 3);
+  assert.ok(state.scoreEvents.every((event) => event.actionId === 12));
+});
+
+test("impossible cancellation markers are rejected", () => {
+  const frames = makeStrictFrames();
+  frames[50] = makeInputFrame(50, 50, "pointer", {
+    pressed: true,
+    x: 100,
+    y: 100,
+    cancelled: true,
+  });
+  assert.ok(validateInputFrames(frames, { maxTicks: TOTAL_TICKS }).some((entry) =>
+    entry?.codes?.includes("INPUT_MARKER_PRESSED")));
 });

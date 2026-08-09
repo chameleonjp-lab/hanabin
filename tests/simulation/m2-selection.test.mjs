@@ -127,6 +127,16 @@ test("cooldown is nine ticks and duplicate selection cannot add score twice", ()
   assert.equal(state.lastAction.reason, "cooldown");
   assert.equal(state.score, scoreAfterFirst);
   assert.equal(new Set(state.scoredTargetIds).size, state.scoredTargetIds.length);
+
+  advanceGame(state, 4, DEFAULT_RULES);
+  assert.equal(
+    selectEntity(state, 5, DEFAULT_RULES, { x: 9_060, y: 4_500 }),
+    null,
+    "cooldown blocks the next selection, not only the next detonation",
+  );
+  assert.deepEqual(state.selectedIds, []);
+  advanceGame(state, 12, DEFAULT_RULES);
+  assert.ok(selectEntity(state, 5, DEFAULT_RULES, { x: 9_060, y: 4_500 }));
 });
 
 test("selection ties use distance then front depth then id, and offscreen selections drop", () => {
@@ -168,5 +178,19 @@ test("selectEntity cannot bypass pointer hit and link geometry", () => {
     selectEntity(state, 2, DEFAULT_RULES, { x: 9_500, y: 4_500 }),
     null,
     "a hit outside the selection-link distance is rejected",
+  );
+});
+
+test("selection link distance follows the moving selected firework", () => {
+  const state = fixture([
+    makeFirework({ id: 1, x: 4_000, y: 4_500, vx: 100 }),
+    makeFirework({ id: 2, x: 10_100, y: 4_500 }),
+  ]);
+  assert.ok(selectEntity(state, 1, DEFAULT_RULES, { x: 4_000, y: 4_500 }));
+  advanceGame(state, 10, DEFAULT_RULES);
+  assert.equal(state.fireworks.find((entity) => entity.id === 1).x, 5_000);
+  assert.ok(
+    selectEntity(state, 2, DEFAULT_RULES, { x: 10_100, y: 4_500 }),
+    "the current 5,100-unit link is valid even though the acquisition point is 6,100 units away",
   );
 });

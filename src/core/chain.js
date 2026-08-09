@@ -33,8 +33,6 @@ export const resolveChain = (entities = [], options = {}) => {
   const ordered = [...entities].sort((left, right) => idCompare(left.id, right.id));
   const byId = new Map(ordered.map((entity) => [String(entity.id), entity]));
   const selectedIds = [...(options.selectedIds ?? [])].map(String).sort(idCompare);
-  const directX = Number.isInteger(options.directX) ? options.directX : 0;
-  const directY = Number.isInteger(options.directY) ? options.directY : 0;
   const events = [];
   const claimedTargets = new Set();
   let eventId = 0;
@@ -57,8 +55,8 @@ export const resolveChain = (entities = [], options = {}) => {
       sourceId: source.id,
       eventId,
       targetId: source.id,
-      x: directX,
-      y: directY,
+      x: source.x,
+      y: source.y,
       generation: 0,
       radius: directRadius,
       directRadius,
@@ -83,21 +81,19 @@ export const resolveChain = (entities = [], options = {}) => {
     for (const event of due) {
       const source = byId.get(String(event.targetId));
       if (!source) continue;
-      const originX = Number.isInteger(event.x) ? event.x : source.x;
-      const originY = Number.isInteger(event.y) ? event.y : source.y;
       for (const candidate of ordered) {
         const candidateId = String(candidate.id);
         if (claimedTargets.has(candidateId)) continue;
         const percent = candidate.color === source.color
           ? rules.sameColorRadius
           : rules.differentColorRadius;
-        const radius = Math.max(
+        const nextRadius = Math.max(
           attenuatedRadius(event.directRadius, rules.minimumRadius),
           attenuatedRadius(event.radius, percent),
         );
-        const candidateDistance = distanceSquared(originX, originY, candidate.x, candidate.y);
-        if (candidateDistance > radius * radius) continue;
-        proposals.push({ event, source, candidate, radius, candidateDistance });
+        const candidateDistance = distanceSquared(source.x, source.y, candidate.x, candidate.y);
+        if (candidateDistance > event.radius * event.radius) continue;
+        proposals.push({ event, source, candidate, nextRadius, candidateDistance });
       }
     }
     proposals.sort((left, right) =>
@@ -123,7 +119,7 @@ export const resolveChain = (entities = [], options = {}) => {
         x: proposal.candidate.x,
         y: proposal.candidate.y,
         generation: proposal.event.generation + 1,
-        radius: proposal.radius,
+        radius: proposal.nextRadius,
         directRadius: proposal.event.directRadius,
         radiusMultiplierPercent: proposal.event.radiusMultiplierPercent,
         durationMultiplierPercent: proposal.event.durationMultiplierPercent,

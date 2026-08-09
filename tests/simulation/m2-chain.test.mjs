@@ -95,3 +95,18 @@ test("chain propagation has a finite safety bound and does not score one target 
   const capture = competing.events.find((event) => event.targetId === 3);
   assert.equal(capture.sourceId, 1, "stable source order wins a same-tick competing claim");
 });
+
+test("the direct radius catches first-generation targets before attenuation", async () => {
+  const chain = await import("../../src/core/chain.js");
+  const result = chain.resolveChain([
+    { id: 1, color: 0, x: 1_000, y: 1_000, depth: 3 },
+    { id: 2, color: 0, x: 2_700, y: 1_000, depth: 2 },
+  ], {
+    selectedIds: [1],
+    tick: 0,
+    actionId: 7,
+  });
+  const captured = result.events.find((event) => event.targetId === 2);
+  assert.ok(captured, "1,700 is inside the direct 1,800 radius");
+  assert.equal(captured.radius, 1_620, "the caught same-color firework receives the 90% next radius");
+});

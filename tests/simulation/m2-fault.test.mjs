@@ -40,3 +40,9 @@ test("reversed action IDs become a deterministic fault and state validation stay
   assert.equal(state.simulationFault.code, "ACTION_ORDER");
   assert.deepEqual(validateGame(state), []);
 });
+
+test("state validation detects a score ledger mismatch", () => {
+  const state = createGame(0, DEFAULT_RULES);
+  state.score = 999;
+  assert.ok(validateGame(state).includes("SCORE_LEDGER_MISMATCH"));
+});

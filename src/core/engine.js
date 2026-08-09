@@ -252,7 +252,10 @@ export const advanceGame = (state, targetTick, rulesArg = DEFAULT_RULES) => {
       ? Number.POSITIVE_INFINITY
       : state.selectionSinceTick + rules.selectionTimeoutTicks;
     const chainFireTick = state.chainQueue[0]?.fireTick ?? Number.POSITIVE_INFINITY;
-    const nextTick = Math.min(waveFireTick, timeoutTick, chainFireTick);
+    const activeExplosionTick = state.activeExplosions.length
+      ? state.tick + 1
+      : Number.POSITIVE_INFINITY;
+    const nextTick = Math.min(waveFireTick, timeoutTick, chainFireTick, activeExplosionTick);
     if (nextTick > targetTick || nextTick > rules.maxTicks || nextTick <= state.tick) break;
     refreshAt(state, nextTick, rules);
     processChainQueue(state, nextTick, rules);
@@ -283,14 +286,18 @@ export const stepGame = (state, ticks = 1, rules = DEFAULT_RULES) => {
 
 const candidateList = (state, x, y, color, rules) => {
   if (!finiteInteger(x) || !finiteInteger(y)) return [];
+  if (state.tick < state.cooldownUntilTick) return [];
   const hitRadiusSquared = rules.selectionHitRadius * rules.selectionHitRadius;
   const linkRadiusSquared = rules.selectionLinkDistance * rules.selectionLinkDistance;
   const lockedColor = state.selectedColor !== null && rules.selectionSameColor
     ? state.selectedColor
     : color;
-  const hasLinkOrigin = finiteInteger(state.lastAcquisitionX) && finiteInteger(state.lastAcquisitionY);
-  const linkX = state.lastAcquisitionX;
-  const linkY = state.lastAcquisitionY;
+  const lastSelected = state.selectedIds.length
+    ? getEntity(state, state.selectedIds[state.selectedIds.length - 1])
+    : null;
+  const linkX = lastSelected?.x ?? state.lastAcquisitionX;
+  const linkY = lastSelected?.y ?? state.lastAcquisitionY;
+  const hasLinkOrigin = finiteInteger(linkX) && finiteInteger(linkY);
   return activeEntities(state)
     .filter((entity) => entity.visible)
     .filter((entity) => lockedColor === undefined || entity.color === lockedColor)
@@ -330,6 +337,10 @@ export const selectEntity = (state, id, rulesArg = DEFAULT_RULES, acquisition = 
   const rules = mergeRules(rulesArg);
   if (state.simulationFault) return null;
   startGame(state);
+  if (state.tick < state.cooldownUntilTick) {
+    ignore(state, "cooldown", { id });
+    return null;
+  }
   const entity = getEntity(state, id);
   if (!entity || entity.status !== "active") {
     ignore(state, "target-not-active", { id });
@@ -369,8 +380,10 @@ export const selectEntity = (state, id, rulesArg = DEFAULT_RULES, acquisition = 
   state.selectedIds.push(entity.id);
   state.selectionRecords.push({
     id: entity.id,
-    x: finiteInteger(acquisition.x) ? acquisition.x : entity.x,
-    y: finiteInteger(acquisition.y) ? acquisition.y : entity.y,
+    x: entity.x,
+    y: entity.y,
+    pointerX: acquisition.x,
+    pointerY: acquisition.y,
     acquiredTick: state.tick,
   });
   state.lastAcquisitionX = state.selectionRecords[state.selectionRecords.length - 1].x;
@@ -389,13 +402,32 @@ export const selectEntity = (state, id, rulesArg = DEFAULT_RULES, acquisition = 
  */
 export const consumePointerFrame = (state, frame, rulesArg = DEFAULT_RULES) => {
   const rules = mergeRules(rulesArg);
+  const cancellationReason = frame.cancelled === true
+    ? "pointer-cancelled"
+    : (frame.interrupted === true ? "pointer-interrupted" : null);
+  if (cancellationReason) {
+    state.pointerPressed = false;
+    state.hoverCandidateId = null;
+    state.hoverTicks = 0;
+    clearSelectionState(state, cancellationReason);
+    state.lastAction = { type: "selection-cancelled", reason: cancellationReason };
+    return null;
+  }
   if (frame.pressed !== true) {
     const wasPressed = state.pointerPressed;
     state.pointerPressed = false;
     state.hoverCandidateId = null;
     state.hoverTicks = 0;
-    if (wasPressed && state.selectedIds.length >= rules.minSelection) {
-      detonate(state, rules, state.actionCount);
+    if (wasPressed && state.selectedIds.length) {
+      if (state.selectedIds.length >= rules.minSelection) {
+        const detonated = detonate(state, rules, frame.actionId);
+        if (!detonated && state.selectedIds.length) {
+          clearSelectionState(state, "release-rejected");
+        }
+      } else {
+        clearSelectionState(state, "release-below-minimum");
+        state.lastAction = { type: "selection-cleared", reason: "release-below-minimum" };
+      }
     }
     return null;
   }
@@ -442,7 +474,7 @@ const scoreTarget = (state, target, sourceColor, event, rules) => {
   if (!target || target.status !== "active" || state.scoredTargetIds.some((id) => idKey(id) === idKey(target.id))) {
     return false;
   }
-  if (state.scoreEvents.length >= rules.maxScoreEvents) {
+  if (state.scoreEvents.length + state.bonusEvents.length >= rules.maxScoreEvents) {
     setFault(state, "SCORE_EVENT_LIMIT", "score event limit exceeded", {
       actionId: event.actionId,
     });
@@ -493,10 +525,18 @@ const scoreTarget = (state, target, sourceColor, event, rules) => {
     eventId: event.eventId,
     sourceId: event.sourceId,
     targetId: target.id,
+    originX: target.x,
+    originY: target.y,
+    sourceColor: target.color,
     fireTick: event.fireTick,
     endTick: event.fireTick + explosionDurationTicks,
     durationTicks: explosionDurationTicks,
     radius: event.radius,
+    directRadius: event.directRadius ?? event.radius,
+    depth: event.depth,
+    chainStartTick: event.chainStartTick,
+    radiusMultiplierPercent: event.radiusMultiplierPercent,
+    durationMultiplierPercent: event.durationMultiplierPercent,
     kind: event.kind,
   });
   state.score += amount;
@@ -529,6 +569,88 @@ const enqueueChainEvent = (state, event, rules) => {
   state.queuedTargetIds.push(event.targetId);
   state.chainQueue.sort(compareCollisionEvents);
   return true;
+};
+
+const collectActiveExplosionHits = (state, tick, rules) => {
+  if (!state.activeExplosions.length || state.simulationFault) return;
+  const snapshot = activeEntities(state)
+    .map((entity) => ({
+      id: entity.id,
+      color: entity.color,
+      x: entity.x,
+      y: entity.y,
+      depth: entity.depth,
+    }))
+    .sort((left, right) => compareIds(left.id, right.id));
+  const unavailable = new Set([
+    ...state.scoredTargetIds.map(idKey),
+    ...state.queuedTargetIds.map(idKey),
+  ]);
+  const proposals = [];
+  const explosions = [...state.activeExplosions].sort((left, right) =>
+    left.fireTick - right.fireTick ||
+    left.actionId - right.actionId ||
+    compareIds(left.targetId, right.targetId) ||
+    left.eventId - right.eventId,
+  );
+  for (const explosion of explosions) {
+    for (const candidate of snapshot) {
+      const candidateKey = idKey(candidate.id);
+      if (candidateKey === idKey(explosion.targetId) || unavailable.has(candidateKey)) continue;
+      const ratio = candidate.color === explosion.sourceColor
+        ? rules.sameColorRadius / 100
+        : rules.differentColorRadius / 100;
+      const nextRadius = Math.max(
+        Math.round(explosion.directRadius * (rules.minimumRadius / 100)),
+        Math.round(explosion.radius * ratio),
+      );
+      const candidateDistance = distanceSquared(
+        explosion.originX,
+        explosion.originY,
+        candidate.x,
+        candidate.y,
+      );
+      if (candidateDistance > explosion.radius * explosion.radius) continue;
+      proposals.push({ explosion, candidate, nextRadius, candidateDistance });
+    }
+  }
+  proposals.sort((left, right) =>
+    left.explosion.fireTick - right.explosion.fireTick ||
+    left.explosion.actionId - right.explosion.actionId ||
+    compareIds(left.explosion.targetId, right.explosion.targetId) ||
+    left.explosion.eventId - right.explosion.eventId ||
+    left.candidateDistance - right.candidateDistance ||
+    right.candidate.depth - left.candidate.depth ||
+    compareIds(left.candidate.id, right.candidate.id),
+  );
+  const proposedTargets = new Set();
+  for (const proposal of proposals) {
+    const candidateKey = idKey(proposal.candidate.id);
+    if (proposedTargets.has(candidateKey) || unavailable.has(candidateKey)) continue;
+    proposedTargets.add(candidateKey);
+    const childEventId = state.eventCount + 1;
+    state.eventCount = childEventId;
+    enqueueChainEvent(state, {
+      fireTick: tick + 1,
+      actionId: proposal.explosion.actionId,
+      sourceId: proposal.explosion.targetId,
+      eventId: childEventId,
+      targetId: proposal.candidate.id,
+      originX: proposal.candidate.x,
+      originY: proposal.candidate.y,
+      sourceColor: proposal.candidate.color,
+      scoreSourceColor: proposal.explosion.sourceColor,
+      depth: proposal.explosion.depth + 1,
+      kind: "chain",
+      radius: proposal.nextRadius,
+      directRadius: proposal.explosion.directRadius,
+      radiusMultiplierPercent: proposal.explosion.radiusMultiplierPercent,
+      durationMultiplierPercent: proposal.explosion.durationMultiplierPercent,
+      explosionDurationTicks: proposal.explosion.durationTicks,
+      chainStartTick: proposal.explosion.chainStartTick,
+    }, rules);
+    if (state.simulationFault) return;
+  }
 };
 
 /**
@@ -593,76 +715,13 @@ const processChainQueue = (state, tick, rules) => {
       state.chainEvents.push({ ...event });
     }
 
-    // Collect every next-generation collision against the same snapshot.
-    const proposals = [];
-    const unavailable = new Set([
-      ...state.scoredTargetIds.map(idKey),
-      ...state.queuedTargetIds.map(idKey),
-    ]);
-    for (const { event, target: source } of confirmed) {
-      for (const candidate of snapshot) {
-        const candidateKey = idKey(candidate.id);
-        if (candidateKey === idKey(source.id) || unavailable.has(candidateKey)) continue;
-        const ratio = candidate.color === source.color
-          ? rules.sameColorRadius / 100
-          : rules.differentColorRadius / 100;
-        const radius = Math.max(
-          Math.round((event.directRadius ?? event.radius) * (rules.minimumRadius / 100)),
-          Math.round(event.radius * ratio),
-        );
-        const candidateDistance = distanceSquared(
-          event.originX,
-          event.originY,
-          candidate.x,
-          candidate.y,
-        );
-        if (candidateDistance > radius * radius) continue;
-        proposals.push({ event, source, candidate, radius, candidateDistance });
-      }
-    }
-    proposals.sort((left, right) =>
-      left.event.fireTick - right.event.fireTick ||
-      left.event.actionId - right.event.actionId ||
-      compareIds(left.source.id, right.source.id) ||
-      left.event.eventId - right.event.eventId ||
-      left.candidateDistance - right.candidateDistance ||
-      right.candidate.depth - left.candidate.depth ||
-      compareIds(left.candidate.id, right.candidate.id),
-    );
-    const proposedTargets = new Set();
-    for (const proposal of proposals) {
-      const candidateKey = idKey(proposal.candidate.id);
-      if (proposedTargets.has(candidateKey) || unavailable.has(candidateKey)) continue;
-      proposedTargets.add(candidateKey);
-      const childEventId = state.eventCount + 1;
-      state.eventCount = childEventId;
-      enqueueChainEvent(state, {
-        fireTick: proposal.event.fireTick + 1,
-        actionId: proposal.event.actionId,
-        sourceId: proposal.source.id,
-        eventId: childEventId,
-        targetId: proposal.candidate.id,
-        originX: proposal.candidate.x,
-        originY: proposal.candidate.y,
-        sourceColor: proposal.candidate.color,
-        scoreSourceColor: proposal.source.color,
-        depth: proposal.event.depth + 1,
-        kind: "chain",
-        radius: proposal.radius,
-        directRadius: proposal.event.directRadius ?? proposal.event.radius,
-        radiusMultiplierPercent: proposal.event.radiusMultiplierPercent,
-        durationMultiplierPercent: proposal.event.durationMultiplierPercent,
-        explosionDurationTicks: proposal.event.explosionDurationTicks,
-        chainStartTick: proposal.event.chainStartTick,
-      }, rules);
-      if (state.simulationFault) return;
-    }
   }
   for (const moving of state.fireworks) {
     if (moving.status === "active") updateEntityPosition(moving, tick, rules);
   }
   dropInvisibleSelections(state, rules);
   state.activeExplosions = state.activeExplosions.filter((explosion) => explosion.endTick > tick);
+  collectActiveExplosionHits(state, tick, rules);
 };
 
 /**
@@ -678,7 +737,7 @@ const resolveTerminalChain = (state, rules) => {
     state.activeExplosions = [];
     return;
   }
-  for (let resolutionTick = startTick;
+  for (let resolutionTick = startTick + 1;
     resolutionTick <= limitTick && !state.simulationFault;
     resolutionTick += 1) {
     if (!state.chainQueue.length && !state.activeExplosions.length) break;
@@ -744,8 +803,8 @@ const triggerChain = (state, selectedRecords, actionId, rules) => {
       sourceId: source.id,
       eventId,
       targetId: source.id,
-      originX: record.x,
-      originY: record.y,
+      originX: source.x,
+      originY: source.y,
       sourceColor: source.color,
       scoreSourceColor: source.color,
       depth: 0,
@@ -774,8 +833,29 @@ export const detonate = (state, rulesArg = DEFAULT_RULES, actionId = state.actio
   state.maxCombo = Math.max(state.maxCombo, state.combo);
   state.stats.detonationCount += 1;
   const exploded = triggerChain(state, selectedRecords, actionId, rules);
-  state.score += scoreForPreparation(selectedRecords.length, rules) +
-    rules.detonationBonus + Math.max(0, state.combo - 1) * rules.comboBonus;
+  const preparationAmount = scoreForPreparation(selectedRecords.length, rules);
+  const detonationAmount = rules.detonationBonus;
+  const comboAmount = Math.max(0, state.combo - 1) * rules.comboBonus;
+  const bonusAmount = preparationAmount + detonationAmount + comboAmount;
+  if (bonusAmount > 0) {
+    if (state.scoreEvents.length + state.bonusEvents.length >= rules.maxScoreEvents) {
+      setFault(state, "SCORE_EVENT_LIMIT", "score event limit exceeded", { actionId });
+      return false;
+    }
+    state.eventCount += 1;
+    state.bonusEvents.push({
+      actionId,
+      eventId: state.eventCount,
+      fireTick: state.tick,
+      kind: "action-bonus",
+      selectedCount: selectedRecords.length,
+      preparationAmount,
+      detonationAmount,
+      comboAmount,
+      amount: bonusAmount,
+    });
+    state.score += bonusAmount;
+  }
   state.lastDetonationTick = state.tick;
   state.cooldownUntilTick = state.tick + rules.cooldownTicks;
   clearSelectionState(state, "detonate");

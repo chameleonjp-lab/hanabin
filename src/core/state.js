@@ -46,6 +46,7 @@ export const createInitialState = (seed = 1, rules = DEFAULT_RULES) => {
     queuedTargetIds: [],
     chainEvents: [],
     scoreEvents: [],
+    bonusEvents: [],
     scoredTargetIds: [],
     actionCaughtCounts: {},
     inputFrames: [],
@@ -143,15 +144,37 @@ export const validateState = (state, rules = DEFAULT_RULES) => {
     !isInteger(count) || count < 0)) {
     errors.push("ACTION_CAUGHT_COUNT_INVALID");
   }
-  if (!Array.isArray(state.scoreEvents) || !Array.isArray(state.scoredTargetIds)) {
+  if (!Array.isArray(state.scoreEvents) || !Array.isArray(state.bonusEvents) ||
+      !Array.isArray(state.scoredTargetIds)) {
     errors.push("SCORE_EVENTS_INVALID");
   } else {
     const scored = state.scoreEvents.map((event) => String(event.targetId));
     if (new Set(scored).size !== scored.length) errors.push("SCORE_TARGET_DUPLICATE");
-    if (state.scoreEvents.length > resolvedRules.maxScoreEvents) errors.push("SCORE_EVENT_LIMIT");
+    const scoredIds = new Set(state.scoredTargetIds.map(String));
+    if (scoredIds.size !== state.scoredTargetIds.length) errors.push("SCORED_TARGET_ID_DUPLICATE");
+    if (scored.length !== scoredIds.size || scored.some((id) => !scoredIds.has(id))) {
+      errors.push("SCORED_TARGET_LEDGER_MISMATCH");
+    }
+    if (state.scoreEvents.length + state.bonusEvents.length > resolvedRules.maxScoreEvents) {
+      errors.push("SCORE_EVENT_LIMIT");
+    }
+    const ledger = [...state.scoreEvents, ...state.bonusEvents];
+    if (ledger.some((event) => !isInteger(event.amount) || event.amount < 0)) {
+      errors.push("SCORE_EVENT_AMOUNT_INVALID");
+    }
+    const ledgerScore = ledger.reduce((sum, event) => sum + event.amount, 0);
+    if (ledgerScore !== state.score) errors.push("SCORE_LEDGER_MISMATCH");
   }
   if (!Array.isArray(state.chainQueue) || state.chainQueue.length > resolvedRules.maxConcurrentExplosions) {
     errors.push("CHAIN_QUEUE_LIMIT");
+  } else {
+    const queueTargets = state.chainQueue.map((event) => String(event.targetId));
+    if (new Set(queueTargets).size !== queueTargets.length) errors.push("CHAIN_QUEUE_TARGET_DUPLICATE");
+    const queuedIds = Array.isArray(state.queuedTargetIds) ? state.queuedTargetIds.map(String) : [];
+    if (new Set(queuedIds).size !== queuedIds.length) errors.push("QUEUED_TARGET_ID_DUPLICATE");
+    if (queueTargets.length !== queuedIds.length || queueTargets.some((id) => !queuedIds.includes(id))) {
+      errors.push("CHAIN_QUEUE_LEDGER_MISMATCH");
+    }
   }
   if (!Array.isArray(state.chainEvents) || state.chainEvents.length > resolvedRules.maxChainEvents) {
     errors.push("CHAIN_EVENT_LIMIT");
@@ -175,6 +198,7 @@ export const validateState = (state, rules = DEFAULT_RULES) => {
   if (state.simulationFault !== null && typeof state.simulationFault !== "object") {
     errors.push("FAULT_SHAPE");
   }
+  if (state.tick !== state.timeTick) errors.push("GAME_CLOCK_MISMATCH");
   return [...new Set(errors)];
 };
 

@@ -39,6 +39,11 @@ const assertSafetyShape = (safety, seedCount) => {
   assert.equal(safety.processedSeeds, seedCount);
   assert.equal(safety.faults, 0);
   assert.equal(safety.invalidStates, 0);
+  assert.equal(safety.unselectableWaves, 0);
+  assert.equal(safety.exactOverlapViolations, 0);
+  assert.equal(safety.forecastMismatches, 0);
+  assert.equal(safety.generationRuleViolations, 0);
+  assert.equal(safety.strategyRngLeaks, 0);
 };
 
 test("small comparison and safety inspection expose bounded public results", async () => {

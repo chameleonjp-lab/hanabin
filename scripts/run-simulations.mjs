@@ -1,6 +1,9 @@
 import { performance } from "node:perf_hooks";
 import { appendFileSync, writeFileSync } from "node:fs";
-import { compareStrategies, runSafetySweep } from "../src/core/simulation.js";
+import { replayGame } from "../src/core/replay.js";
+import { compareStrategies, runSafetySweep, runSimulation } from "../src/core/simulation.js";
+import { stateFingerprint } from "../src/core/state.js";
+import { STRATEGY_NAMES } from "../src/core/strategies.js";
 
 const startedAt = performance.now();
 const safetyStartedAt = performance.now();
@@ -9,6 +12,17 @@ const safetyElapsedMs = performance.now() - safetyStartedAt;
 const comparisonStartedAt = performance.now();
 const comparison = compareStrategies({ seedCount: 1_000 });
 const comparisonElapsedMs = performance.now() - comparisonStartedAt;
+const replayAudit = STRATEGY_NAMES.map((strategy) => {
+  const simulation = runSimulation(0, { strategy });
+  const replayed = replayGame(simulation.replay);
+  return {
+    strategy,
+    score: simulation.score,
+    replayScore: replayed.state.score,
+    finalStateMatched: !replayed.simulationFault &&
+      stateFingerprint(simulation.state) === stateFingerprint(replayed.state),
+  };
+});
 
 // The core API keeps compatibility fields for callers, but the CI artifact
 // contains only O(1) aggregate evidence rather than 7,000 per-case records.
@@ -26,6 +40,14 @@ const compact = {
     maxChain: safety.maxChain,
     maxChainDurationTicks: safety.maxChainDurationTicks,
     waveCounts: safety.waveCounts,
+    generatedWavesInspected: safety.generatedWavesInspected,
+    unselectableWaves: safety.unselectableWaves,
+    unselectableSeeds: safety.unselectableSeeds,
+    exactOverlapViolations: safety.exactOverlapViolations,
+    forecastMismatches: safety.forecastMismatches,
+    generationRuleViolations: safety.generationRuleViolations,
+    strategyRngLeaks: safety.strategyRngLeaks,
+    maxSelectableWaveGapTicks: safety.maxSelectableWaveGapTicks,
     ok: safety.ok,
     elapsedMs: safetyElapsedMs,
   },
@@ -40,6 +62,7 @@ const compact = {
     elapsedMs: comparisonElapsedMs,
     byStrategy: comparison.byStrategy,
   },
+  replayAudit,
   elapsedMs: performance.now() - startedAt,
 };
 const report = `${JSON.stringify(compact, null, 2)}\n`;
@@ -50,9 +73,13 @@ if (process.env.GITHUB_STEP_SUMMARY) {
     "## M2 deterministic simulation gate",
     "",
     `- Safety: ${safety.processedSeeds} seeds / ${safety.faults} faults / ${safety.invalidStates} invalid states`,
+    `- Generation: ${safety.generatedWavesInspected} waves / ${safety.unselectableWaves} unselectable / ${safety.exactOverlapViolations} exact overlaps`,
     `- Comparison: ${comparison.processedRuns} runs / ${comparison.strategyCount} strategies`,
+    `- Replay audit: ${replayAudit.filter((entry) => entry.finalStateMatched).length}/${replayAudit.length} strategies matched`,
     `- Elapsed: ${(compact.elapsedMs / 1000).toFixed(1)} seconds`,
     "",
   ].join("\n"), "utf8");
 }
-if (!safety.ok || !comparison.ok) process.exitCode = 1;
+if (!safety.ok || !comparison.ok || replayAudit.some((entry) => !entry.finalStateMatched)) {
+  process.exitCode = 1;
+}
