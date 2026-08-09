@@ -1,0 +1,176 @@
+:root {
+  color-scheme: dark;
+  --bg: #080b18;
+  --surface: #11162a;
+  --surface-strong: #18213c;
+  --text: #f7f8ff;
+  --muted: #bac2db;
+  --accent: #79d9ff;
+  --danger: #ff9b9b;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  background: var(--bg);
+}
+
+body {
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(55, 104, 178, 0.22), transparent 48%),
+    var(--bg);
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.app-shell {
+  display: grid;
+  min-height: calc(100vh - var(--safe-top) - var(--safe-bottom));
+  min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+  min-width: 0;
+  place-items: center;
+  padding: clamp(16px, 5vw, 48px);
+}
+
+.app-card {
+  width: min(100%, 920px);
+  min-width: 0;
+  padding: clamp(20px, 5vw, 48px);
+  border: 1px solid rgba(155, 186, 255, 0.18);
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(24, 33, 60, 0.96), rgba(11, 15, 31, 0.96));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+h1,
+h2,
+p {
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(1.45rem, 5vw, 2.5rem);
+  line-height: 1.2;
+}
+
+.status {
+  min-height: 1.6em;
+  margin: 14px 0 24px;
+  color: var(--muted);
+}
+
+.foundation-stage {
+  display: grid;
+  width: min(100%, 700px);
+  aspect-ratio: 16 / 9;
+  margin: 0 auto;
+  place-items: center;
+  border: 1px solid rgba(121, 217, 255, 0.32);
+  border-radius: 18px;
+  background:
+    linear-gradient(115deg, transparent 0 48%, rgba(121, 217, 255, 0.07) 49% 51%, transparent 52%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 24px),
+    var(--surface);
+  color: var(--muted);
+  font-size: clamp(0.8rem, 2.2vw, 1rem);
+}
+
+.orientation-guide {
+  margin: 18px auto 0;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 208, 120, 0.45);
+  border-radius: 12px;
+  background: rgba(112, 75, 24, 0.28);
+  color: #ffe5a9;
+}
+
+.notice {
+  max-width: 44rem;
+  margin: 20px auto 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.app-error {
+  position: fixed;
+  right: max(16px, var(--safe-right));
+  bottom: max(16px, var(--safe-bottom));
+  left: max(16px, var(--safe-left));
+  z-index: 10;
+  width: min(100% - 32px, 520px);
+  margin: 0 auto;
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 155, 155, 0.5);
+  border-radius: 14px;
+  background: rgba(70, 22, 34, 0.96);
+  color: var(--text);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+.app-error h2 {
+  margin: 0 0 6px;
+  color: var(--danger);
+  font-size: 1rem;
+}
+
+.app-error p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.app-error--noscript {
+  position: static;
+  width: auto;
+  margin: 16px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 480px) {
+  .app-shell {
+    padding: 14px;
+  }
+
+  .app-card {
+    padding: 20px 16px;
+    border-radius: 18px;
+  }
+}
