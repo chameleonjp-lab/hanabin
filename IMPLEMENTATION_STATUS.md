@@ -1,16 +1,16 @@
 # HANABIN 実装進捗
 
 - 更新日: 2026年8月9日
-- MVP進捗: **1/7**
-- 現在地: M2 決定的コアと簡易シミュレーターのDraft Pull Request [#5](https://github.com/chameleonjp-lab/hanabin/pull/5)を確認中
-- 実装コード: M1が`main`へマージ済み。M2は全量Node検査成功、承認・マージ前
+- MVP進捗: **2/7**（M2補修の確認中）
+- 現在地: M2はPull Request [#5](https://github.com/chameleonjp-lab/hanabin/pull/5)で`main`へマージ済み。独立レビュー補修のDraft Pull Request [#6](https://github.com/chameleonjp-lab/hanabin/pull/6)を確認中
+- 実装コード: M1とM2が`main`へマージ済み。M2補修は全量Node検査成功、承認・マージ前
 
 ## MVP工程
 
 | 工程 | 内容 | 状態 | Pull Request |
 |---|---|---|---|
 | M1 | 静的基盤と自動試験 | 完了（`main`へマージ済み） | [#4](https://github.com/chameleonjp-lab/hanabin/pull/4) |
-| M2 | 決定的ゲーム判定と簡易シミュレーター | Draft・独立レビュー補修後の全量検査成功（承認・マージ前） | [#5](https://github.com/chameleonjp-lab/hanabin/pull/5) |
+| M2 | 決定的ゲーム判定と簡易シミュレーター | 完了（`main`へマージ済み）・独立レビュー補修をDraftで確認中 | [#5](https://github.com/chameleonjp-lab/hanabin/pull/5) / [#6](https://github.com/chameleonjp-lab/hanabin/pull/6) |
 | M3 | 円表示で遊べるブラウザ版 | 未開始 | — |
 | M4 | 抜け道対策とゲーム設計審査 | 未開始 | — |
 | M5 | 本作独自の花火表現と性能対策 | 未開始 | — |
@@ -45,4 +45,4 @@
 
 ## 次の作業
 
-Draft Pull Request [#5](https://github.com/chameleonjp-lab/hanabin/pull/5)の補修headで、GitHub ActionsのNode 22/24、全量シミュレーション、厳格な再生成果物、既存ブラウザ回帰を確認する。Ready化とマージはユーザー本人の明示指示まで行わない。M3ではこの純粋なコアへブラウザ入力と表示を接続する。
+Draft Pull Request [#6](https://github.com/chameleonjp-lab/hanabin/pull/6)の補修headで、GitHub ActionsのNode 22/24、全量シミュレーション、厳格な再生成果物、既存ブラウザ回帰を確認対象とする。Ready化とマージはユーザー本人の明示指示まで行わない。M3ではこの純粋なコアへブラウザ入力と表示を接続する。
