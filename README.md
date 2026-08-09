@@ -56,5 +56,5 @@ M1の静的基盤は`main`へマージ済みです。現在はM2の決定的な�
 - 敵対的検証: 反映済み
 - 実装実行計画: 確認済み
 - M1実装: Pull Request [#4](https://github.com/chameleonjp-lab/hanabin/pull/4)を`main`へマージ済み
-- M2実装: Draft Pull Request [#5](https://github.com/chameleonjp-lab/hanabin/pull/5)。Node契約試験、10,000 seed安全検査、1,000 seed×7戦略比較が成功
+- M2実装: Draft Pull Request [#5](https://github.com/chameleonjp-lab/hanabin/pull/5)。独立レビュー補修後のNode契約試験、10,000 seed・20万波安全検査、1,000 seed×7戦略比較、7戦略再生監査が成功
 - MVP実装: 1/7

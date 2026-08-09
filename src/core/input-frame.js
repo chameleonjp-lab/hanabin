@@ -88,6 +88,15 @@ export const validateInputFrame = (frame, {
         errors.push("INPUT_MARKER_INVALID");
       }
     }
+    if (source.cancelled === true && source.interrupted === true) {
+      errors.push("INPUT_MARKER_CONFLICT");
+    }
+    if ((source.cancelled === true || source.interrupted === true) && source.pressed !== false) {
+      errors.push("INPUT_MARKER_PRESSED");
+    }
+    if (source.type === "noop" && (source.cancelled === true || source.interrupted === true)) {
+      errors.push("NOOP_INPUT_MARKER");
+    }
   }
   for (const key of ["tick", "actionId", "x", "y", "radius"]) {
     if (hasOwn(source, key) && typeof source[key] === "number" && !Number.isFinite(source[key])) {

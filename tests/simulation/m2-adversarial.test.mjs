@@ -103,7 +103,83 @@ test("the first chain capture scores 150 plus the fourth-target inclusion bonus"
   assert.equal(state.score, 490);
 });
 
-test("a firework captured by an older chain is removed from the newer selection", () => {
+test("engine collision uses each selected firework center and the full direct radius", () => {
+  const state = createGame(320);
+  state.fireworks = [
+    firework(1, 2_000),
+    firework(2, 4_000),
+    firework(3, 6_000),
+    firework(4, 7_700),
+  ];
+  state.pendingEntities = [];
+  state.waves = [];
+  state.nextWaveIndex = DEFAULT_RULES.maxWaves;
+  for (let index = 0; index < 3; index += 1) {
+    advanceGame(state, index, DEFAULT_RULES);
+    assert.ok(selectEntity(state, index + 1, DEFAULT_RULES, {
+      x: 2_000 + index * 2_000,
+      y: 4_500,
+    }));
+  }
+  advanceGame(state, 3, DEFAULT_RULES);
+  assert.equal(detonate(state, DEFAULT_RULES), true);
+  advanceGame(state, 4, DEFAULT_RULES);
+  const capture = state.chainEvents.find((event) => event.targetId === 4);
+  assert.ok(capture, "a same-color target at 1,700 is inside the direct radius");
+  assert.equal(capture.radius, 1_620, "attenuation applies to the caught target's next explosion");
+
+  const shifted = createGame(321);
+  shifted.fireworks = [
+    firework(1, 2_000),
+    firework(2, 4_000),
+    firework(3, 6_000),
+    firework(4, 8_220),
+  ];
+  shifted.pendingEntities = [];
+  shifted.waves = [];
+  shifted.nextWaveIndex = DEFAULT_RULES.maxWaves;
+  for (let index = 0; index < 3; index += 1) {
+    advanceGame(shifted, index, DEFAULT_RULES);
+    assert.ok(selectEntity(shifted, index + 1, DEFAULT_RULES, {
+      x: 2_420 + index * 2_000,
+      y: 4_500,
+    }));
+  }
+  advanceGame(shifted, 3, DEFAULT_RULES);
+  assert.equal(detonate(shifted, DEFAULT_RULES), true);
+  advanceGame(shifted, 4, DEFAULT_RULES);
+  assert.equal(
+    shifted.scoreEvents.some((event) => event.targetId === 4),
+    false,
+    "touching the edge of a hit area cannot shift the explosion center by 420 units",
+  );
+});
+
+test("a moving firework entering an active explosion is captured", () => {
+  const state = createGame(319);
+  state.fireworks = [
+    firework(1, 4_000),
+    firework(2, 4_060),
+    firework(3, 4_120),
+    { ...firework(4, 6_500), vx: -100, baseX: 6_500 },
+  ];
+  state.pendingEntities = [];
+  state.waves = [];
+  state.nextWaveIndex = DEFAULT_RULES.maxWaves;
+  for (let index = 0; index < 3; index += 1) {
+    advanceGame(state, index, DEFAULT_RULES);
+    const entity = state.fireworks[index];
+    assert.ok(selectEntity(state, entity.id, DEFAULT_RULES, { x: entity.x, y: entity.y }));
+  }
+  advanceGame(state, 3, DEFAULT_RULES);
+  assert.equal(detonate(state, DEFAULT_RULES), true);
+  advanceGame(state, 5, DEFAULT_RULES);
+  assert.equal(state.scoreEvents.some((event) => event.targetId === 4), false);
+  advanceGame(state, 7, DEFAULT_RULES);
+  assert.equal(state.scoreEvents.some((event) => event.targetId === 4), true);
+});
+
+test("a firework captured by an older chain cannot become a newer selection", () => {
   const state = createGame(322);
   state.fireworks = [
     firework(1, 4_000),
@@ -120,7 +196,7 @@ test("a firework captured by an older chain is removed from the newer selection"
   }
   advanceGame(state, 3, DEFAULT_RULES);
   detonate(state, DEFAULT_RULES);
-  assert.ok(selectEntity(state, 4, DEFAULT_RULES, { x: 4_300, y: 4_500 }));
+  assert.equal(selectEntity(state, 4, DEFAULT_RULES, { x: 4_300, y: 4_500 }), null);
   advanceGame(state, 4, DEFAULT_RULES);
   assert.deepEqual(state.selectedIds, []);
   assert.equal(state.scoreEvents.filter((event) => event.targetId === 4).length, 1);

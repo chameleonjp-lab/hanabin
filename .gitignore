@@ -2,4 +2,5 @@ node_modules/
 playwright-report/
 test-results/
 m2-simulation-report.json
+m2-strict-replay.json
 .DS_Store

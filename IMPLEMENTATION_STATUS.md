@@ -10,7 +10,7 @@
 | 工程 | 内容 | 状態 | Pull Request |
 |---|---|---|---|
 | M1 | 静的基盤と自動試験 | 完了（`main`へマージ済み） | [#4](https://github.com/chameleonjp-lab/hanabin/pull/4) |
-| M2 | 決定的ゲーム判定と簡易シミュレーター | Draft・全量Node検査成功（承認・マージ前） | [#5](https://github.com/chameleonjp-lab/hanabin/pull/5) |
+| M2 | 決定的ゲーム判定と簡易シミュレーター | Draft・独立レビュー補修後の全量検査成功（承認・マージ前） | [#5](https://github.com/chameleonjp-lab/hanabin/pull/5) |
 | M3 | 円表示で遊べるブラウザ版 | 未開始 | — |
 | M4 | 抜け道対策とゲーム設計審査 | 未開始 | — |
 | M5 | 本作独自の花火表現と性能対策 | 未開始 | — |
@@ -36,11 +36,13 @@
 ## M2の確認結果
 
 - `src/config`と`src/core`にDOM・Canvas・壁時計・環境乱数へ依存しない決定的判定層を追加。
-- 4色、整数盤面、60Hz/3600tick、6波、次の2波予告、最初の指、3tick保持・1tick1取得、選択リンク、画面外解除、二段階衝突、爆発連鎖、重複防止、仮得点式を実装。
+- 4色、整数盤面、60Hz/3600tick、6波、次の2波予告、最初の指、3tick保持・1tick1取得、選択リンク、二段階衝突、持続中の爆発連鎖、重複防止、仮得点式を実装。
+- 独立レビューで見つかった直接半径の早すぎる減衰、指位置への爆発中心ずれ、cooldown中の取得、取消時の誤起爆、2個以下の選択残留、連鎖actionIdの1ずれを補修。
 - seed、ルール版、入力スキーマ版、全判定値のルール指紋、3600フレームを含む厳格な入力再生と`simulationFault`を実装。
-- 10,000 seed安全検査はfault・不変条件違反・再現差分0。1,000 seed×7戦略も全戦略fault・不変条件違反0。
-- `docs/GAMEPLAY_GATE_1.md`へ全量分布と、最短3個が首位である未解決のバランス課題を記録。
+- 10,000 seed・20万波の安全検査はfault、不変条件違反、再現差分、選択不能波、完全重なり、予告不一致、攻略用乱数混入がすべて0。
+- 1,000 seed×7戦略は全戦略fault・不変条件違反0で、保存入力の最終状態も7/7一致。
+- `docs/GAMEPLAY_GATE_1.md`へ補修後の全量分布と、6個待ちが首位である未解決のバランス課題を記録。
 
 ## 次の作業
 
-Draft Pull Request [#5](https://github.com/chameleonjp-lab/hanabin/pull/5)でGitHub ActionsのNode 22/24、全量シミュレーション、既存ブラウザ回帰を確認する。Ready化とマージはユーザー本人の明示指示まで行わない。M3ではこの純粋なコアへブラウザ入力と表示を接続する。
+Draft Pull Request [#5](https://github.com/chameleonjp-lab/hanabin/pull/5)の補修headで、GitHub ActionsのNode 22/24、全量シミュレーション、厳格な再生成果物、既存ブラウザ回帰を確認する。Ready化とマージはユーザー本人の明示指示まで行わない。M3ではこの純粋なコアへブラウザ入力と表示を接続する。

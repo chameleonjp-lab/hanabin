@@ -40,8 +40,10 @@ const chooseClusterCandidate = (state) => {
 
 const chooseShortestCandidate = (state) => {
   const options = sameColorOptions(state);
-  const originX = state.lastAcquisitionX ?? 8_000;
-  const originY = state.lastAcquisitionY ?? 4_500;
+  const lastSelectedId = state.selectedIds.at(-1);
+  const lastSelected = state.fireworks.find((entity) => idKey(entity.id) === idKey(lastSelectedId));
+  const originX = lastSelected?.x ?? state.lastAcquisitionX ?? 8_000;
+  const originY = lastSelected?.y ?? state.lastAcquisitionY ?? 4_500;
   return [...options].sort((left, right) =>
     ((left.x - originX) ** 2 + (left.y - originY) ** 2) -
       ((right.x - originX) ** 2 + (right.y - originY) ** 2) ||
