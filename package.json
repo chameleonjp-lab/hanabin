@@ -2,7 +2,7 @@
   "name": "hanabin",
   "version": "0.1.0",
   "private": true,
-  "description": "HANABIN browser game foundation",
+  "description": "HANABIN deterministic browser game core",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -10,6 +10,7 @@
   "scripts": {
     "test": "node --test",
     "test:syntax": "node scripts/check-syntax.mjs",
+    "test:m2:simulation": "node scripts/run-simulations.mjs",
     "test:browser": "playwright test",
     "test:all": "npm run test:syntax && npm test && npm run test:browser",
     "serve": "node scripts/serve.mjs"
