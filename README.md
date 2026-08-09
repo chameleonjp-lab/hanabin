@@ -2,7 +2,7 @@
 
 同色の花火を選び、起爆位置と時刻を考えて連鎖を伸ばす、スマートフォン向け60秒スコアアタックゲームです。
 
-現在はM1の静的基盤と自動試験を実装中です。ゲーム本体のルール、Canvas描画、得点、音、ランキングはまだ実装していません。
+M1の静的基盤は`main`へマージ済みです。現在はM2の決定的なゲーム判定・入力再生・簡易シミュレーターをDraft Pull Requestで確認する段階です。Canvas描画、音、ランキングはまだ実装していません。
 
 ## 実装を進める文書
 
@@ -14,6 +14,8 @@
   企画、実装、検査、重大判断、公開前レビューの担当と承認条件を定めます。
 - [`docs/M1_FOUNDATION.md`](./docs/M1_FOUNDATION.md)  
   M1の実装範囲、依存関係、自動試験、次工程との境界を記録します。
+- [`docs/GAMEPLAY_GATE_1.md`](./docs/GAMEPLAY_GATE_1.md)  
+  M2の決定的ルール、再生契約、安全試験、M3へ渡す境界を記録します。
 
 ## ゲームの挙動を決める文書
 
@@ -53,5 +55,6 @@
 - ゲームクリエイター・レビュー: 反映済み
 - 敵対的検証: 反映済み
 - 実装実行計画: 確認済み
-- M1実装: Draft Pull Request [#4](https://github.com/chameleonjp-lab/hanabin/pull/4)で確認中（CI成功）
-- MVP実装: 0/7
+- M1実装: Pull Request [#4](https://github.com/chameleonjp-lab/hanabin/pull/4)を`main`へマージ済み
+- M2実装: Draft準備。Node契約試験、10,000 seed安全検査、1,000 seed×7戦略比較が成功
+- MVP実装: 1/7

@@ -1,0 +1,312 @@
+import { DEFAULT_RULES, mergeRules } from "../config/rules.js";
+import { createStrategyReplayLog } from "./input-frame.js";
+import {
+  advanceGame,
+  applyAction,
+  applyInputFrame,
+  createGame,
+  snapshotGame,
+  validateGame,
+} from "./engine.js";
+import { normalizeSeed } from "./rng.js";
+import {
+  createStrategyContext,
+  getStrategy,
+  STRATEGY_NAMES,
+} from "./strategies.js";
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+/** Run one deterministic strategy with at most one pointer acquisition frame per decision tick. */
+export const runSimulation = (seedOrOptions = 1, optionsArg = {}) => {
+  const options = seedOrOptions && typeof seedOrOptions === "object"
+    ? seedOrOptions
+    : { ...optionsArg, seed: seedOrOptions };
+  const rules = mergeRules(options.rules ?? DEFAULT_RULES);
+  const seed = normalizeSeed(options.seed ?? 1);
+  const customStrategy = typeof options.strategy === "function";
+  const strategyName = customStrategy
+    ? (options.strategyName ?? "custom")
+    : (typeof options.strategy === "string" ? options.strategy : "random");
+  if (!customStrategy && !STRATEGY_NAMES.includes(strategyName)) {
+    throw new RangeError(`unknown strategy: ${strategyName}`);
+  }
+  const strategy = customStrategy ? options.strategy : getStrategy(strategyName);
+  const summaryOnly = options.summaryOnly === true;
+  const decisionLimit = clamp(
+    Number.isInteger(options.decisionLimit) ? options.decisionLimit : rules.maxTicks,
+    0,
+    rules.maxTicks,
+  );
+  const context = createStrategyContext(seed, strategyName);
+  const decisions = [];
+  let decisionCount = 0;
+  let frontHalfActionCount = 0;
+  let continuationActionCount = 0;
+
+  const state = createGame(seed, rules);
+
+  // A replay has exactly one pressed+x+y frame for every session tick. The
+  // first `decisionLimit` ticks are strategy-controlled; the remaining ticks
+  // are explicit release/no-op frames rather than omitted input.
+  for (let tick = 0; tick < rules.maxTicks; tick += 1) {
+    if (state.simulationFault) break;
+    if (state.tick < tick) advanceGame(state, tick, rules);
+    if (state.simulationFault) break;
+    let action = null;
+    if (tick < decisionLimit) action = strategy(state, context);
+    const frame = action
+      ? { ...action, tick, actionId: state.actionCount }
+      : { type: "noop", pressed: false, x: 0, y: 0, tick, actionId: state.actionCount };
+    if (summaryOnly) {
+      applyInputFrame(state, frame, { rules, record: false, trusted: !customStrategy });
+    } else {
+      applyAction(state, frame.type, frame, rules);
+    }
+    if (action) {
+      decisionCount += 1;
+      if (tick < Math.floor(rules.maxTicks / 2)) frontHalfActionCount += 1;
+      else continuationActionCount += 1;
+      if (!summaryOnly) decisions.push({ tick, type: frame.type, pressed: frame.pressed ?? false });
+    }
+  }
+
+  if (!state.simulationFault && state.tick < rules.maxTicks) advanceGame(state, rules.maxTicks, rules);
+  const snapshot = summaryOnly
+    ? { stats: { ...state.stats }, tick: state.tick, score: state.score }
+    : snapshotGame(state);
+  const replay = summaryOnly || state.simulationFault
+    ? null
+    : createStrategyReplayLog({ seed, rules, frames: state.inputFrames });
+  return {
+    seed,
+    strategy: strategyName,
+    score: state.score,
+    finalScore: state.finalScore ?? state.score,
+    simulationFault: state.simulationFault,
+    processedTicks: state.tick,
+    decisionTicks: summaryOnly ? decisionCount : decisions.length,
+    decisionLimit,
+    strategyDecisionTicks: rules.maxTicks,
+    inputFrames: state.inputFrames,
+    decisions,
+    replay,
+    state: snapshot,
+    invariantErrors: validateGame(state, rules),
+    waveCounts: state.waves.reduce((counts, wave) => {
+      counts[wave.kind] = (counts[wave.kind] ?? 0) + 1;
+      return counts;
+    }, {}),
+    frontHalfIdleRatio: decisionLimit
+      ? Math.max(0, 1 - frontHalfActionCount /
+        Math.min(decisionLimit, Math.floor(rules.maxTicks / 2)))
+      : 1,
+    continuationRatio: decisionLimit
+      ? continuationActionCount /
+        Math.max(1, decisionLimit - Math.floor(rules.maxTicks / 2))
+      : 0,
+  };
+};
+
+const addSummary = (summary, result) => {
+  summary.processedSeeds += 1;
+  summary.processedTicks += result.processedTicks;
+  if (result.simulationFault) summary.faults += 1;
+  if (result.invariantErrors.length) summary.invalidStates += 1;
+  summary.scoreSum += result.score;
+  summary.maxScore = Math.max(summary.maxScore, result.score);
+  summary.minScore = Math.min(summary.minScore, result.score);
+  summary.maxEntities = Math.max(summary.maxEntities, result.state.stats.maxActiveEntities);
+  summary.maxChain = Math.max(summary.maxChain ?? 0, result.state.stats.maxChain ?? 0);
+  summary.maxChainDurationTicks = Math.max(
+    summary.maxChainDurationTicks ?? 0,
+    result.state.stats.maxChainDurationTicks ?? 0,
+  );
+  summary.maxChainSum = (summary.maxChainSum ?? 0) + (result.state.stats.maxChain ?? 0);
+  summary.directTargetsSum = (summary.directTargetsSum ?? 0) + (result.state.stats.directTargets ?? 0);
+  summary.chainTargetsSum = (summary.chainTargetsSum ?? 0) + (result.state.stats.chainTargets ?? 0);
+  if (summary.scoreHistogram instanceof Map) {
+    summary.scoreHistogram.set(result.score, (summary.scoreHistogram.get(result.score) ?? 0) + 1);
+  }
+  if (Number.isFinite(result.frontHalfIdleRatio)) {
+    summary.frontHalfIdleRatioSum = (summary.frontHalfIdleRatioSum ?? 0) + result.frontHalfIdleRatio;
+    summary.continuationRatioSum = (summary.continuationRatioSum ?? 0) + (result.continuationRatio ?? 0);
+  }
+  for (const [kind, count] of Object.entries(result.waveCounts ?? {})) {
+    summary.waveCounts[kind] = (summary.waveCounts[kind] ?? 0) + count;
+  }
+};
+
+/**
+ * O(1)-memory 10,000-seed safety run. It advances each seed through every
+ * session tick in one derived-tick pass and retains only aggregate evidence.
+ */
+export const runSafetySweep = (options = {}) => {
+  const rules = mergeRules(options.rules ?? DEFAULT_RULES);
+  const seedCount = Number.isInteger(options.seedCount) ? options.seedCount : 10_000;
+  const startSeed = Number.isInteger(options.startSeed) ? options.startSeed : 0;
+  const summary = {
+    kind: "safety",
+    requestedSeeds: seedCount,
+    processedSeeds: 0,
+    processedTicks: 0,
+    faults: 0,
+    invalidStates: 0,
+    nondeterministicSeeds: 0,
+    scoreSum: 0,
+    minScore: Number.POSITIVE_INFINITY,
+    maxScore: 0,
+    maxEntities: 0,
+    maxChain: 0,
+    maxChainDurationTicks: 0,
+    maxChainSum: 0,
+    directTargetsSum: 0,
+    chainTargetsSum: 0,
+    frontHalfIdleRatioSum: 0,
+    continuationRatioSum: 0,
+    waveCounts: {},
+    maxTicksPerSeed: rules.maxTicks,
+    strategyRngSeparated: true,
+  };
+  for (let offset = 0; offset < Math.max(0, seedCount); offset += 1) {
+    const seed = startSeed + offset;
+    const first = createGame(seed, rules);
+    advanceGame(first, rules.maxTicks, rules);
+    const firstErrors = validateGame(first, rules);
+    const firstSnapshot = snapshotGame(first);
+    const second = createGame(seed, rules);
+    advanceGame(second, rules.maxTicks, rules);
+    const secondSnapshot = snapshotGame(second);
+    const result = {
+      score: first.score,
+      simulationFault: first.simulationFault,
+      processedTicks: first.tick,
+      invariantErrors: firstErrors,
+      state: firstSnapshot,
+      waveCounts: first.waves.reduce((counts, wave) => {
+        counts[wave.kind] = (counts[wave.kind] ?? 0) + 1;
+        return counts;
+      }, {}),
+    };
+    addSummary(summary, result);
+    if (JSON.stringify(firstSnapshot) !== JSON.stringify(secondSnapshot)) summary.nondeterministicSeeds += 1;
+  }
+  if (summary.minScore === Number.POSITIVE_INFINITY) summary.minScore = 0;
+  summary.ok = summary.faults === 0 && summary.invalidStates === 0 && summary.nondeterministicSeeds === 0 &&
+    summary.processedSeeds === Math.max(0, seedCount);
+  return summary;
+};
+
+/** Compare all seven deterministic strategies without retaining 7,000 result objects. */
+export const compareStrategies = (options = {}) => {
+  const rules = mergeRules(options.rules ?? DEFAULT_RULES);
+  const seedCount = Number.isInteger(options.seedCount) ? options.seedCount : 1_000;
+  const startSeed = Number.isInteger(options.startSeed) ? options.startSeed : 0;
+  const names = Array.isArray(options.strategies) && options.strategies.length
+    ? options.strategies.filter((name) => STRATEGY_NAMES.includes(name))
+    : [...STRATEGY_NAMES];
+  const byStrategy = Object.fromEntries(names.map((name) => [name, {
+    strategy: name,
+    processedSeeds: 0,
+    processedTicks: 0,
+    faults: 0,
+    invalidStates: 0,
+    scoreSum: 0,
+    minScore: Number.POSITIVE_INFINITY,
+    maxScore: 0,
+    maxEntities: 0,
+    maxChain: 0,
+    maxChainDurationTicks: 0,
+    maxChainSum: 0,
+    directTargetsSum: 0,
+    chainTargetsSum: 0,
+    frontHalfIdleRatioSum: 0,
+    continuationRatioSum: 0,
+    waveCounts: {},
+    scoreHistogram: new Map(),
+  }]));
+  for (let offset = 0; offset < Math.max(0, seedCount); offset += 1) {
+    for (const name of names) {
+      const result = runSimulation(startSeed + offset, {
+        strategy: name,
+        rules,
+        summaryOnly: true,
+      });
+      addSummary(byStrategy[name], result);
+    }
+  }
+  for (const summary of Object.values(byStrategy)) {
+    summary.averageScore = summary.processedSeeds ? summary.scoreSum / summary.processedSeeds : 0;
+    summary.frontHalfIdleRatio = summary.processedSeeds
+      ? summary.frontHalfIdleRatioSum / summary.processedSeeds
+      : 0;
+    summary.continuationRatio = summary.processedSeeds
+      ? summary.continuationRatioSum / summary.processedSeeds
+      : 0;
+    summary.averageMaxChain = summary.processedSeeds
+      ? summary.maxChainSum / summary.processedSeeds
+      : 0;
+    summary.averageDirectTargets = summary.processedSeeds
+      ? summary.directTargetsSum / summary.processedSeeds
+      : 0;
+    summary.averageChainTargets = summary.processedSeeds
+      ? summary.chainTargetsSum / summary.processedSeeds
+      : 0;
+    const histogram = [...summary.scoreHistogram.entries()].sort((left, right) => left[0] - right[0]);
+    const percentile = (ratio) => {
+      if (!summary.processedSeeds) return 0;
+      const rank = Math.floor((summary.processedSeeds - 1) * ratio);
+      let seen = 0;
+      for (const [score, count] of histogram) {
+        seen += count;
+        if (seen > rank) return score;
+      }
+      return histogram.at(-1)?.[0] ?? 0;
+    };
+    summary.medianScore = percentile(0.5);
+    summary.p10Score = percentile(0.1);
+    summary.p90Score = percentile(0.9);
+    if (summary.minScore === Number.POSITIVE_INFINITY) summary.minScore = 0;
+    summary.ok = summary.faults === 0 && summary.invalidStates === 0;
+    delete summary.scoreHistogram;
+  }
+  const winner = [...Object.values(byStrategy)].sort((left, right) =>
+    right.averageScore - left.averageScore || left.strategy.localeCompare(right.strategy),
+  )[0]?.strategy ?? null;
+  return {
+    kind: "comparison",
+    requestedSeeds: seedCount,
+    seedCount: seedCount,
+    strategyCount: names.length,
+    processedSeeds: Math.max(0, seedCount),
+    strategies: names,
+    byStrategy,
+    processedRuns: Math.max(0, seedCount) * names.length,
+    winner,
+    ok: Object.values(byStrategy).every((summary) => summary.ok),
+  };
+};
+
+/** Compatibility wrapper around the real generated-game safety sweep. */
+export const runSafetyInspection = (options = {}) => {
+  const caseCount = Number.isInteger(options.caseCount) ? options.caseCount : 10_000;
+  const summary = runSafetySweep({
+    ...options,
+    seedCount: caseCount,
+    startSeed: options.startSeed ?? 0,
+  });
+  return {
+    caseCount,
+    failed: summary.faults + summary.invalidStates + summary.nondeterministicSeeds,
+    ok: summary.ok,
+    processedSeeds: summary.processedSeeds,
+    processedTicks: summary.processedTicks,
+    maxTicks: summary.maxTicksPerSeed,
+  };
+};
+
+export const simulate = runSimulation;
+export const safetySweep = runSafetySweep;
+export const compare = compareStrategies;
+
+export default runSimulation;
