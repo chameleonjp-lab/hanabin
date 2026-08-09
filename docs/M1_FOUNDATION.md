@@ -22,7 +22,7 @@
 |---|---:|---|
 | `@playwright/test` | `1.62.1` | Chromiumでの自動ブラウザ試験 |
 
-この版は2026年8月9日にnpm registryで確認した値です。Node.jsは20以上を対象にし、CIでは22.xと24.xを確認します。
+この版は2026年8月9日にnpm registryで確認した値です。サポート期間が終了した版を対象に含めないため、Node.jsは22以上とし、CIでは22.xと24.xを確認します。
 
 GitHub Actionsは、供給元のタグだけに依存しないよう、確認済みのコミットへ固定しています。
 
@@ -30,6 +30,7 @@ GitHub Actionsは、供給元のタグだけに依存しないよう、確認済
 |---|---|---|
 | `actions/checkout` | `3d3c42e5aac5ba805825da76410c181273ba90b1` | `v7.0.1` |
 | `actions/setup-node` | `a0853c24544627f65ddf259abe73b1d18a591444` | `v5.0.0` |
+| `actions/upload-artifact` | `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a` | `v7.0.1` |
 
 ## M1で実装しないもの
 

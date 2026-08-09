@@ -4,15 +4,21 @@ const openAndTrack = async (page, path) => {
   const consoleErrors = [];
   const pageErrors = [];
   const failedResponses = [];
+  const failedRequests = [];
   page.on("console", (message) => {
     if (message.type() === "error") consoleErrors.push(message.text());
   });
   page.on("pageerror", (error) => pageErrors.push(error.message));
   page.on("response", (response) => {
-    if (response.status() === 404) failedResponses.push(response.url());
+    if (response.status() >= 400) {
+      failedResponses.push(`${response.status()} ${response.url()}`);
+    }
+  });
+  page.on("requestfailed", (request) => {
+    failedRequests.push(`${request.url()}: ${request.failure()?.errorText ?? "unknown error"}`);
   });
   await page.goto(path);
-  return { consoleErrors, pageErrors, failedResponses };
+  return { consoleErrors, pageErrors, failedResponses, failedRequests };
 };
 
 const assertNoHorizontalOverflow = async (page) => {
@@ -23,10 +29,11 @@ const assertNoHorizontalOverflow = async (page) => {
   expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth);
 };
 
-const assertCleanPage = ({ consoleErrors, pageErrors, failedResponses }) => {
+const assertCleanPage = ({ consoleErrors, pageErrors, failedResponses, failedRequests }) => {
   expect(consoleErrors).toEqual([]);
   expect(pageErrors).toEqual([]);
   expect(failedResponses).toEqual([]);
+  expect(failedRequests).toEqual([]);
 };
 
 test("loads cleanly in the 667x375 landscape viewport", async ({ page }) => {
