@@ -1,0 +1,42 @@
+name: CI Core
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    name: Node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [22.x, 24.x]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - name: Install development dependencies
+        run: npm ci
+      - name: Check JavaScript syntax
+        run: npm run test:syntax
+      - name: Run unit tests
+        run: npm test
+      - name: Upload test reports on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: core-test-reports-node-${{ matrix.node-version }}
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
