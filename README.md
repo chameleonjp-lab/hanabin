@@ -53,5 +53,5 @@
 - ゲームクリエイター・レビュー: 反映済み
 - 敵対的検証: 反映済み
 - 実装実行計画: 確認済み
-- M1実装: 実装中（Draft PR準備）
+- M1実装: Draft Pull Request [#4](https://github.com/chameleonjp-lab/hanabin/pull/4)で確認中（CI成功）
 - MVP実装: 0/7
