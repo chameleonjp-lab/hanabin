@@ -538,3 +538,6 @@ test("M3 replay of recorded input has the same score in a fresh viewport", async
     assertClean(replayDiagnostics);
   } finally {
     await replayPage.close();
+  }
+  assertClean(diagnostics);
+});
