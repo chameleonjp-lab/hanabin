@@ -71,5 +71,5 @@ M1〜M7（決定的判定、Canvas版、ゲームプレイ硬化、独自花火�
 - M4実装: Pull Request [#8](https://github.com/chameleonjp-lab/hanabin/pull/8)を`main`へマージ済み
 - M5実装: Pull Request [#9](https://github.com/chameleonjp-lab/hanabin/pull/9)を`main`へマージ済み。選択線を保護した独自花火表現、光粒プール、品質別描画を確認済み
 - M6実装: Pull Request [#10](https://github.com/chameleonjp-lab/hanabin/pull/10)を`main`へマージ済み。初回練習、端末内プロフィール、結果ヒント・共有、音設定を確認済み
-- M7実装: Pull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11)を`main`へマージ済み。公開版固定情報、最終自動検証、GitHub Pages準備を確認済み。公開確認記録はPull Request [#13](https://github.com/chameleonjp-lab/hanabin/pull/13)と[#14](https://github.com/chameleonjp-lab/hanabin/pull/14)で`main`へ反映済み
+- M7実装: Pull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11)を`main`へマージ済み。公開版固定情報、最終自動検証、GitHub Pages準備を確認済み。公開確認記録はPull Request [#13](https://github.com/chameleonjp-lab/hanabin/pull/13)、[#14](https://github.com/chameleonjp-lab/hanabin/pull/14)、[#15](https://github.com/chameleonjp-lab/hanabin/pull/15)で`main`へ反映済み
 - MVP実装: 6/7（自動検証は完了。結果画面・実機・初見試遊・Pages設定確認が残るため未完成）

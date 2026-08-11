@@ -1029,7 +1029,7 @@ Canvas 2Dから別の描画基盤へ変更する場合は、実機計測でCanva
 
 ## 22. 次に開始する作業
 
-M7の公開確認記録を同期するPull Request [#14](https://github.com/chameleonjp-lab/hanabin/pull/14) がマージされたため、次は公開URLの結果画面確認を進める。
+M7の公開確認記録を同期するPull Request [#15](https://github.com/chameleonjp-lab/hanabin/pull/15) が2026年8月12日に `main`へマージされた。PR #15は、PR #14のマージコミット、CI Core #35、CI Browser #35、公開URLのHTTP 200確認を計画・進捗・公開候補レポート・READMEへ反映した。マージコミットは `f01c821da804a29aeec5507ba033d259376b6061` で、PR #15自身の[CI Core #37](https://github.com/chameleonjp-lab/hanabin/actions/runs/31520797668)と[CI Browser #37](https://github.com/chameleonjp-lab/hanabin/actions/runs/31520797666)も成功した。次は公開URLの結果画面確認を進める。
 
 ```text
 ブランチ: agent/m7-public-terminal-verification-20260812
