@@ -2,7 +2,7 @@
 
 - 作成日: 2026年8月12日
 - 対象リポジトリ: `chameleonjp-lab/hanabin`
-- 対象ブランチ: `main`（M7実装マージコミット `942a28441549305f4e1d8c57535f9c87de695db7`、公開確認記録マージコミット `09a29d6d94781fe12a37c930a78e0bff36f3c85a`、PR #14同期マージコミット `a9441c65b6900fd2b18b7a9fc10bd7499062885c`、PR #15同期マージコミット `f01c821da804a29aeec5507ba033d259376b6061`）
+- 対象ブランチ: `main`（M7実装マージコミット `942a28441549305f4e1d8c57535f9c87de695db7`、公開確認記録マージコミット `09a29d6d94781fe12a37c930a78e0bff36f3c85a`、PR #14同期マージコミット `a9441c65b6900fd2b18b7a9fc10bd7499062885c`、PR #15同期マージコミット `f01c821da804a29aeec5507ba033d259376b6061`、PR #16同期マージコミット `15a7c808cf230908383bf6357ae36e22267ee180`）
 - 状態: M7マージ済み・公開確認中
 - MVP判定: **未完了**。実機3端末と初見外部試遊が未実施のため、公開候補として記録する。
 
@@ -78,6 +78,14 @@ PlaywrightはGitHub Actions Browser #29で24テストを実行し、24/24成功�
 - PR #15の[CI Core #37](https://github.com/chameleonjp-lab/hanabin/actions/runs/31520797668)と[CI Browser #37](https://github.com/chameleonjp-lab/hanabin/actions/runs/31520797666)は成功しました。
 - PR #15は計画書・進捗・README・公開候補レポートだけの変更で、ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していません。
 - 結果画面、実機3端末、初見5人、Pages設定画面は未確認のままであり、MVP進捗は6/7を維持します。
+### 2.7 公開URL終端検査（今回のDraft Pull Request・未実行）
+
+- PR #16はマージコミット `15a7c808cf230908383bf6357ae36e22267ee180`で`main`へ反映済みです。
+- 既存のBrowser CIはリポジトリ内のローカル静的サーバーを対象にするため、公開URLそのものの結果画面到達はまだ確認していません。
+- 今回のDraft Pull Requestでは、`playwright.public.config.mjs`、`tests/e2e/m7-public-release.spec.mjs`、`.github/workflows/public-release.yml`を追加し、GitHub Pagesの公開URLで実時間の終端経路を確認します。
+- Pagesデプロイ成功後に専用Actionsを起動し、ホーム→初回練習→スキップ→カウントダウン→本編→実時間60秒→結果画面、結果画面の1回表示、JavaScriptエラー、4xx以上の読み込み失敗を検査します。
+- この検査がまだ実行されていないため、現時点では公開URL上の結果画面を確認済みとは記録しません。
+
 ## 3. GitHub Pages
 
 `.github/workflows/pages.yml`を追加した。`main`へのpush、または手動実行を対象に、次の3つだけをartifactへ入れる。
@@ -103,6 +111,7 @@ PlaywrightはGitHub Actions Browser #29で24テストを実行し、24/24成功�
 | 練習をスキップしてカウントダウンへ進む | 確認 |
 | 本編Canvas、残り時間、得点、連鎖、次の2波予告を表示 | 確認 |
 | 公開URL上で本編から結果画面まで到達 | 未確認 |
+| 公開URL専用の自動検査で本編から結果画面まで到達 | 未実行（今回の次工程） |
 | iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018 | 未確認 |
 | 初見5人の試遊 | 未確認 |
 
