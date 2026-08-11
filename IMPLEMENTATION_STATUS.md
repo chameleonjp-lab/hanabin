@@ -2,7 +2,7 @@
 
 - 更新日: 2026年8月12日
 - MVP進捗: **6/7**（公開URLのホーム→初回練習→本編画面は確認済み。結果画面、実機3端末、初見試遊が未確認）
-- 現在地: M1〜M7はPull Request [#4](https://github.com/chameleonjp-lab/hanabin/pull/4)、[#5](https://github.com/chameleonjp-lab/hanabin/pull/5)、[#6](https://github.com/chameleonjp-lab/hanabin/pull/6)、[#7](https://github.com/chameleonjp-lab/hanabin/pull/7)、[#8](https://github.com/chameleonjp-lab/hanabin/pull/8)、[#9](https://github.com/chameleonjp-lab/hanabin/pull/9)、[#10](https://github.com/chameleonjp-lab/hanabin/pull/10)、[#11](https://github.com/chameleonjp-lab/hanabin/pull/11)で`main`へマージ済み。MVPは公開確認中
+- 現在地: M1〜M7はPull Request [#4](https://github.com/chameleonjp-lab/hanabin/pull/4)、[#5](https://github.com/chameleonjp-lab/hanabin/pull/5)、[#6](https://github.com/chameleonjp-lab/hanabin/pull/6)、[#7](https://github.com/chameleonjp-lab/hanabin/pull/7)、[#8](https://github.com/chameleonjp-lab/hanabin/pull/8)、[#9](https://github.com/chameleonjp-lab/hanabin/pull/9)、[#10](https://github.com/chameleonjp-lab/hanabin/pull/10)、[#11](https://github.com/chameleonjp-lab/hanabin/pull/11)で実装本体を、[#12](https://github.com/chameleonjp-lab/hanabin/pull/12)と[#13](https://github.com/chameleonjp-lab/hanabin/pull/13)でM7公開確認の記録を`main`へマージ済み。MVPは公開確認中
 - 実装コード: M1〜M7が`main`へマージ済み。自動検証は完了しているが、手動の公開確認が残るため工程数は6/7とする
 
 ## MVP工程
@@ -15,7 +15,7 @@
 | M4 | 抜け道対策とゲーム設計審査 | 完了（`main`へマージ済み） | [#8](https://github.com/chameleonjp-lab/hanabin/pull/8) |
 | M5 | 本作独自の花火表現と性能対策 | 完了（`main`へマージ済み） | [#9](https://github.com/chameleonjp-lab/hanabin/pull/9) |
 | M6 | 製品画面、初回練習、保存、結果、音 | 完了（`main`へマージ済み） | [#10](https://github.com/chameleonjp-lab/hanabin/pull/10) |
-| M7 | 総合検証とMVP公開 | 自動検証・Pages準備は完了（`main`へマージ済み）。公開URLの本編画面まで確認済み。結果画面・実機・初見試遊待ち | [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) |
+| M7 | 総合検証とMVP公開 | 自動検証・Pages準備は完了（`main`へマージ済み）。公開URLの本編画面まで確認済み。結果画面・実機・初見試遊待ち | [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) / [#12](https://github.com/chameleonjp-lab/hanabin/pull/12) / [#13](https://github.com/chameleonjp-lab/hanabin/pull/13) |
 
 ## MVP後
 
@@ -76,10 +76,12 @@
 ## M7の確認状況
 
 - Pull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11)を`main`へマージ済み。マージコミットは`942a28441549305f4e1d8c57535f9c87de695db7`。
+- M7公開確認の文書記録は、Pull Request [#13](https://github.com/chameleonjp-lab/hanabin/pull/13)（マージコミット `09a29d6d94781fe12a37c930a78e0bff36f3c85a`）で`main`へ反映済み。
 - 公開版のリリース版、ルール版、入力版、保存形式版を`src/config/release.js`へ固定した。
 - [CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136)はNode 22、Node 24、全量シミュレーションが成功した。
 - [CI Browser #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047138)はChromium E2E 24/24が成功した。
 - シミュレーション証跡の`m2-simulation-report`は[Artifact](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136/artifacts/9097408031)へ保存済み。
+- PR #13のCI Core [#33](https://github.com/chameleonjp-lab/hanabin/actions/runs/31517134941)とCI Browser [#33](https://github.com/chameleonjp-lab/hanabin/actions/runs/31517134931)も成功し、文書変更後の既存検査を確認済み。
 - GitHub Pagesは`main`へのマージ後だけ、`index.html`、`styles/`、`src/`を公開するworkflowである。
 - 2026年8月12日、公開URLでホーム→初回練習→スキップ→カウントダウン→本編Canvas/HUDまで到達した。
 - 結果画面、実機3端末、初見5人、Pages設定画面は未確認であり、公開URLのホーム→ゲーム→結果条件がそろうまでMVP完成とは扱わない。
