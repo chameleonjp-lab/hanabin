@@ -2,8 +2,8 @@
 
 - 作成日: 2026年8月9日
 - 対象リポジトリ: `chameleonjp-lab/hanabin`
-- 状態: M7公開候補・自動検査中
-- MVP実装進捗: **6/7**
+- 状態: M7マージ済み・公開確認中
+- MVP実装進捗: **6/7**（自動検証・Pages準備は`main`へ反映済み。実機・初見試遊・公開URL確認待ち）
 - 対象範囲: MVP完成と公開まで。オンラインランキングはMVP後の別工程とする
 
 ---
@@ -367,7 +367,7 @@ docs/
 | M4 | `agent/m4-gameplay-hardening` | 抜け道対策とゲーム設計審査 | 単純戦略が最適でない |
 | M5 | `agent/m5-visual-performance` | 独自の花火表現と性能調整 | 品質差で結果が変わらない |
 | M6 | `agent/m6-product-shell` | 練習、画面、保存、結果、音 | 初回から再挑戦まで完結する |
-| M7 | `agent/m7-mvp-release` | 全検証、GitHub Pages、MVP候補 | すべての公開条件を満たす |
+| M7 | `agent/m7-mvp-release` | 全検証、GitHub Pages、MVP候補 | 自動検証・Pages準備は`main`へ反映済み。実機・初見試遊・公開URL確認待ち |
 
 ---
 
@@ -893,6 +893,16 @@ M5では、判定層・競技表示層へ装飾用の状態を戻さない。光
 - `docs/MVP_RELEASE_REPORT.md`に根拠が残る。
 - `IMPLEMENTATION_STATUS.md`を7/7へ更新する。
 
+### 16.8 M7マージ後の状態
+
+Pull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) は2026年8月11日に `main` へマージされ、マージコミットは `942a28441549305f4e1d8c57535f9c87de695db7` である。M7ではゲームルールと判定値を変更せず、公開候補の自動検証とGitHub Pages準備を確定した。
+
+- [CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136): Node 22、Node 24、全量シミュレーションが成功。
+- [CI Browser #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047138): Chromium E2E 24/24が成功。
+- [シミュレーション証跡Artifact](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136/artifacts/9097408031): `m2-simulation-report`を保存済み。
+- 実機3端末、初見5人、Pages設定画面、公開後URLのホームから結果までの確認は未実施である。ここを推測で埋めず、MVP完成とは記録しない。
+- R1公式プレイとR2ランキングは、MVP完成と利用者の開始指示まで保留する。
+
 ---
 
 ## 17. MVP後のランキング工程
@@ -1009,12 +1019,12 @@ Canvas 2Dから別の描画基盤へ変更する場合は、実機計測でCanva
 
 ## 22. 次に開始する作業
 
-M6のPull Requestがマージされたため、次に開始するのはM7である。
+M7のPull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) がマージされたため、次はマージ後の公開確認を進める。
 
 ```text
-ブランチ: agent/m7-mvp-release
-目的: 最終検証、公開版固定、GitHub Pages公開候補を整える
-進捗: 6/7 → M7マージ後7/7（実機・初見試遊を含む）
+ブランチ: agent/m7-post-merge-release-readiness
+目的: M7マージ後のCI証跡、Pages公開設定、公開URLの確認状態を整理する
+進捗: 6/7・公開確認中
 ```
 
-M7ではゲームルールを変更しない。10,000シード安全検査、1,000シード×7戦略比較、全ブラウザE2E、公開版固定情報、Pages artifactを同じ工程で確認する。実機3端末と初見外部試遊が未完了なら、公開試験中として記録し、MVP完成とは扱わない。
+ゲームルールは変更しない。CIの成功証跡を`docs/MVP_RELEASE_REPORT.md`へ反映し、GitHub Pagesの設定と公開後URLのホーム→ゲーム→結果確認、実機3端末、初見5人の実測結果を記録する。未確認の項目は完了扱いにせず、R1公式プレイとR2ランキングはMVP完成および利用者の明示指示まで開始しない。
