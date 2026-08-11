@@ -337,7 +337,7 @@ export class GameController {
   }
 
   resumeClock() {
-    if (this.isPortrait() || document.visibilityState !== "visible") return;
+    if (this.isPortrait() || (document.visibilityState !== "visible" && !this.deterministicTestMode)) return;
     if (this.phase === "countdown") {
       if (this.countdownPausedAtMs !== null && this.countdownStartedMs !== null) {
         this.countdownStartedMs += nowMs() - this.countdownPausedAtMs;
@@ -619,6 +619,7 @@ export class GameController {
   /** Testable fixed-tick API; it does not expose target mutation methods. */
   advanceTicks(count = 1) {
     if (this.deterministicTestMode) this.stopLoop();
+    if (this.deterministicTestMode && this.clockPaused && !this.isPortrait()) this.resumeClock();
     if (this.isPortrait() || this.clockPaused) return this.snapshot();
     if (this.screens.phase === "practice") this.tutorial.complete(true);
     if (this.phase === "home" || this.phase === "countdown") this.session.beginPlay();

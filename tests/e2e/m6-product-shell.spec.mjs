@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
 
+const BOARD_WIDTH = 16_000;
+const BOARD_HEIGHT = 9_000;
+
 const openPage = async (page) => {
   await page.clock.install({ time: new Date("2030-01-01T00:00:00Z") });
   await page.setViewportSize({ width: 1024, height: 768 });
@@ -12,6 +15,11 @@ const callApi = (page, method, ...args) => page.evaluate(async ({ method: name, 
   if (!api || typeof api[name] !== "function") throw new Error(`Missing test API: ${name}`);
   return api[name](...args);
 }, { method, args });
+
+const pointForTarget = (target, box) => ({
+  x: box.x + target.x / BOARD_WIDTH * box.width,
+  y: box.y + target.y / BOARD_HEIGHT * box.height,
+});
 
 test("M6 first practice can be skipped and then starts the real game", async ({ page }) => {
   await openPage(page);
@@ -29,6 +37,21 @@ test("M6 profile name is rendered as text, best record is saved, and share URL i
   await openPage(page);
   await callApi(page, "setPlayerName", "<b>A</b>");
   await callApi(page, "start", 404);
+  await callApi(page, "advanceTicks", 1);
+  const box = await page.locator("#game-canvas").boundingBox();
+  const targets = (await callApi(page, "snapshot")).fireworks
+    .filter((entity) => entity.status === "active" && entity.visible !== false)
+    .slice(0, 3);
+  expect(targets).toHaveLength(3);
+  const first = pointForTarget(targets[0], box);
+  await page.mouse.move(first.x, first.y);
+  await page.mouse.down();
+  for (const target of targets) {
+    const point = pointForTarget(target, box);
+    await page.mouse.move(point.x, point.y);
+    await callApi(page, "advanceTicks", 3);
+  }
+  await page.mouse.up();
   await callApi(page, "advanceTicks", 1);
   await callApi(page, "settleTerminal");
   await expect(page.locator("#result-screen")).toBeVisible();
