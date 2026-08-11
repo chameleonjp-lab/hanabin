@@ -20,7 +20,10 @@ test("static page has the M1 loading contract", async () => {
 
 test("public files do not load a CDN or external font", async () => {
   const html = await readProjectFile("index.html");
-  const css = await readProjectFile("styles/base.css");
+  const css = [
+    await readProjectFile("styles/base.css"),
+    await readProjectFile("styles/game.css"),
+  ].join("\n");
   assert.doesNotMatch(`${html}\n${css}`, /(?:cdn|googleapis|fonts\.google|use\.typekit|@import\s+url)/i);
   assert.doesNotMatch(`${html}\n${css}`, /https?:\/\//i);
 });
@@ -37,7 +40,13 @@ test("layout includes viewport fallbacks and all safe-area insets", async () => 
 test("M1 entry files exist without a build step", async () => {
   for (const relativePath of [
     "styles/base.css",
+    "styles/game.css",
     "src/app.js",
+    "src/game/controller.js",
+    "src/game/session.js",
+    "src/input/pointer-controller.js",
+    "src/render/canvas-renderer.js",
+    "src/ui/screens.js",
     "scripts/serve.mjs",
     "scripts/check-syntax.mjs",
     "playwright.config.mjs",
@@ -50,4 +59,12 @@ test("runtime dependency remains empty", async () => {
   const packageJson = JSON.parse(await readProjectFile("package.json"));
   assert.ok(!packageJson.dependencies || Object.keys(packageJson.dependencies).length === 0);
   assert.ok(packageJson.devDependencies?.["@playwright/test"]);
+});
+
+test("the fixed-tick browser bridge is limited to an explicit local test URL", async () => {
+  const app = await readProjectFile("src/app.js");
+  assert.match(app, /isLocalTestHost/);
+  assert.match(app, /127\.0\.0\.1/);
+  assert.match(app, /URLSearchParams\(window\.location\.search\)/);
+  assert.match(app, /isLocalTestHost\s*&&/);
 });
