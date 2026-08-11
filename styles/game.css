@@ -492,7 +492,7 @@
 
   .app-shell[data-screen="play"] .game-header,
   .app-shell[data-screen="play"] #orientation-guide,
-  .app-shell[data-screen="play"] #m3-notice,
+  .app-shell[data-screen="play"] .notice,
   .app-shell[data-screen="play"] .play-instruction {
     display: none;
   }
