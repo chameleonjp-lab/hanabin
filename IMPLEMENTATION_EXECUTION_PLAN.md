@@ -1041,4 +1041,4 @@ Pull Request [#17](https://github.com/chameleonjp-lab/hanabin/pull/17)が2026年
 
 公開URL専用検査は、テスト用の固定tick操作口を公開ページで使わず、利用者向けの操作を実時間で実行した。結果画面の二重登録がなく、JavaScriptエラー、4xx以上の応答、失敗リクエストも検出されなかった。
 
-次は、iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018の実機確認、初見5人の試遊、Pages設定画面の公開元確認を実際の証跡で記録する。これらが未確認の間はMVPを7/7へ進めない。R1公式プレイとR2ランキングは、MVP完成および利用者の明示指示まで保留する。
+次は、[M7手動受入チェックリスト](./docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md)に沿って、iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018の実機確認、初見5人の試遊、Pages設定画面の公開元確認を実際の証跡で記録する。チェックリストの未確認欄が残る間はMVPを7/7へ進めない。R1公式プレイとR2ランキングは、MVP完成および利用者の明示指示まで保留する。
