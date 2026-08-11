@@ -100,4 +100,4 @@
 
 PR #17のマージ後に実行された[Deploy GitHub Pages #7](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540518416)と[Public Release Smoke #1](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540556019)は成功した。公開URL専用Actionsは、公開URLでホーム→初回練習→スキップ→カウントダウン→本編→実時間60秒→結果画面へ到達し、結果画面の二重登録、JavaScriptエラー、4xx以上の読み込み失敗がないことを確認した。
 
-次は、iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018の実機確認、初見5人の試遊、Pages設定画面の公開元確認を実際の証跡で記録する。これらを確認するまでMVP進捗は6/7のまま維持し、R1公式プレイとR2ランキングは保留する。
+次は、[M7手動受入チェックリスト](./docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md)に沿って、iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018の実機確認、初見5人の試遊、Pages設定画面の公開元確認を実際の証跡で記録する。チェックリストの未確認欄が残る間はMVP進捗を6/7のまま維持し、R1公式プレイとR2ランキングは保留する。
