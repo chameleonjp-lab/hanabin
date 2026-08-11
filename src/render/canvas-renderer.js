@@ -124,6 +124,24 @@ export class CanvasRenderer {
       pointer,
     });
 
+    // Keep the diagnostic geometry on the DOM element itself. The browser's
+    // 2D context exposes the canvas in Chromium, but that is not part of the
+    // rendering contract and can differ across adapters.
+    if (pointer && this.canvas.dataset) {
+      const fingerPoint = this.boardPoint(
+        pointer.fingerX ?? pointer.x,
+        pointer.fingerY ?? pointer.y,
+      );
+      const aimPoint = this.boardPoint(
+        pointer.aimX ?? pointer.x,
+        pointer.aimY ?? pointer.y,
+      );
+      this.canvas.dataset.reticleX = String(Math.round(aimPoint.x));
+      this.canvas.dataset.reticleY = String(Math.round(aimPoint.y));
+      this.canvas.dataset.pointerX = String(Math.round(fingerPoint.x));
+      this.canvas.dataset.pointerY = String(Math.round(fingerPoint.y));
+    }
+
     if (phase === "finalizing") {
       ctx.save();
       ctx.fillStyle = "rgba(3, 7, 19, 0.22)";
