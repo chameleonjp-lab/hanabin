@@ -15,7 +15,7 @@
 | M4 | 抜け道対策とゲーム設計審査 | 完了（`main`へマージ済み） | [#8](https://github.com/chameleonjp-lab/hanabin/pull/8) |
 | M5 | 本作独自の花火表現と性能対策 | 完了（`main`へマージ済み） | [#9](https://github.com/chameleonjp-lab/hanabin/pull/9) |
 | M6 | 製品画面、初回練習、保存、結果、音 | 完了（`main`へマージ済み） | [#10](https://github.com/chameleonjp-lab/hanabin/pull/10) |
-| M7 | 総合検証とMVP公開 | 自動検証・Pages準備・公開URLの実時間終端検査は成功。実機・初見試遊・Pages設定画面待ち | [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) / [#12](https://github.com/chameleonjp-lab/hanabin/pull/12) / [#13](https://github.com/chameleonjp-lab/hanabin/pull/13) / [#14](https://github.com/chameleonjp-lab/hanabin/pull/14) / [#15](https://github.com/chameleonjp-lab/hanabin/pull/15) / [#16](https://github.com/chameleonjp-lab/hanabin/pull/16) |
+| M7 | 総合検証とMVP公開 | 自動検証・Pages準備・公開URLの実時間終端検査は成功。実機・初見試遊・Pages設定画面待ち | [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) / [#12](https://github.com/chameleonjp-lab/hanabin/pull/12) / [#13](https://github.com/chameleonjp-lab/hanabin/pull/13) / [#14](https://github.com/chameleonjp-lab/hanabin/pull/14) / [#15](https://github.com/chameleonjp-lab/hanabin/pull/15) / [#16](https://github.com/chameleonjp-lab/hanabin/pull/16) / [#17](https://github.com/chameleonjp-lab/hanabin/pull/17) |
 
 ## MVP後
 
