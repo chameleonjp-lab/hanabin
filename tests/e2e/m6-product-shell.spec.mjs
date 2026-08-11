@@ -17,8 +17,11 @@ const callApi = (page, method, ...args) => page.evaluate(async ({ method: name, 
 }, { method, args });
 
 const pointForTarget = (target, box) => ({
-  x: box.x + target.x / BOARD_WIDTH * box.width,
-  y: box.y + target.y / BOARD_HEIGHT * box.height,
+  x: Math.min(box.x + box.width - 2, Math.max(box.x + 2, box.x + target.x / BOARD_WIDTH * box.width)),
+  y: Math.min(
+    box.y + box.height - 2,
+    Math.max(box.y + 2, box.y + target.y / BOARD_HEIGHT * box.height + Math.min(box.width, box.height) * 0.1),
+  ),
 });
 
 test("M6 first practice can be skipped and then starts the real game", async ({ page }) => {
@@ -43,6 +46,7 @@ test("M6 profile name is rendered as text, best record is saved, and share URL i
     .filter((entity) => entity.status === "active" && entity.visible !== false)
     .slice(0, 3);
   expect(targets).toHaveLength(3);
+  expect(new Set(targets.map((target) => target.color)).size).toBe(1);
   const first = pointForTarget(targets[0], box);
   await page.mouse.move(first.x, first.y);
   await page.mouse.down();
