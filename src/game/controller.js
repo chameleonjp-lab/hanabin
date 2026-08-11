@@ -89,6 +89,7 @@ export class GameController {
     this.countdownPausedAtMs = null;
     this.finalizeOnFrame = false;
     this.resultOnFrame = false;
+    this.deterministicTestMode = false;
     this.destroyed = false;
     this.boundVisibility = () => this.handleVisibilityChange();
     this.boundPageShow = () => this.handlePageShow();
@@ -145,6 +146,12 @@ export class GameController {
     // boundary and must not stop the fixed-tick clock indefinitely.
     if (["visibilitychange", "pagehide", "orientationchange"].includes(reason)) {
       this.pauseClock(reason);
+    }
+    if (reason === "input-disabled" && this.phase === "finalizing" && !this.clockPaused) {
+      // A held pointer is released after the fixed tick boundary. The
+      // terminal presentation can now advance, but must remain visible until
+      // that release has happened so the boundary is observable.
+      this.ensureLoop();
     }
   }
 
@@ -210,7 +217,7 @@ export class GameController {
     this.lastFrameMs = null;
     this.accumulatorMs = 0;
     this.resumePendingFrame = true;
-    this.ensureLoop();
+    if (!this.deterministicTestMode) this.ensureLoop();
   }
 
   handleVisibilityChange() {
@@ -251,7 +258,7 @@ export class GameController {
     this.countdownStartedMs = nowMs();
     this.countdownPausedAtMs = null;
     this.session.prepare(runSeed);
-    this.ensureLoop();
+    if (!this.deterministicTestMode) this.ensureLoop();
     return this.session.state;
   }
 
@@ -405,14 +412,20 @@ export class GameController {
 
   /** Testable fixed-tick API; it does not expose target mutation methods. */
   advanceTicks(count = 1) {
+    if (this.deterministicTestMode) this.stopLoop();
     if (this.isPortrait() || this.clockPaused) return this.snapshot();
     if (this.phase === "home" || this.phase === "countdown") this.session.beginPlay();
     const state = this.session.advanceTicks(count);
+    if (this.deterministicTestMode) {
+      this.resumePendingFrame = false;
+      this.interruptPending = false;
+    }
     this.render();
     return this.snapshot();
   }
 
   settleTerminal() {
+    if (this.deterministicTestMode) this.stopLoop();
     if (this.isPortrait() || this.clockPaused) return this.snapshot();
     const state = this.session.finishNow();
     this.finalizeOnFrame = false;
@@ -450,6 +463,8 @@ export class GameController {
   }
 
   testApi() {
+    this.deterministicTestMode = true;
+    this.stopLoop();
     return {
       snapshot: () => this.snapshot(),
       advanceTicks: (count) => this.advanceTicks(count),
