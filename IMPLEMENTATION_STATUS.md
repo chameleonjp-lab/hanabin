@@ -1,17 +1,17 @@
 # HANABIN 実装進捗
 
-- 更新日: 2026年8月9日
-- MVP進捗: **2/7**（M2補修の確認中）
-- 現在地: M2はPull Request [#5](https://github.com/chameleonjp-lab/hanabin/pull/5)で`main`へマージ済み。独立レビュー補修のDraft Pull Request [#6](https://github.com/chameleonjp-lab/hanabin/pull/6)を確認中
-- 実装コード: M1とM2が`main`へマージ済み。M2補修は全量Node検査成功、承認・マージ前
+- 更新日: 2026年8月10日
+- MVP進捗: **2/7**（M3をDraft Pull Requestとして準備中）
+- 現在地: M2と独立レビュー補修はPull Request [#5](https://github.com/chameleonjp-lab/hanabin/pull/5)、[#6](https://github.com/chameleonjp-lab/hanabin/pull/6)で`main`へマージ済み。M3の円表示で遊べるブラウザ版を作業ブランチで検証中
+- 実装コード: M1とM2が`main`へマージ済み。M3は未マージのため工程数へ加えない
 
 ## MVP工程
 
 | 工程 | 内容 | 状態 | Pull Request |
 |---|---|---|---|
 | M1 | 静的基盤と自動試験 | 完了（`main`へマージ済み） | [#4](https://github.com/chameleonjp-lab/hanabin/pull/4) |
-| M2 | 決定的ゲーム判定と簡易シミュレーター | 完了（`main`へマージ済み）・独立レビュー補修をDraftで確認中 | [#5](https://github.com/chameleonjp-lab/hanabin/pull/5) / [#6](https://github.com/chameleonjp-lab/hanabin/pull/6) |
-| M3 | 円表示で遊べるブラウザ版 | 未開始 | — |
+| M2 | 決定的ゲーム判定と簡易シミュレーター | 完了（独立レビュー補修を含め`main`へマージ済み） | [#5](https://github.com/chameleonjp-lab/hanabin/pull/5) / [#6](https://github.com/chameleonjp-lab/hanabin/pull/6) |
+| M3 | 円表示で遊べるブラウザ版 | 実装・自動検査中（Draft Pull Request準備中） | — |
 | M4 | 抜け道対策とゲーム設計審査 | 未開始 | — |
 | M5 | 本作独自の花火表現と性能対策 | 未開始 | — |
 | M6 | 製品画面、初回練習、保存、結果、音 | 未開始 | — |
@@ -43,6 +43,14 @@
 - 1,000 seed×7戦略は全戦略fault・不変条件違反0で、保存入力の最終状態も7/7一致。
 - `docs/GAMEPLAY_GATE_1.md`へ補修後の全量分布と、6個待ちが首位である未解決のバランス課題を記録。
 
+## M3の確認状況
+
+- M2の純粋な判定層へ、固定tickを維持したブラウザセッション、Pointer Events、Canvas円表示、HUD、画面遷移を接続。
+- CSS表示座標を整数盤面へ変換し、Canvasの画素密度や表示サイズを再生入力へ混入させない。
+- 最初のPointerだけを所有し、Pointer Capture、取消、capture喪失、非表示、ページ遷移、回転を一回の中断入力として扱う。
+- 3600固定フレーム後に入力を拒否し、最終連鎖、結果、厳格な同一入力再生までを接続。
+- Node契約試験とブラウザ試験を追加。ローカル環境にはChromium実体がないため、Playwright実行結果はDraft Pull RequestのGitHub Actionsで確認する。
+
 ## 次の作業
 
-Draft Pull Request [#6](https://github.com/chameleonjp-lab/hanabin/pull/6)の補修headで、GitHub ActionsのNode 22/24、全量シミュレーション、厳格な再生成果物、既存ブラウザ回帰を確認対象とする。Ready化とマージはユーザー本人の明示指示まで行わない。M3ではこの純粋なコアへブラウザ入力と表示を接続する。
+M3をDraft Pull Requestへ登録し、GitHub ActionsのNode 22/24、全量M2シミュレーション、Chromiumブラウザ試験を確認する。iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018の実機確認は利用者側の確認項目として残す。Ready化とマージはユーザー本人の明示指示まで行わない。

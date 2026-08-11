@@ -2,11 +2,12 @@
 <html lang="ja">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#080b18" />
-    <meta name="description" content="HANABINの静的配信基盤" />
+    <meta name="description" content="HANABIN - 花火の連鎖を60秒でつなぐスコアアタック" />
     <title>HANABIN</title>
     <link rel="stylesheet" href="./styles/base.css" />
+    <link rel="stylesheet" href="./styles/game.css" />
     <script>
       (() => {
         const showError = (message = "ページの読み込みに失敗しました。再読み込みしてください。") => {
@@ -39,19 +40,111 @@
   </head>
   <body>
     <main id="app" class="app-shell" data-state="loading">
-      <section class="app-card" aria-labelledby="app-title">
-        <p class="eyebrow">HANABIN / FOUNDATION</p>
-        <h1 id="app-title">花火の連鎖を準備中です</h1>
-        <p id="app-status" class="status" role="status" aria-live="polite">読み込み中…</p>
-
-        <div class="foundation-stage" aria-label="ゲーム画面を配置する領域">
-          <span>静的ページ基盤</span>
-        </div>
+      <section class="app-card game-app" aria-labelledby="app-title">
+        <header class="game-header">
+          <div>
+            <p class="eyebrow">HANABIN / M3 PLAYABLE CANVAS</p>
+            <h1 id="app-title">花火の連鎖をつなぐ</h1>
+          </div>
+          <p id="app-status" class="status" role="status" aria-live="polite">読み込み中…</p>
+        </header>
 
         <p id="orientation-guide" class="orientation-guide" hidden>
           横向きにすると、ゲーム画面を確認しやすくなります。
         </p>
-        <p class="notice">この画面はM1の確認用です。ゲームのルールや得点はまだ実装していません。</p>
+
+        <section id="home-screen" class="screen screen--home" data-screen="home" aria-labelledby="home-title">
+          <div class="home-intro">
+            <p class="home-kicker">60秒 SCORE ATTACK</p>
+            <h2 id="home-title">同じ色を3つ以上、線でつないで起爆</h2>
+            <p>
+              花火を押し続けて選び、指を離すと連鎖が始まります。次の2波の色を見て、
+              どこで起爆するかを決めてください。
+            </p>
+          </div>
+          <div class="home-rules" aria-label="操作の要点">
+            <span><i class="rule-dot rule-dot--cyan" aria-hidden="true"></i>最初の1本だけ有効</span>
+            <span><i class="rule-dot rule-dot--gold" aria-hidden="true"></i>3つ以上で起爆</span>
+            <span><i class="rule-dot rule-dot--pink" aria-hidden="true"></i>制限時間 2.5秒</span>
+          </div>
+          <button id="start-button" class="primary-button" type="button">ゲームを開始</button>
+          <p class="home-hint">画面を押して花火を選び、指を離して起爆します。</p>
+        </section>
+
+        <section id="countdown-screen" class="screen screen--countdown" data-screen="countdown" hidden aria-live="assertive">
+          <p class="countdown-label">準備してください</p>
+          <strong id="countdown-value" class="countdown-value">3</strong>
+          <p id="countdown-message">最初の花火を探しましょう</p>
+        </section>
+
+        <section id="play-screen" class="screen screen--play" data-screen="play" hidden aria-label="ゲーム画面">
+          <div class="game-frame" id="game-frame">
+            <canvas
+              id="game-canvas"
+              width="1600"
+              height="900"
+              data-board-width="16000"
+              data-board-height="9000"
+              aria-label="花火を選ぶキャンバス"
+            ></canvas>
+            <div id="game-hud" class="game-hud" aria-live="off">
+              <div class="hud-pill hud-pill--score">
+                <span class="hud-label">SCORE</span>
+                <strong id="hud-score">0</strong>
+              </div>
+              <div class="hud-pill hud-pill--time">
+                <span class="hud-label">TIME</span>
+                <strong id="hud-time">60.0</strong>
+              </div>
+              <div class="hud-pill hud-pill--combo">
+                <span class="hud-label">CHAIN</span>
+                <strong id="hud-combo">0</strong>
+              </div>
+              <div class="hud-pill hud-pill--selection" id="hud-selection" data-selection-count="0">
+                <span class="hud-label">SELECTION</span>
+                <span id="hud-selection-color" class="forecast-swatch" aria-hidden="true">—</span>
+                <strong id="hud-selection-count">0</strong>
+                <span id="hud-selection-time" class="hud-subvalue">—</span>
+              </div>
+              <div class="hud-forecast" id="hud-forecast" aria-label="次の2波の予告">
+                <span class="hud-label">NEXT WAVES</span>
+                <span id="hud-forecast-items">—</span>
+              </div>
+            </div>
+            <div id="play-message" class="play-message" aria-live="off"></div>
+          </div>
+          <p class="play-instruction">同じ色を3つ以上つないで、指を離す</p>
+        </section>
+
+        <section id="finalizing-screen" class="screen screen--finalizing" data-screen="finalizing" hidden aria-live="polite">
+          <div class="finalizing-mark" aria-hidden="true"></div>
+          <h2>連鎖を確定中</h2>
+          <p>最後の花火が開いています…</p>
+        </section>
+
+        <section id="result-screen" class="screen screen--result" data-screen="result" hidden aria-labelledby="result-title">
+          <p class="home-kicker">RUN COMPLETE</p>
+          <h2 id="result-title">今回の結果</h2>
+          <div class="result-score">
+            <span class="hud-label">SCORE</span>
+            <strong id="result-score">0</strong>
+          </div>
+          <div class="result-grid">
+            <div><span>最大連鎖</span><strong id="result-chain">0</strong></div>
+            <div><span>起爆回数</span><strong id="result-detonations">0</strong></div>
+            <div><span>直接選択</span><strong id="result-direct">0</strong></div>
+            <div><span>連鎖捕捉</span><strong id="result-chain-targets">0</strong></div>
+          </div>
+          <p id="result-replay" class="result-replay" role="status">入力記録を検証しています…</p>
+          <div class="result-actions">
+            <button id="retry-button" class="primary-button" type="button">もう一度遊ぶ</button>
+            <button id="home-button" class="secondary-button" type="button">ホームへ戻る</button>
+          </div>
+        </section>
+
+        <p class="notice" id="m3-notice">
+          M3試作：判定は固定更新で再生され、表示サイズや装飾から独立しています。
+        </p>
       </section>
     </main>
 
