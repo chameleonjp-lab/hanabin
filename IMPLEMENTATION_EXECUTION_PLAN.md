@@ -904,6 +904,15 @@ Pull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) は2026�
 - この確認では結果画面まで到達していない。実機3端末、初見5人、Pages設定画面の確認も未実施であり、MVP完成とは記録しない。
 - R1公式プレイとR2ランキングは、MVP完成と利用者の開始指示まで保留する。
 
+### 16.9 PR #14マージ後の確認
+
+Pull Request [#14](https://github.com/chameleonjp-lab/hanabin/pull/14)は、マージコミット `a9441c65b6900fd2b18b7a9fc10bd7499062885c`で`main`へ反映済みである。ゲームコードとルールは変更していない。
+
+- [CI Core #35](https://github.com/chameleonjp-lab/hanabin/actions/runs/31518762135)と[CI Browser #35](https://github.com/chameleonjp-lab/hanabin/actions/runs/31518762120)が成功した。
+- 公開URLの静的エントリーはHTTP 200を返し、`HANABIN`のHTMLと公開版固定情報を読み込める。
+- HTTP 200と自動E2Eの成功は、公開URL上で人がクリックして結果画面まで到達した証拠とは分けて扱う。
+- 公開URLの結果画面、実機3端末、初見5人、Pages設定画面は未確認のため、MVPは6/7のままとする。
+
 ---
 
 ## 17. MVP後のランキング工程
@@ -1020,12 +1029,12 @@ Canvas 2Dから別の描画基盤へ変更する場合は、実機計測でCanva
 
 ## 22. 次に開始する作業
 
-M7のPull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) がマージされたため、次はマージ後の公開確認を進める。
+M7の公開確認記録を同期するPull Request [#14](https://github.com/chameleonjp-lab/hanabin/pull/14) がマージされたため、次は公開URLの結果画面確認を進める。
 
 ```text
-ブランチ: agent/m7-post-merge-release-readiness
-目的: M7マージ後のCI証跡、Pages公開設定、公開URLの確認状態を整理する
+ブランチ: agent/m7-public-terminal-verification-20260812
+目的: 公開URLの結果画面到達と未確認条件を整理する
 進捗: 6/7・公開確認中
 ```
 
-ゲームルールは変更しない。公開URLのホーム→初回練習→本編画面までの到達を確認した結果を`docs/MVP_RELEASE_REPORT.md`へ記録する。結果画面、実機3端末、初見5人、Pages設定画面は未確認のまま残し、MVP完成とは扱わない。R1公式プレイとR2ランキングはMVP完成および利用者の明示指示まで開始しない。
+ゲームルールは変更しない。HTTP 200や自動E2Eの成功を公開URL上の対話確認とは混同せず、結果画面、実機3端末、初見5人、Pages設定画面は未確認のまま残す。MVP完成とは扱わない。R1公式プレイとR2ランキングはMVP完成および利用者の明示指示まで開始しない。

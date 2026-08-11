@@ -2,7 +2,7 @@
 
 - 作成日: 2026年8月12日
 - 対象リポジトリ: `chameleonjp-lab/hanabin`
-- 対象ブランチ: `main`（M7実装マージコミット `942a28441549305f4e1d8c57535f9c87de695db7`、公開確認記録マージコミット `09a29d6d94781fe12a37c930a78e0bff36f3c85a`）
+- 対象ブランチ: `main`（M7実装マージコミット `942a28441549305f4e1d8c57535f9c87de695db7`、公開確認記録マージコミット `09a29d6d94781fe12a37c930a78e0bff36f3c85a`、PR #14同期マージコミット `a9441c65b6900fd2b18b7a9fc10bd7499062885c`）
 - 状態: M7マージ済み・公開確認中
 - MVP判定: **未完了**。実機3端末と初見外部試遊が未実施のため、公開候補として記録する。
 
@@ -64,6 +64,13 @@ PlaywrightはGitHub Actions Browser #29で24テストを実行し、24/24成功�
 - PR #13は計画書・進捗・README・公開候補レポートの文書変更だけで、ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していません。
 - 公開URLの確認範囲はホーム→初回練習→スキップ→カウントダウン→本編Canvas/HUDまでです。結果画面、実機3端末、初見5人、Pages設定画面は未確認のままです。
 
+### 2.5 PR #14のマージ後検証
+
+- [PR #14](https://github.com/chameleonjp-lab/hanabin/pull/14)はマージコミット `a9441c65b6900fd2b18b7a9fc10bd7499062885c`で`main`へ反映済みです。
+- PR #14の[CI Core #35](https://github.com/chameleonjp-lab/hanabin/actions/runs/31518762135)と[CI Browser #35](https://github.com/chameleonjp-lab/hanabin/actions/runs/31518762120)は成功しました。
+- PR #14は文書変更だけで、ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していません。
+- 公開URLの静的エントリーへ直接アクセスし、HTTP 200、`HANABIN`のHTML、`src/config/release.js`の公開版固定情報を確認しました。これは公開URL上のクリック操作や結果画面到達を証明するものではありません。
+
 ## 3. GitHub Pages
 
 `.github/workflows/pages.yml`を追加した。`main`へのpush、または手動実行を対象に、次の3つだけをartifactへ入れる。
@@ -78,11 +85,13 @@ PlaywrightはGitHub Actions Browser #29で24テストを実行し、24/24成功�
 
 確認URL: [HANABIN公開ページ](https://chameleonjp-lab.github.io/hanabin/)
 
-確認環境は公開確認用のCloud Browserであり、iPhone・iPadの実機確認ではない。
+画面遷移の確認は公開確認用のCloud Browserで行い、今回の静的配信確認はHTTP取得で行った。いずれもiPhone・iPadの実機確認ではない。
 
 | 確認項目 | 結果 |
 |---|---|
 | URLへ直接アクセスしてホームを表示 | 確認 |
+| 公開URLの静的エントリーがHTTP 200を返す | 確認 |
+| `src/config/release.js`の公開版固定情報を読み込める | 確認 |
 | 「ゲームを開始」から初回練習を表示 | 確認 |
 | 練習をスキップしてカウントダウンへ進む | 確認 |
 | 本編Canvas、残り時間、得点、連鎖、次の2波予告を表示 | 確認 |
