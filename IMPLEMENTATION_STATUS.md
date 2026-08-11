@@ -1,7 +1,7 @@
 # HANABIN 実装進捗
 
-- 更新日: 2026年8月11日
-- MVP進捗: **6/7**（M7の自動検証・Pages準備は`main`へマージ済み。実機・初見試遊・公開URL確認待ち）
+- 更新日: 2026年8月12日
+- MVP進捗: **6/7**（公開URLのホーム→初回練習→本編画面は確認済み。結果画面、実機3端末、初見試遊が未確認）
 - 現在地: M1〜M7はPull Request [#4](https://github.com/chameleonjp-lab/hanabin/pull/4)、[#5](https://github.com/chameleonjp-lab/hanabin/pull/5)、[#6](https://github.com/chameleonjp-lab/hanabin/pull/6)、[#7](https://github.com/chameleonjp-lab/hanabin/pull/7)、[#8](https://github.com/chameleonjp-lab/hanabin/pull/8)、[#9](https://github.com/chameleonjp-lab/hanabin/pull/9)、[#10](https://github.com/chameleonjp-lab/hanabin/pull/10)、[#11](https://github.com/chameleonjp-lab/hanabin/pull/11)で`main`へマージ済み。MVPは公開確認中
 - 実装コード: M1〜M7が`main`へマージ済み。自動検証は完了しているが、手動の公開確認が残るため工程数は6/7とする
 
@@ -15,7 +15,7 @@
 | M4 | 抜け道対策とゲーム設計審査 | 完了（`main`へマージ済み） | [#8](https://github.com/chameleonjp-lab/hanabin/pull/8) |
 | M5 | 本作独自の花火表現と性能対策 | 完了（`main`へマージ済み） | [#9](https://github.com/chameleonjp-lab/hanabin/pull/9) |
 | M6 | 製品画面、初回練習、保存、結果、音 | 完了（`main`へマージ済み） | [#10](https://github.com/chameleonjp-lab/hanabin/pull/10) |
-| M7 | 総合検証とMVP公開 | 自動検証・Pages準備は完了（`main`へマージ済み）。実機・初見試遊・公開URL確認待ち | [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) |
+| M7 | 総合検証とMVP公開 | 自動検証・Pages準備は完了（`main`へマージ済み）。公開URLの本編画面まで確認済み。結果画面・実機・初見試遊待ち | [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) |
 
 ## MVP後
 
@@ -81,8 +81,9 @@
 - [CI Browser #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047138)はChromium E2E 24/24が成功した。
 - シミュレーション証跡の`m2-simulation-report`は[Artifact](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136/artifacts/9097408031)へ保存済み。
 - GitHub Pagesは`main`へのマージ後だけ、`index.html`、`styles/`、`src/`を公開するworkflowである。
-- 実機3端末、初見5人、Pages設定画面、公開後URLのホームから結果までの確認が終わるまで、MVP完成とは扱わない。
+- 2026年8月12日、公開URLでホーム→初回練習→スキップ→カウントダウン→本編Canvas/HUDまで到達した。
+- 結果画面、実機3端末、初見5人、Pages設定画面は未確認であり、公開URLのホーム→ゲーム→結果条件がそろうまでMVP完成とは扱わない。
 
 ## 次の作業
 
-M7のマージ後対応として、CI証跡と公開候補レポートを`main`の状態へ更新し、GitHub Pages設定と公開後URLのホーム→ゲーム→結果確認、実機3端末、初見5人の実測結果を記録する。未確認の項目を完了扱いにしない。R1公式プレイとR2ランキングは、MVP完成と利用者の明示指示まで保留する。
+公開URLの結果画面到達を確認し、実機3端末と初見5人の実測結果を`docs/MVP_RELEASE_REPORT.md`へ記録する。未確認の項目を完了扱いにしない。R1公式プレイとR2ランキングは、MVP完成と利用者の明示指示まで保留する。

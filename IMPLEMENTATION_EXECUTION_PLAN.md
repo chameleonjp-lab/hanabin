@@ -3,7 +3,7 @@
 - 作成日: 2026年8月9日
 - 対象リポジトリ: `chameleonjp-lab/hanabin`
 - 状態: M7マージ済み・公開確認中
-- MVP実装進捗: **6/7**（自動検証・Pages準備は`main`へ反映済み。実機・初見試遊・公開URL確認待ち）
+- MVP実装進捗: **6/7**（公開URLのホーム→初回練習→本編画面は確認済み。結果画面、実機3端末、初見試遊が未確認）
 - 対象範囲: MVP完成と公開まで。オンラインランキングはMVP後の別工程とする
 
 ---
@@ -367,7 +367,7 @@ docs/
 | M4 | `agent/m4-gameplay-hardening` | 抜け道対策とゲーム設計審査 | 単純戦略が最適でない |
 | M5 | `agent/m5-visual-performance` | 独自の花火表現と性能調整 | 品質差で結果が変わらない |
 | M6 | `agent/m6-product-shell` | 練習、画面、保存、結果、音 | 初回から再挑戦まで完結する |
-| M7 | `agent/m7-mvp-release` | 全検証、GitHub Pages、MVP候補 | 自動検証・Pages準備は`main`へ反映済み。実機・初見試遊・公開URL確認待ち |
+| M7 | `agent/m7-mvp-release` | 全検証、GitHub Pages、MVP候補 | 自動検証・Pages準備は`main`へ反映済み。公開URLの本編画面まで確認済み。結果画面・実機・初見試遊待ち |
 
 ---
 
@@ -900,7 +900,8 @@ Pull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) は2026�
 - [CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136): Node 22、Node 24、全量シミュレーションが成功。
 - [CI Browser #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047138): Chromium E2E 24/24が成功。
 - [シミュレーション証跡Artifact](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136/artifacts/9097408031): `m2-simulation-report`を保存済み。
-- 実機3端末、初見5人、Pages設定画面、公開後URLのホームから結果までの確認は未実施である。ここを推測で埋めず、MVP完成とは記録しない。
+- 2026年8月12日、公開URL [https://chameleonjp-lab.github.io/hanabin/](https://chameleonjp-lab.github.io/hanabin/)を確認した。直アクセスでホームを表示し、「ゲームを開始」→初回練習→スキップ→カウントダウン→本編Canvas/HUD（残り時間、得点、連鎖、次の2波予告）まで到達した。
+- この確認では結果画面まで到達していない。実機3端末、初見5人、Pages設定画面の確認も未実施であり、MVP完成とは記録しない。
 - R1公式プレイとR2ランキングは、MVP完成と利用者の開始指示まで保留する。
 
 ---
@@ -1027,4 +1028,4 @@ M7のPull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) が�
 進捗: 6/7・公開確認中
 ```
 
-ゲームルールは変更しない。CIの成功証跡を`docs/MVP_RELEASE_REPORT.md`へ反映し、GitHub Pagesの設定と公開後URLのホーム→ゲーム→結果確認、実機3端末、初見5人の実測結果を記録する。未確認の項目は完了扱いにせず、R1公式プレイとR2ランキングはMVP完成および利用者の明示指示まで開始しない。
+ゲームルールは変更しない。公開URLのホーム→初回練習→本編画面までの到達を確認した結果を`docs/MVP_RELEASE_REPORT.md`へ記録する。結果画面、実機3端末、初見5人、Pages設定画面は未確認のまま残し、MVP完成とは扱わない。R1公式プレイとR2ランキングはMVP完成および利用者の明示指示まで開始しない。

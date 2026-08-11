@@ -1,6 +1,6 @@
 # HANABIN MVP公開候補レポート
 
-- 作成日: 2026年8月11日
+- 作成日: 2026年8月12日
 - 対象リポジトリ: `chameleonjp-lab/hanabin`
 - 対象ブランチ: `main`（M7マージコミット `942a28441549305f4e1d8c57535f9c87de695db7`）
 - 状態: M7マージ済み・公開確認中
@@ -66,6 +66,24 @@ PlaywrightはGitHub Actions Browser #29で24テストを実行し、24/24成功�
 - `src/`
 
 テスト、文書、GitHub Actionsの設定、パッケージ管理ファイルは公開artifactへ入れない。Pull RequestではPagesをデプロイせず、`main`へマージされた後だけデプロイする。M7のマージでこのworkflowの公開対象になったが、Pages設定画面の公開元と公開後URLのホーム→ゲーム→結果確認は未実施である。Pagesの設定画面で公開元をGitHub Actionsにする操作は、リポジトリ管理者が確認する。
+
+### 3.1 公開URLの到達確認（2026年8月12日）
+
+確認URL: [HANABIN公開ページ](https://chameleonjp-lab.github.io/hanabin/)
+
+確認環境は公開確認用のCloud Browserであり、iPhone・iPadの実機確認ではない。
+
+| 確認項目 | 結果 |
+|---|---|
+| URLへ直接アクセスしてホームを表示 | 確認 |
+| 「ゲームを開始」から初回練習を表示 | 確認 |
+| 練習をスキップしてカウントダウンへ進む | 確認 |
+| 本編Canvas、残り時間、得点、連鎖、次の2波予告を表示 | 確認 |
+| 公開URL上で本編から結果画面まで到達 | 未確認 |
+| iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018 | 未確認 |
+| 初見5人の試遊 | 未確認 |
+
+この確認だけではM7完了・MVP完成とは判定しない。結果画面、実機3端末、初見5人、Pages設定画面の確認を続ける。
 
 ## 4. 実機検査
 
