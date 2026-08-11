@@ -15,6 +15,12 @@ const MAX_CLOCK_BACKLOG_MS = 1_000;
 export const isClockBacklogUnsafe = (value) =>
   !Number.isFinite(value) || value > MAX_CLOCK_BACKLOG_MS;
 
+export const toScreenPhase = (phase) => {
+  if (phase === "playing") return "play";
+  if (phase === "fault") return "result";
+  return phase;
+};
+
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
 const nowMs = () => typeof performance !== "undefined" && Number.isFinite(performance.now())
@@ -108,8 +114,8 @@ export class GameController {
   }
 
   handlePhaseChange(phase, previous) {
-    const screenPhase = phase === "fault" ? "result" : phase;
-    this.screens.show(screenPhase, previous === "fault" ? "result" : previous);
+    const screenPhase = toScreenPhase(phase);
+    this.screens.show(screenPhase, toScreenPhase(previous));
     this.root.dataset.phase = phase;
     this.transitions = this.screens.history();
     if (phase === "home") {
