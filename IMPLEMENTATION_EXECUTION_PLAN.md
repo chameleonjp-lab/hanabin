@@ -1029,12 +1029,21 @@ Canvas 2Dから別の描画基盤へ変更する場合は、実機計測でCanva
 
 ## 22. 次に開始する作業
 
-M7の公開確認記録を同期するPull Request [#15](https://github.com/chameleonjp-lab/hanabin/pull/15) が2026年8月12日に `main`へマージされた。PR #15は、PR #14のマージコミット、CI Core #35、CI Browser #35、公開URLのHTTP 200確認を計画・進捗・公開候補レポート・READMEへ反映した。マージコミットは `f01c821da804a29aeec5507ba033d259376b6061` で、PR #15自身の[CI Core #37](https://github.com/chameleonjp-lab/hanabin/actions/runs/31520797668)と[CI Browser #37](https://github.com/chameleonjp-lab/hanabin/actions/runs/31520797666)も成功した。次は公開URLの結果画面確認を進める。
+Pull Request [#16](https://github.com/chameleonjp-lab/hanabin/pull/16)が2026年8月12日に`main`へマージされた。PR #16は、PR #15のマージ後状態とCI証跡を計画・進捗・公開候補レポート・READMEへ同期した。マージコミットは`15a7c808cf230908383bf6357ae36e22267ee180`で、ゲームコード、ゲームルール、得点、保存形式は変更していない。
+
+既存のM7 Browser CIは、リポジトリ内のローカル静的サーバーを対象にしている。次は、GitHub Pagesで実際に配信された公開URLを対象に、ホームから結果画面までを自動確認する。
 
 ```text
-ブランチ: agent/m7-public-terminal-verification-20260812
-目的: 公開URLの結果画面到達と未確認条件を整理する
+ブランチ: agent/m7-public-url-smoke-20260812
+目的: 公開URLの実配信物で終端経路を確認する
 進捗: 6/7・公開確認中
 ```
 
-ゲームルールは変更しない。HTTP 200や自動E2Eの成功を公開URL上の対話確認とは混同せず、結果画面、実機3端末、初見5人、Pages設定画面は未確認のまま残す。MVP完成とは扱わない。R1公式プレイとR2ランキングはMVP完成および利用者の明示指示まで開始しない。
+今回の公開URL終端検査は、テスト用の固定tick操作口を公開ページで使わず、次の利用者向け操作を実時間で実行する。
+
+- 公開URLへアクセスする。
+- 「ゲームを開始」から初回練習を表示し、練習をスキップする。
+- カウントダウン、本編、実時間の60秒経過、結果画面まで進む。
+- 結果画面が1回だけ表示され、JavaScriptエラーや4xx以上の読み込み失敗がないことを確認する。
+
+Pagesデプロイ成功後に専用Actionsを起動し、手動実行も可能にする。これで公開URLの配信経路を自動で継続確認できるが、iPhone・iPadの実機確認、初見5人の試遊、Pages設定画面の確認を完了扱いにはしない。これらが未確認の間はMVPを7/7へ進めない。R1公式プレイとR2ランキングは、MVP完成および利用者の明示指示まで保留する。
