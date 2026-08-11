@@ -1,17 +1,16 @@
-import { DEFAULT_RULES, mergeRules } from "../config/rules.js";
+import {
+  DEFAULT_RULES,
+  directExplosionRadiusForSelection,
+  mergeRules,
+  selectionDurationMultiplierPercent,
+  selectionRadiusMultiplierPercent,
+} from "../config/rules.js";
 import { detonate } from "./engine.js";
 
 export { detonate };
-
-export const selectionRadiusMultiplierPercent = (count) => {
-  const value = Number.isFinite(count) ? Math.trunc(count) : 0;
-  return Math.min(140, 100 + Math.max(0, value - 3) * 15);
-};
-
-export const selectionDurationMultiplierPercent = (count) => {
-  const value = Number.isFinite(count) ? Math.trunc(count) : 0;
-  if (value <= 4) return 100;
-  return Math.min(115, 100 + (value - 3) * 5);
+export {
+  selectionDurationMultiplierPercent,
+  selectionRadiusMultiplierPercent,
 };
 
 // Compatibility name kept for the M2 public surface. The argument is a
@@ -40,7 +39,7 @@ export const resolveChain = (entities = [], options = {}) => {
   const actionId = Number.isInteger(options.actionId) ? options.actionId : 0;
   const radiusMultiplierPercent = selectionRadiusMultiplierPercent(selectedIds.length);
   const durationMultiplierPercent = selectionDurationMultiplierPercent(selectedIds.length);
-  const directRadius = attenuatedRadius(rules.baseExplosionRadius, radiusMultiplierPercent);
+  const directRadius = directExplosionRadiusForSelection(selectedIds.length, rules);
   const explosionDurationTicks = Math.round(
     rules.baseExplosionDurationTicks * durationMultiplierPercent / 100,
   );

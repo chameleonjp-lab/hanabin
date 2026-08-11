@@ -1,6 +1,7 @@
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
+  DEFAULT_RULES,
 } from "../config/rules.js";
 import {
   boardToCanvas,
@@ -105,6 +106,7 @@ export class CanvasRenderer {
   render(state, {
     pointer = null,
     phase = "playing",
+    rules = DEFAULT_RULES,
   } = {}) {
     if (!state) {
       this.drawBackground(null);
@@ -123,6 +125,7 @@ export class CanvasRenderer {
       boardWidth: this.boardWidth,
       boardHeight: this.boardHeight,
       pointer,
+      rules,
     });
 
     // Keep the diagnostic geometry on the DOM element itself. The browser's

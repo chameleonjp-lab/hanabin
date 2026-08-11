@@ -20,6 +20,11 @@ const layoutAnchor = (position, rules) => {
   return Math.round(rules.boardWidth / 2);
 };
 
+const primaryColorForWave = (seed, waveIndex, rules) => {
+  const rng = createRng(hashSeed(`${seed}:wave:${Math.max(0, Math.trunc(waveIndex))}`));
+  return rng.int(0, rules.colorCount);
+};
+
 const randomLifetime = (rng, rules) => rng.intInclusive(rules.lifetimeMinTicks, rules.lifetimeMaxTicks);
 
 const entity = ({
@@ -34,6 +39,7 @@ const entity = ({
   depth,
   lifetime,
   layout,
+  forecastForWaveIndex = null,
   rules,
 }) => {
   const safeX = clamp(roundInt(x), 0, rules.boardWidth);
@@ -56,6 +62,7 @@ const entity = ({
     lifetimeTicks: lifetime,
     expiresTick: waveTickAt(waveIndex, rules) + lifetime,
     layout,
+    forecastForWaveIndex,
     visible: true,
     status: "active",
     scored: false,
@@ -68,7 +75,8 @@ const makePlan = (seed, waveIndex, rules) => {
   const kind = waveKindAt(safeWaveIndex);
   const definition = getWaveDefinition(kind);
   const rng = createRng(hashSeed(`${seed}:wave:${safeWaveIndex}`));
-  const primaryColor = rng.int(0, normalizedRules.colorCount);
+  const primaryColor = primaryColorForWave(seed, safeWaveIndex, normalizedRules);
+  const nextPrimaryColor = primaryColorForWave(seed, safeWaveIndex + 1, normalizedRules);
   let secondaryColor = rng.int(0, normalizedRules.colorCount - 1);
   if (secondaryColor >= primaryColor) secondaryColor += 1;
   const layout = wavePositionAt(safeWaveIndex);
@@ -80,6 +88,7 @@ const makePlan = (seed, waveIndex, rules) => {
     primaryColor,
     mainColor: primaryColor,
     secondaryColor,
+    nextPrimaryColor,
     order: safeWaveIndex + 1,
     sequence: safeWaveIndex + 1,
     position: layout,
@@ -117,14 +126,17 @@ export const generateWave = (seedOrOptions, waveIndexArg, rulesArg) => {
   const entities = [];
   const add = (args) => {
     if (entities.length >= normalizedRules.maxPerWave) return;
+    const { lifetimeOverride, ...entityArgs } = args;
     entities.push(entity({
-      ...args,
+      ...entityArgs,
       waveId: plan.waveId,
       waveIndex: plan.waveIndex,
       localIndex: entities.length,
       layout: plan.layout,
       rules: normalizedRules,
-      lifetime: randomLifetime(rng, normalizedRules),
+      lifetime: Number.isInteger(lifetimeOverride)
+        ? lifetimeOverride
+        : randomLifetime(rng, normalizedRules),
     }));
   };
 
@@ -264,6 +276,29 @@ export const generateWave = (seedOrOptions, waveIndexArg, rulesArg) => {
       break;
   }
 
+  // M4 makes the preview actionable.  Every wave carries a small bridge
+  // group in the next wave's primary color.  It is placed between the
+  // current and next wave anchors, so reading the forecast creates a choice:
+  // detonate the current group now, or prepare the bridge for the next wave.
+  const nextAnchorX = layoutAnchor(wavePositionAt(plan.waveIndex + 1), normalizedRules);
+  const previewAnchorX = Math.round((anchorX + nextAnchorX) / 2);
+  const previewAnchorY = Math.min(
+    normalizedRules.boardHeight - Math.round(normalizedRules.boardHeight * 0.12),
+    anchorY + Math.round(normalizedRules.boardHeight * 0.34),
+  );
+  const previewSpreadX = Math.max(1, Math.round(spreadX * 1.25));
+  const previewSpreadY = Math.max(1, Math.round(spreadY * 0.45));
+  for (let index = 0; index < 5; index += 1) {
+    add({
+      color: plan.nextPrimaryColor,
+      x: previewAnchorX + (index - 2) * previewSpreadX,
+      y: previewAnchorY + ((index + 1) % 2 === 0 ? -previewSpreadY : previewSpreadY),
+      depth: 520 + index * 18,
+      forecastForWaveIndex: plan.waveIndex + 1,
+      lifetimeOverride: normalizedRules.lifetimeMaxTicks,
+    });
+  }
+
   return {
     ...createWavePlan(seed ?? 1, plan.waveIndex, normalizedRules),
     entities,
@@ -285,6 +320,7 @@ export const generateUpcomingWaves = (seed, nextWaveIndex, rules = DEFAULT_RULES
     kind: plan.kind,
     primaryColor: plan.primaryColor,
     mainColor: plan.primaryColor,
+    nextPrimaryColor: plan.nextPrimaryColor,
     order: plan.order,
     sequence: plan.sequence,
     position: plan.position,

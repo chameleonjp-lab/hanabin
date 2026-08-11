@@ -39,7 +39,9 @@ test("xorshift32 and waves are deterministic", () => {
   assert.equal(first, second);
   const wave = generateWave(123, 0);
   assert.equal(wave.kind, WAVE_KINDS[0]);
-  assert.equal(wave.entities.length, 5);
+  // M4 adds five forecast-bridge fireworks to the original five opening
+  // targets so the next-wave preview is actionable.
+  assert.equal(wave.entities.length, 10);
   for (const candidate of wave.entities) {
     assert.equal(Number.isInteger(candidate.x), true);
     assert.equal(Number.isInteger(candidate.y), true);
