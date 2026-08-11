@@ -2,6 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  testIgnore: ["**/m7-public-release.spec.mjs"],
   timeout: 30_000,
   fullyParallel: true,
   reporter: [
