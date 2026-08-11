@@ -342,12 +342,19 @@ test("M3 edge-aware reticle stays on-canvas and changes direction at edges", asy
   const topRight = { x: box.right - 1, y: box.top + 1 };
   const bottomLeft = { x: box.left + 1, y: box.bottom - 1 };
   const bottomRight = { x: box.right - 1, y: box.bottom - 1 };
-  const pointerId = 808;
-  await dispatchPointer(page, "pointerdown", {
+  const center = {
+    x: (box.left + box.right) / 2,
+    y: (box.top + box.bottom) / 2,
+  };
+  await page.mouse.move(center.x, center.y);
+  await page.mouse.down();
+  const pointerId = (await callApi(page, "renderModel")).pointer.pointerId;
+  expect(pointerId).not.toBeNull();
+  await dispatchPointer(page, "pointermove", {
     pointerId,
     clientX: topLeft.x,
     clientY: topLeft.y,
-    pointerType: "touch",
+    pointerType: "mouse",
   });
   await callApi(page, "advanceTicks", 1);
   const leftTop = await readReticle(page);
