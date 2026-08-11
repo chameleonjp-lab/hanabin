@@ -86,6 +86,7 @@ PlaywrightはGitHub Actions Browser #29で24テストを実行し、24/24成功�
 - 公開URLでホーム→初回練習→スキップ→カウントダウン→本編→実時間60秒→結果画面まで到達しました。
 - 結果画面は1回だけ登録され、JavaScriptエラー、4xx以上の応答、失敗リクエストは検出されませんでした。
 - これは公開URLの自動終端検査の成功記録です。iPhone・iPadの実機確認、初見5人の試遊、Pages設定画面の確認は別条件として未確認のまま残します。
+
 ## 3. GitHub Pages
 
 `.github/workflows/pages.yml`を追加した。`main`へのpush、または手動実行を対象に、次の3つだけをartifactへ入れる。
