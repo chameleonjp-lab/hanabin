@@ -54,6 +54,7 @@ test("M1 entry files exist without a build step", async () => {
     "src/ui/result.js",
     "src/audio/sound.js",
     "src/storage/local-storage.js",
+    "src/config/release.js",
     "src/ui/screens.js",
     "scripts/serve.mjs",
     "scripts/check-syntax.mjs",
@@ -75,4 +76,13 @@ test("the fixed-tick browser bridge is limited to an explicit local test URL", a
   assert.match(app, /127\.0\.0\.1/);
   assert.match(app, /URLSearchParams\(window\.location\.search\)/);
   assert.match(app, /isLocalTestHost\s*&&/);
+});
+
+test("the public Pages artifact contains only the static game entry files", async () => {
+  const workflow = await readProjectFile(".github/workflows/pages.yml");
+
+  assert.match(workflow, /cp index\.html site\//);
+  assert.match(workflow, /cp -R styles site\//);
+  assert.match(workflow, /cp -R src site\//);
+  assert.doesNotMatch(workflow, /cp .*README|cp .*tests|cp .*\.github/u);
 });

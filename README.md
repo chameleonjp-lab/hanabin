@@ -2,7 +2,7 @@
 
 同色の花火を選び、起爆位置と時刻を考えて連鎖を伸ばす、スマートフォン向け60秒スコアアタックゲームです。
 
-M1〜M5（決定的判定、Canvas版、ゲームプレイ硬化、独自花火表現）は`main`へマージ済みです。現在はM6として、初回練習、端末内保存、結果導線、共有、音をDraft Pull Request向けに検証しています。ランキングはまだ実装していません。
+M1〜M6（決定的判定、Canvas版、ゲームプレイ硬化、独自花火表現、製品導線）は`main`へマージ済みです。現在はM7として、公開候補の最終検証とGitHub Pages準備をDraft Pull Request向けに進めています。ランキングはまだ実装していません。
 
 ## 実装を進める文書
 
@@ -24,6 +24,8 @@ M1〜M5（決定的判定、Canvas版、ゲームプレイ硬化、独自花火�
   M5の装飾品質、光粒の上限、結果不変試験、未確認の端末性能を記録します。
 - [`docs/M6_PRODUCT_SHELL.md`](./docs/M6_PRODUCT_SHELL.md)
   M6の初回練習、保存、結果、共有、音、中断復帰の境界と検査を記録します。
+- [`docs/MVP_RELEASE_REPORT.md`](./docs/MVP_RELEASE_REPORT.md)
+  M7の自動検査、公開版固定情報、GitHub Pages、実機検査、初見試遊の結果を記録します。
 
 ## ゲームの挙動を決める文書
 
@@ -68,5 +70,6 @@ M1〜M5（決定的判定、Canvas版、ゲームプレイ硬化、独自花火�
 - M3実装: Pull Request [#7](https://github.com/chameleonjp-lab/hanabin/pull/7)を`main`へマージ済み
 - M4実装: Pull Request [#8](https://github.com/chameleonjp-lab/hanabin/pull/8)を`main`へマージ済み
 - M5実装: Pull Request [#9](https://github.com/chameleonjp-lab/hanabin/pull/9)を`main`へマージ済み。選択線を保護した独自花火表現、光粒プール、品質別描画を確認済み
-- M6実装: 初回練習、端末内プロフィール、結果ヒント・共有、音設定を作業ブランチで検証中
-- MVP実装: 5/7（M6は未マージのため未加算）
+- M6実装: Pull Request [#10](https://github.com/chameleonjp-lab/hanabin/pull/10)を`main`へマージ済み。初回練習、端末内プロフィール、結果ヒント・共有、音設定を確認済み
+- M7実装: 公開版固定情報、最終検証、GitHub Pages準備を作業ブランチで検証中
+- MVP実装: 6/7（M7は未マージのため未加算）
