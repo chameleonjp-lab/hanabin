@@ -2,9 +2,9 @@
 
 - 作成日: 2026年8月12日
 - 対象リポジトリ: `chameleonjp-lab/hanabin`
-- 対象ブランチ: `main`（M7実装マージコミット `942a28441549305f4e1d8c57535f9c87de695db7`、公開確認記録マージコミット `09a29d6d94781fe12a37c930a78e0bff36f3c85a`、PR #14同期マージコミット `a9441c65b6900fd2b18b7a9fc10bd7499062885c`、PR #15同期マージコミット `f01c821da804a29aeec5507ba033d259376b6061`、PR #16同期マージコミット `15a7c808cf230908383bf6357ae36e22267ee180`）
+- 対象ブランチ: `main`（M7実装マージコミット `942a28441549305f4e1d8c57535f9c87de695db7`、公開確認記録マージコミット `09a29d6d94781fe12a37c930a78e0bff36f3c85a`、PR #14同期マージコミット `a9441c65b6900fd2b18b7a9fc10bd7499062885c`、PR #15同期マージコミット `f01c821da804a29aeec5507ba033d259376b6061`、PR #16同期マージコミット `15a7c808cf230908383bf6357ae36e22267ee180`、PR #17公開URL終端検査マージコミット `cd854f2c08e7f986ee97c7bd43fca0ee82b21dec`）
 - 状態: M7マージ済み・公開確認中
-- MVP判定: **未完了**。実機3端末と初見外部試遊が未実施のため、公開候補として記録する。
+- MVP判定: **未完了**。実機3端末、初見外部試遊、Pages設定画面の確認が未実施のため、公開候補として記録する。
 
 ## 1. 公開版の固定情報
 
@@ -78,14 +78,14 @@ PlaywrightはGitHub Actions Browser #29で24テストを実行し、24/24成功�
 - PR #15の[CI Core #37](https://github.com/chameleonjp-lab/hanabin/actions/runs/31520797668)と[CI Browser #37](https://github.com/chameleonjp-lab/hanabin/actions/runs/31520797666)は成功しました。
 - PR #15は計画書・進捗・README・公開候補レポートだけの変更で、ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していません。
 - 結果画面、実機3端末、初見5人、Pages設定画面は未確認のままであり、MVP進捗は6/7を維持します。
-### 2.7 公開URL終端検査（今回のDraft Pull Request・未実行）
+### 2.7 公開URL終端検査（PR #17マージ後）
 
-- PR #16はマージコミット `15a7c808cf230908383bf6357ae36e22267ee180`で`main`へ反映済みです。
-- 既存のBrowser CIはリポジトリ内のローカル静的サーバーを対象にするため、公開URLそのものの結果画面到達はまだ確認していません。
-- 今回のDraft Pull Requestでは、`playwright.public.config.mjs`、`tests/e2e/m7-public-release.spec.mjs`、`.github/workflows/public-release.yml`を追加し、GitHub Pagesの公開URLで実時間の終端経路を確認します。
-- Pagesデプロイ成功後に専用Actionsを起動し、ホーム→初回練習→スキップ→カウントダウン→本編→実時間60秒→結果画面、結果画面の1回表示、JavaScriptエラー、4xx以上の読み込み失敗を検査します。
-- この検査がまだ実行されていないため、現時点では公開URL上の結果画面を確認済みとは記録しません。
-
+- PR #17はマージコミット `cd854f2c08e7f986ee97c7bd43fca0ee82b21dec`で`main`へ反映済みです。
+- [Deploy GitHub Pages #7](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540518416)はPR #17のマージコミットを公開し、成功しました。
+- [Public Release Smoke #1](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540556019)も成功しました。実行対象はPR #17のマージコミットで、ジョブは[Published Pages terminal flow](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540556019/job/93941744736)です。
+- 公開URLでホーム→初回練習→スキップ→カウントダウン→本編→実時間60秒→結果画面まで到達しました。
+- 結果画面は1回だけ登録され、JavaScriptエラー、4xx以上の応答、失敗リクエストは検出されませんでした。
+- これは公開URLの自動終端検査の成功記録です。iPhone・iPadの実機確認、初見5人の試遊、Pages設定画面の確認は別条件として未確認のまま残します。
 ## 3. GitHub Pages
 
 `.github/workflows/pages.yml`を追加した。`main`へのpush、または手動実行を対象に、次の3つだけをartifactへ入れる。
@@ -94,7 +94,7 @@ PlaywrightはGitHub Actions Browser #29で24テストを実行し、24/24成功�
 - `styles/`
 - `src/`
 
-テスト、文書、GitHub Actionsの設定、パッケージ管理ファイルは公開artifactへ入れない。Pull RequestではPagesをデプロイせず、`main`へマージされた後だけデプロイする。M7のマージでこのworkflowの公開対象になったが、Pages設定画面の公開元と公開後URLのホーム→ゲーム→結果確認は未実施である。Pagesの設定画面で公開元をGitHub Actionsにする操作は、リポジトリ管理者が確認する。
+テスト、文書、GitHub Actionsの設定、パッケージ管理ファイルは公開artifactへ入れない。Pull RequestではPagesをデプロイせず、`main`へマージされた後だけデプロイする。M7のマージでこのworkflowの公開対象になった。公開URLのホーム→ゲーム→結果は専用Actionsで確認済みだが、Pages設定画面の公開元確認は未実施である。Pagesの設定画面で公開元をGitHub Actionsにする操作は、リポジトリ管理者が確認する。
 
 ### 3.1 公開URLの到達確認（2026年8月12日）
 
@@ -110,12 +110,12 @@ PlaywrightはGitHub Actions Browser #29で24テストを実行し、24/24成功�
 | 「ゲームを開始」から初回練習を表示 | 確認 |
 | 練習をスキップしてカウントダウンへ進む | 確認 |
 | 本編Canvas、残り時間、得点、連鎖、次の2波予告を表示 | 確認 |
-| 公開URL上で本編から結果画面まで到達 | 未確認 |
-| 公開URL専用の自動検査で本編から結果画面まで到達 | 未実行（今回の次工程） |
+| 公開URL上で本編から結果画面まで到達 | 確認（公開URL専用Actions #1） |
+| 公開URL専用の自動検査で本編から結果画面まで到達 | 確認（Public Release Smoke #1） |
 | iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018 | 未確認 |
 | 初見5人の試遊 | 未確認 |
 
-この確認だけではM7完了・MVP完成とは判定しない。結果画面、実機3端末、初見5人、Pages設定画面の確認を続ける。
+この確認だけではM7完了・MVP完成とは判定しない。実機3端末、初見5人、Pages設定画面の確認を続ける。
 
 ## 4. 実機検査
 
@@ -150,4 +150,4 @@ PlaywrightはGitHub Actions Browser #29で24テストを実行し、24/24成功�
 
 ## 7. 完了判定
 
-自動検査、全E2E、実機3端末、初見試遊、Pages公開後のホームから結果までの確認がそろうまで、M7は完了にしない。完了後にこのレポートへ根拠を追記し、`IMPLEMENTATION_STATUS.md`を7/7へ更新する。
+自動検査、全E2E、実機3端末、初見試遊、Pages設定画面の確認がそろうまで、M7は完了にしない。完了後にこのレポートへ根拠を追記し、`IMPLEMENTATION_STATUS.md`を7/7へ更新する。
