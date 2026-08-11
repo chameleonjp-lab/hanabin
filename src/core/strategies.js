@@ -62,7 +62,7 @@ export const strategyForecast = (state) => {
   const preferredOptions = sameColorOptions(state).filter((entity) =>
     preferred === undefined || entity.color === preferred,
   );
-  if (state.selectedIds.length >= 3) return releaseAction(state);
+  if (state.selectedIds.length >= 5) return releaseAction(state);
   return selectAction(
     state,
     bestBy(preferredOptions.length ? preferredOptions : sameColorOptions(state),

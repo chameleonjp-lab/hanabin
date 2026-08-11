@@ -1,4 +1,8 @@
-import { COLORS } from "../config/rules.js";
+import {
+  COLORS,
+  DEFAULT_RULES,
+  directExplosionRadiusForSelection,
+} from "../config/rules.js";
 
 export const DISPLAY_COLORS = Object.freeze({
   red: "#ff718f",
@@ -81,6 +85,7 @@ export const drawCompetitiveLayer = (ctx, {
   boardWidth = 16_000,
   boardHeight = 9_000,
   pointer = null,
+  rules = DEFAULT_RULES,
   alpha = 1,
 } = {}) => {
   if (!ctx || !state) return;
@@ -95,7 +100,7 @@ export const drawCompetitiveLayer = (ctx, {
     return recordsById.get(String(id));
   }).filter(Boolean);
   const scale = Math.min(width / boardWidth, height / boardHeight);
-  const entityRadius = Math.max(4, 140 * scale);
+  const entityRadius = Math.max(4, rules.entityRadius * scale);
 
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -118,6 +123,44 @@ export const drawCompetitiveLayer = (ctx, {
     });
     ctx.stroke();
     ctx.restore();
+  }
+
+  // These restrained geometry overlays expose the exact competitive values
+  // used by the core: the next candidate must remain inside the link radius,
+  // while the current selection count determines the direct blast radius.
+  if (selectedPath.length) {
+    const linkOrigin = toCanvas(
+      selectedPath.at(-1).x,
+      selectedPath.at(-1).y,
+    );
+    const selectionLinkRadius = rules.selectionLinkDistance * scale;
+    const directRadius = directExplosionRadiusForSelection(selectedIds.size, rules) * scale;
+    ctx.save();
+    ctx.setLineDash([5, 7]);
+    ctx.lineWidth = Math.max(1, width / 1600);
+    ctx.strokeStyle = "rgba(121, 230, 255, 0.28)";
+    ctx.beginPath();
+    ctx.arc(linkOrigin.x, linkOrigin.y, selectionLinkRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255, 209, 102, 0.22)";
+    for (const record of selectedPath) {
+      const point = toCanvas(record.x, record.y);
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, directRadius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+    if (ctx.canvas?.dataset) {
+      ctx.canvas.dataset.selectionLinkDistance = String(rules.selectionLinkDistance);
+      ctx.canvas.dataset.directExplosionRadius = String(
+        directExplosionRadiusForSelection(selectedIds.size, rules),
+      );
+      ctx.canvas.dataset.selectionCount = String(selectedIds.size);
+    }
+  } else if (ctx.canvas?.dataset) {
+    ctx.canvas.dataset.selectionLinkDistance = "";
+    ctx.canvas.dataset.directExplosionRadius = "";
+    ctx.canvas.dataset.selectionCount = "0";
   }
 
   const candidates = [...(state.fireworks ?? [])]

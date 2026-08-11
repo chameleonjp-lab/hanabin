@@ -297,6 +297,16 @@
   font-size: 0.7rem;
 }
 
+.forecast-position,
+.forecast-arrival {
+  color: #b8c5e7;
+  font-variant-numeric: tabular-nums;
+}
+
+.forecast-arrival {
+  color: #79e6ff;
+}
+
 .forecast-swatch {
   display: inline-grid;
   width: 13px;

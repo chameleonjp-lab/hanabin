@@ -1,7 +1,10 @@
 import {
   DEFAULT_RULES,
+  directExplosionRadiusForSelection,
   mergeRules,
   scoreForColor,
+  selectionDurationMultiplierPercent,
+  selectionRadiusMultiplierPercent,
   waveTickAt,
 } from "../config/rules.js";
 import {
@@ -25,14 +28,6 @@ const distanceSquared = (leftX, leftY, rightX, rightY) => {
   const dx = leftX - rightX;
   const dy = leftY - rightY;
   return dx * dx + dy * dy;
-};
-
-const selectionRadiusMultiplierPercent = (count) =>
-  Math.min(140, 100 + Math.max(0, Math.trunc(count) - 3) * 15);
-const holdDurationMultiplierPercent = (count) => {
-  const value = Math.trunc(count);
-  if (value <= 4) return 100;
-  return Math.min(115, 100 + Math.max(0, value - 3) * 5);
 };
 
 const compareIds = (left, right) => {
@@ -170,6 +165,7 @@ const appendWave = (state, wave, rules) => {
     primaryColor: wave.primaryColor,
     mainColor: wave.primaryColor,
     secondaryColor: wave.secondaryColor,
+    nextPrimaryColor: wave.nextPrimaryColor,
     order: wave.order,
     sequence: wave.sequence,
     position: wave.position,
@@ -499,7 +495,10 @@ const scoreTarget = (state, target, sourceColor, event, rules) => {
       Math.max(0, rules.inclusionScoreCap - inclusionAlready),
     )
     : 0;
-  const amount = baseAmount + inclusionAmount;
+  const forecastPlanAmount = event.kind === "chain" && event.forecastPlan === true
+    ? rules.forecastPlanChainBonusPerTarget
+    : 0;
+  const amount = baseAmount + inclusionAmount + forecastPlanAmount;
   target.status = "exploded";
   target.visible = false;
   target.scored = true;
@@ -515,6 +514,7 @@ const scoreTarget = (state, target, sourceColor, event, rules) => {
     generation: event.depth,
     baseAmount,
     inclusionAmount,
+    forecastPlanAmount,
     amount,
     sourceColor,
     targetColor: target.color,
@@ -535,6 +535,7 @@ const scoreTarget = (state, target, sourceColor, event, rules) => {
     directRadius: event.directRadius ?? event.radius,
     depth: event.depth,
     chainStartTick: event.chainStartTick,
+    forecastPlan: event.forecastPlan === true,
     radiusMultiplierPercent: event.radiusMultiplierPercent,
     durationMultiplierPercent: event.durationMultiplierPercent,
     kind: event.kind,
@@ -648,6 +649,7 @@ const collectActiveExplosionHits = (state, tick, rules) => {
       durationMultiplierPercent: proposal.explosion.durationMultiplierPercent,
       explosionDurationTicks: proposal.explosion.durationTicks,
       chainStartTick: proposal.explosion.chainStartTick,
+      forecastPlan: proposal.explosion.forecastPlan === true,
     }, rules);
     if (state.simulationFault) return;
   }
@@ -782,14 +784,12 @@ const finalizeTerminalInput = (state, rules) => {
   }
 };
 
-const triggerChain = (state, selectedRecords, actionId, rules) => {
+const triggerChain = (state, selectedRecords, actionId, rules, forecastPlan = false) => {
   let eventId = state.eventCount;
   const selected = [...selectedRecords].sort((left, right) => compareIds(left.id, right.id));
   const radiusMultiplierPercent = selectionRadiusMultiplierPercent(selected.length);
-  const durationMultiplierPercent = holdDurationMultiplierPercent(selected.length);
-  const directRadius = Math.round(
-    rules.baseExplosionRadius * radiusMultiplierPercent / 100,
-  );
+  const durationMultiplierPercent = selectionDurationMultiplierPercent(selected.length);
+  const directRadius = directExplosionRadiusForSelection(selected.length, rules);
   const explosionDurationTicks = Math.round(
     rules.baseExplosionDurationTicks * durationMultiplierPercent / 100,
   );
@@ -815,6 +815,7 @@ const triggerChain = (state, selectedRecords, actionId, rules) => {
       durationMultiplierPercent,
       explosionDurationTicks,
       chainStartTick: state.tick,
+      forecastPlan,
     }, rules);
   }
   state.eventCount = eventId;
@@ -829,14 +830,26 @@ export const detonate = (state, rulesArg = DEFAULT_RULES, actionId = state.actio
   if (state.selectedIds.length < rules.minSelection) return ignore(state, "minimum-selection");
   if (state.selectionAgeTicks < rules.minHoldTicks) return ignore(state, "selection-not-held");
   const selectedRecords = clone(state.selectionRecords);
+  const nextWave = state.upcomingWaves?.[0];
+  const selectedEntities = selectedRecords.map((record) => getEntity(state, record.id)).filter(Boolean);
+  const forecastBridgeCount = selectedEntities.filter((entity) =>
+    Number.isInteger(entity.forecastForWaveIndex) &&
+    nextWave && entity.forecastForWaveIndex === nextWave.waveIndex,
+  ).length;
+  const isForecastPlan = Boolean(nextWave &&
+    selectedRecords.length === rules.forecastPlanSelectionCount &&
+    selectedEntities.length === selectedRecords.length &&
+    selectedEntities[0]?.color === nextWave.primaryColor &&
+    forecastBridgeCount >= rules.minimumSelection);
   state.combo += 1;
   state.maxCombo = Math.max(state.maxCombo, state.combo);
   state.stats.detonationCount += 1;
-  const exploded = triggerChain(state, selectedRecords, actionId, rules);
+  const exploded = triggerChain(state, selectedRecords, actionId, rules, isForecastPlan);
   const preparationAmount = scoreForPreparation(selectedRecords.length, rules);
   const detonationAmount = rules.detonationBonus;
   const comboAmount = Math.max(0, state.combo - 1) * rules.comboBonus;
-  const bonusAmount = preparationAmount + detonationAmount + comboAmount;
+  const forecastPlanAmount = isForecastPlan ? rules.forecastPlanBonus : 0;
+  const bonusAmount = preparationAmount + detonationAmount + comboAmount + forecastPlanAmount;
   if (bonusAmount > 0) {
     if (state.scoreEvents.length + state.bonusEvents.length >= rules.maxScoreEvents) {
       setFault(state, "SCORE_EVENT_LIMIT", "score event limit exceeded", { actionId });
@@ -852,6 +865,9 @@ export const detonate = (state, rulesArg = DEFAULT_RULES, actionId = state.actio
       preparationAmount,
       detonationAmount,
       comboAmount,
+      forecastPlanAmount,
+      forecastWaveId: forecastPlanAmount > 0 ? nextWave.waveId : null,
+      forecastBridgeCount,
       amount: bonusAmount,
     });
     state.score += bonusAmount;

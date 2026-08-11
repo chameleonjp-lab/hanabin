@@ -70,7 +70,7 @@ writeFileSync("m2-simulation-report.json", report, "utf8");
 console.log(report);
 if (process.env.GITHUB_STEP_SUMMARY) {
   appendFileSync(process.env.GITHUB_STEP_SUMMARY, [
-    "## M2 deterministic simulation gate",
+    "## M4 deterministic gameplay gate",
     "",
     `- Safety: ${safety.processedSeeds} seeds / ${safety.faults} faults / ${safety.invalidStates} invalid states`,
     `- Generation: ${safety.generatedWavesInspected} waves / ${safety.unselectableWaves} unselectable / ${safety.exactOverlapViolations} exact overlaps`,

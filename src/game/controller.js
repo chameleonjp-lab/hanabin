@@ -395,7 +395,7 @@ export class GameController {
     const state = this.session.state;
     const phase = this.phase;
     if (phase === "playing" || phase === "finalizing") {
-      this.renderer.render(state, { pointer: this.pointer.position, phase });
+      this.renderer.render(state, { pointer: this.pointer.position, phase, rules: this.rules });
       updateHud(this.hud, state, {
         phase,
         rules: this.session.rules,
@@ -403,7 +403,7 @@ export class GameController {
       });
       updatePlayMessage(this.playMessage, state, phase);
     } else if (state) {
-      this.renderer.render(state, { pointer: this.pointer.position, phase });
+      this.renderer.render(state, { pointer: this.pointer.position, phase, rules: this.rules });
     } else {
       this.renderer.render(null, { pointer: this.pointer.position, phase });
     }

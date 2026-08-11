@@ -1,5 +1,5 @@
 /**
- * M2's single source of truth for gameplay constants.
+ * M4's single source of truth for gameplay constants.
  *
  * The core uses an integer board and integer ticks.  This keeps outcomes
  * independent of display size and avoids making a renderer part of a replay.
@@ -7,8 +7,8 @@
  * deterministic default here rather than being chosen at call sites.
  */
 
-export const GAME_VERSION = "M2";
-export const RULE_VERSION = "m2-rules-1";
+export const GAME_VERSION = "M4";
+export const RULE_VERSION = "m4-gameplay-1";
 export const INPUT_SCHEMA_VERSION = "m2-input-1";
 
 export const COLORS = Object.freeze(["red", "blue", "green", "yellow"]);
@@ -26,6 +26,9 @@ export const CHAIN_SCORE_GROWTH_PERCENT = 12;
 export const CHAIN_SCORE_CAP = 600;
 export const INCLUSION_SCORE_PER_EXTRA_TARGET = 40;
 export const INCLUSION_SCORE_CAP = 800;
+export const FORECAST_PLAN_SELECTION_COUNT = 5;
+export const FORECAST_PLAN_BONUS = 1_000;
+export const FORECAST_PLAN_CHAIN_BONUS_PER_TARGET = 600;
 
 export const WAVE_KINDS = Object.freeze([
   "intro",
@@ -142,6 +145,9 @@ const BASE_RULES = {
   chainScoreCap: CHAIN_SCORE_CAP,
   inclusionScorePerExtraTarget: INCLUSION_SCORE_PER_EXTRA_TARGET,
   inclusionScoreCap: INCLUSION_SCORE_CAP,
+  forecastPlanSelectionCount: FORECAST_PLAN_SELECTION_COUNT,
+  forecastPlanBonus: FORECAST_PLAN_BONUS,
+  forecastPlanChainBonusPerTarget: FORECAST_PLAN_CHAIN_BONUS_PER_TARGET,
   score: {
     direct: DIRECT_SCORE,
     preparationPerExtraSelection: PREPARATION_SCORE_PER_EXTRA_SELECTION,
@@ -151,6 +157,9 @@ const BASE_RULES = {
     chainCap: CHAIN_SCORE_CAP,
     inclusionPerExtraTarget: INCLUSION_SCORE_PER_EXTRA_TARGET,
     inclusionCap: INCLUSION_SCORE_CAP,
+    forecastPlanSelectionCount: FORECAST_PLAN_SELECTION_COUNT,
+    forecastPlanBonus: FORECAST_PLAN_BONUS,
+    forecastPlanChainBonusPerTarget: FORECAST_PLAN_CHAIN_BONUS_PER_TARGET,
   },
   scoreSameColor: 100,
   scoreDifferentColor: 100,
@@ -354,6 +363,20 @@ export const mergeRules = (overrides = {}) => {
     }),
     comboBonus: finiteInteger(source.comboBonus, DEFAULT_RULES.comboBonus, { min: 0, max: 1_000 }),
     missPenalty: finiteInteger(source.missPenalty, DEFAULT_RULES.missPenalty, { min: 0, max: 1_000 }),
+    forecastPlanSelectionCount: finiteInteger(
+      source.forecastPlanSelectionCount,
+      DEFAULT_RULES.forecastPlanSelectionCount,
+      { min: DEFAULT_RULES.minimumSelection, max: DEFAULT_RULES.maximumSelection },
+    ),
+    forecastPlanBonus: finiteInteger(source.forecastPlanBonus, DEFAULT_RULES.forecastPlanBonus, {
+      min: 0,
+      max: 10_000,
+    }),
+    forecastPlanChainBonusPerTarget: finiteInteger(
+      source.forecastPlanChainBonusPerTarget,
+      DEFAULT_RULES.forecastPlanChainBonusPerTarget,
+      { min: 0, max: 10_000 },
+    ),
   };
   result.activeEntityLimit = result.maxActiveEntities;
   result.pendingEntityLimit = result.maxPendingEntities;
@@ -368,6 +391,9 @@ export const mergeRules = (overrides = {}) => {
     chainCap: result.chainScoreCap,
     inclusionPerExtraTarget: result.inclusionScorePerExtraTarget,
     inclusionCap: result.inclusionScoreCap,
+    forecastPlanSelectionCount: result.forecastPlanSelectionCount,
+    forecastPlanBonus: result.forecastPlanBonus,
+    forecastPlanChainBonusPerTarget: result.forecastPlanChainBonusPerTarget,
   });
   if (result.lifetimeMaxTicks < result.lifetimeMinTicks) {
     result.lifetimeMaxTicks = result.lifetimeMinTicks;
@@ -406,6 +432,22 @@ export const waveTickAt = (waveIndex, rules = DEFAULT_RULES) =>
     }
     return tick;
   })();
+
+export const selectionRadiusMultiplierPercent = (count) => {
+  const value = Number.isFinite(count) ? Math.trunc(count) : 0;
+  return Math.min(140, 100 + Math.max(0, value - 3) * 15);
+};
+
+export const selectionDurationMultiplierPercent = (count) => {
+  const value = Number.isFinite(count) ? Math.trunc(count) : 0;
+  if (value <= 4) return 100;
+  return Math.min(115, 100 + (value - 3) * 5);
+};
+
+export const directExplosionRadiusForSelection = (count, rules = DEFAULT_RULES) =>
+  Math.round(
+    rules.baseExplosionRadius * selectionRadiusMultiplierPercent(count) / 100,
+  );
 
 export const scoreForColor = (sourceColor, targetColor, rules = DEFAULT_RULES) =>
   sourceColor === targetColor ? rules.sameColorScore : rules.differentColorScore;

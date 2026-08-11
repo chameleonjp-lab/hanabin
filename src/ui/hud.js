@@ -6,14 +6,23 @@ const byId = (root, id) => root?.querySelector?.(`#${id}`) ?? null;
 
 const formatScore = (value) => Math.max(0, Math.trunc(Number(value) || 0)).toLocaleString("ja-JP");
 const formatSeconds = (value) => Math.max(0, Number(value) || 0).toFixed(1);
+const positionLabels = Object.freeze({ left: "左", center: "中央", right: "右" });
 
-export const forecastMarkup = (waves = []) => waves.slice(0, 2).map((wave, index) => {
+export const forecastMarkup = (waves = [], currentTick = 0, rules = DEFAULT_RULES) => waves.slice(0, 2).map((wave, index) => {
   const color = colorName(wave.primaryColor);
   const value = colorValue(wave.primaryColor);
   const symbol = colorSymbol(wave.primaryColor);
+  const position = positionLabels[wave.position] ?? "—";
+  const fireTick = Number(wave.fireTick);
+  const seconds = Number.isFinite(fireTick)
+    ? formatSeconds((fireTick - (Number(currentTick) || 0)) / rules.tickRate)
+    : "—";
   return `<span class="forecast-item" data-wave-index="${index}" data-wave-color="${color}">` +
     `<i class="forecast-swatch" style="color:${value}" aria-hidden="true">${symbol}</i>` +
-    `<span>${index + 1}波</span></span>`;
+    `<span class="forecast-order">${index + 1}波</span>` +
+    `<span class="forecast-position" data-wave-position="${wave.position ?? ""}">${position}</span>` +
+    `<span class="forecast-arrival" data-wave-fire-tick="${Number.isFinite(fireTick) ? fireTick : ""}">あと${seconds}s</span>` +
+    `</span>`;
 }).join("");
 
 /** Update only DOM presentation; state remains owned by GameSession. */
@@ -63,10 +72,16 @@ export const updateHud = (root, state, {
   }
   if (forecast) {
     const forecastKey = (safeState.upcomingWaves ?? []).slice(0, 2)
-      .map((wave) => `${wave.waveId ?? ""}:${wave.primaryColor ?? ""}`).join("|");
+      .map((wave) => {
+        const fireTick = Number(wave.fireTick);
+        const progressBucket = Number.isFinite(fireTick)
+          ? Math.ceil(Math.max(0, fireTick - (safeState.tick ?? 0)) / 6)
+          : "";
+        return `${wave.waveId ?? ""}:${wave.primaryColor ?? ""}:${wave.position ?? ""}:${progressBucket}`;
+      }).join("|");
     if (forecast.dataset.forecastKey !== forecastKey) {
       forecast.dataset.forecastKey = forecastKey;
-      forecast.innerHTML = forecastMarkup(safeState.upcomingWaves ?? []);
+      forecast.innerHTML = forecastMarkup(safeState.upcomingWaves ?? [], safeState.tick ?? 0, rules);
       if (!safeState.upcomingWaves?.length) forecast.textContent = "—";
     }
   }

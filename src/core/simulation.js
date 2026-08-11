@@ -20,6 +20,31 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const distanceSquared = (left, right) =>
   (left.x - right.x) ** 2 + (left.y - right.y) ** 2;
 
+const forecastEvidence = (state) => {
+  const directByAction = new Map();
+  for (const event of state.scoreEvents ?? []) {
+    if (event.kind !== "direct") continue;
+    const key = String(event.actionId);
+    if (!directByAction.has(key)) {
+      directByAction.set(key, {
+        tick: event.fireTick,
+        color: event.sourceColor,
+      });
+    }
+  }
+  let matches = 0;
+  for (const action of directByAction.values()) {
+    const nextWave = (state.waves ?? []).find((wave) => wave.fireTick > action.tick);
+    if (nextWave && nextWave.primaryColor === action.color) matches += 1;
+  }
+  const opportunities = directByAction.size;
+  return {
+    matches,
+    opportunities,
+    rate: opportunities ? matches / opportunities : 0,
+  };
+};
+
 const waveHasSelectableGroup = (wave, rules) => {
   const byColor = Map.groupBy(wave.entities, (entity) => entity.color);
   const linkSquared = rules.selectionLinkDistance ** 2;
@@ -175,6 +200,15 @@ export const runSimulation = (seedOrOptions = 1, optionsArg = {}) => {
   const snapshot = summaryOnly
     ? { stats: { ...state.stats }, tick: state.tick, score: state.score }
     : snapshotGame(state);
+  const directScoreSum = (state.scoreEvents ?? [])
+    .filter((event) => event.kind === "direct")
+    .reduce((sum, event) => sum + (event.amount ?? 0), 0);
+  const chainScoreSum = (state.scoreEvents ?? [])
+    .filter((event) => event.kind === "chain")
+    .reduce((sum, event) => sum + (event.amount ?? 0), 0);
+  const forecastPlanBonusSum = (state.bonusEvents ?? [])
+    .reduce((sum, event) => sum + (event.forecastPlanAmount ?? 0), 0);
+  const forecast = forecastEvidence(state);
   const replay = summaryOnly || state.simulationFault
     ? null
     : createStrategyReplayLog({ seed, rules, frames: state.inputFrames });
@@ -205,6 +239,12 @@ export const runSimulation = (seedOrOptions = 1, optionsArg = {}) => {
       ? continuationActionCount /
         Math.max(1, decisionLimit - Math.floor(rules.maxTicks / 2))
       : 0,
+    forecastMatches: forecast.matches,
+    forecastOpportunities: forecast.opportunities,
+    forecastMatchRate: forecast.rate,
+    directScoreSum,
+    chainScoreSum,
+    forecastPlanBonusSum,
   };
 };
 
@@ -225,6 +265,13 @@ const addSummary = (summary, result) => {
   summary.maxChainSum = (summary.maxChainSum ?? 0) + (result.state.stats.maxChain ?? 0);
   summary.directTargetsSum = (summary.directTargetsSum ?? 0) + (result.state.stats.directTargets ?? 0);
   summary.chainTargetsSum = (summary.chainTargetsSum ?? 0) + (result.state.stats.chainTargets ?? 0);
+  summary.forecastMatchesSum = (summary.forecastMatchesSum ?? 0) + (result.forecastMatches ?? 0);
+  summary.forecastOpportunitiesSum =
+    (summary.forecastOpportunitiesSum ?? 0) + (result.forecastOpportunities ?? 0);
+  summary.directScoreSum = (summary.directScoreSum ?? 0) + (result.directScoreSum ?? 0);
+  summary.chainScoreSum = (summary.chainScoreSum ?? 0) + (result.chainScoreSum ?? 0);
+  summary.forecastPlanBonusSum =
+    (summary.forecastPlanBonusSum ?? 0) + (result.forecastPlanBonusSum ?? 0);
   if (summary.scoreHistogram instanceof Map) {
     summary.scoreHistogram.set(result.score, (summary.scoreHistogram.get(result.score) ?? 0) + 1);
   }
@@ -262,6 +309,11 @@ export const runSafetySweep = (options = {}) => {
     maxChainSum: 0,
     directTargetsSum: 0,
     chainTargetsSum: 0,
+    forecastMatchesSum: 0,
+    forecastOpportunitiesSum: 0,
+    directScoreSum: 0,
+    chainScoreSum: 0,
+    forecastPlanBonusSum: 0,
     frontHalfIdleRatioSum: 0,
     continuationRatioSum: 0,
     waveCounts: {},
@@ -344,6 +396,11 @@ export const compareStrategies = (options = {}) => {
     maxChainSum: 0,
     directTargetsSum: 0,
     chainTargetsSum: 0,
+    forecastMatchesSum: 0,
+    forecastOpportunitiesSum: 0,
+    directScoreSum: 0,
+    chainScoreSum: 0,
+    forecastPlanBonusSum: 0,
     frontHalfIdleRatioSum: 0,
     continuationRatioSum: 0,
     waveCounts: {},
@@ -375,6 +432,27 @@ export const compareStrategies = (options = {}) => {
       : 0;
     summary.averageChainTargets = summary.processedSeeds
       ? summary.chainTargetsSum / summary.processedSeeds
+      : 0;
+    summary.averageForecastMatches = summary.processedSeeds
+      ? summary.forecastMatchesSum / summary.processedSeeds
+      : 0;
+    summary.averageForecastOpportunities = summary.processedSeeds
+      ? summary.forecastOpportunitiesSum / summary.processedSeeds
+      : 0;
+    summary.forecastMatchRate = summary.forecastOpportunitiesSum
+      ? summary.forecastMatchesSum / summary.forecastOpportunitiesSum
+      : 0;
+    summary.averageDirectScore = summary.processedSeeds
+      ? summary.directScoreSum / summary.processedSeeds
+      : 0;
+    summary.averageChainScore = summary.processedSeeds
+      ? summary.chainScoreSum / summary.processedSeeds
+      : 0;
+    summary.averageForecastPlanBonus = summary.processedSeeds
+      ? summary.forecastPlanBonusSum / summary.processedSeeds
+      : 0;
+    summary.chainScoreRatio = summary.scoreSum
+      ? summary.chainScoreSum / summary.scoreSum
       : 0;
     const histogram = [...summary.scoreHistogram.entries()].sort((left, right) => left[0] - right[0]);
     const percentile = (ratio) => {
