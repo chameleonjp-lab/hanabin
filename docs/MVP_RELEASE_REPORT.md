@@ -2,7 +2,7 @@
 
 - 作成日: 2026年8月12日
 - 対象リポジトリ: `chameleonjp-lab/hanabin`
-- 対象ブランチ: `main`（M7マージコミット `942a28441549305f4e1d8c57535f9c87de695db7`）
+- 対象ブランチ: `main`（M7実装マージコミット `942a28441549305f4e1d8c57535f9c87de695db7`、公開確認記録マージコミット `09a29d6d94781fe12a37c930a78e0bff36f3c85a`）
 - 状態: M7マージ済み・公開確認中
 - MVP判定: **未完了**。実機3端末と初見外部試遊が未実施のため、公開候補として記録する。
 
@@ -56,6 +56,13 @@ PlaywrightはGitHub Actions Browser #29で24テストを実行し、24/24成功�
 - [CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136)は、Node 22、Node 24、10,000シード安全検査、1,000シード×7戦略比較、厳格な再生監査がすべて成功。
 - [CI Browser #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047138)は、24/24テストが成功。
 - [m2-simulation-report Artifact](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136/artifacts/9097408031)を保存済み。
+
+### 2.4 PR #13のマージ後検証
+
+- [PR #13](https://github.com/chameleonjp-lab/hanabin/pull/13)はマージコミット `09a29d6d94781fe12a37c930a78e0bff36f3c85a`で`main`へ反映済みです。
+- PR #13の[CI Core #33](https://github.com/chameleonjp-lab/hanabin/actions/runs/31517134941)と[CI Browser #33](https://github.com/chameleonjp-lab/hanabin/actions/runs/31517134931)は成功しました。
+- PR #13は計画書・進捗・README・公開候補レポートの文書変更だけで、ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していません。
+- 公開URLの確認範囲はホーム→初回練習→スキップ→カウントダウン→本編Canvas/HUDまでです。結果画面、実機3端末、初見5人、Pages設定画面は未確認のままです。
 
 ## 3. GitHub Pages
 
