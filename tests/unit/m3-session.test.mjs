@@ -4,7 +4,7 @@ import { test } from "node:test";
 import { DEFAULT_RULES } from "../../src/config/rules.js";
 import { createGame, replayGame } from "../../src/core/index.js";
 import { makeInputFrame } from "../../src/core/input-frame.js";
-import { isClockBacklogUnsafe } from "../../src/game/controller.js";
+import { isClockBacklogUnsafe, toScreenPhase } from "../../src/game/controller.js";
 import { GameSession } from "../../src/game/session.js";
 
 const makeSelectionFrames = (seed = 123) => {
@@ -48,6 +48,14 @@ test("the presentation clock declares an explicit resync boundary before backlog
   assert.equal(isClockBacklogUnsafe(1_000), false);
   assert.equal(isClockBacklogUnsafe(1_000.001), true);
   assert.equal(isClockBacklogUnsafe(Number.POSITIVE_INFINITY), true);
+});
+
+test("the browser screen name maps the playing session phase to the play screen", () => {
+  assert.equal(toScreenPhase("home"), "home");
+  assert.equal(toScreenPhase("countdown"), "countdown");
+  assert.equal(toScreenPhase("playing"), "play");
+  assert.equal(toScreenPhase("finalizing"), "finalizing");
+  assert.equal(toScreenPhase("fault"), "result");
 });
 
 test("GameSession consumes exactly 3,600 fixed frames and replays the same result", () => {
