@@ -465,6 +465,10 @@ export class GameController {
   testApi() {
     this.deterministicTestMode = true;
     this.stopLoop();
+    // Browser tests explicitly choose a decoration profile. Keep the
+    // production auto-quality controller out of those comparisons so a fast
+    // test runner cannot raise a manually selected low profile mid-run.
+    this.renderer.qualityController.auto = false;
     return {
       snapshot: () => this.snapshot(),
       advanceTicks: (count) => this.advanceTicks(count),
@@ -473,6 +477,7 @@ export class GameController {
       replay: (replay) => clone(replayGame(replay, { rules: this.session.rules })),
       transitions: () => this.screens.history(),
       renderModel: () => this.renderModel(),
+      setQuality: (level) => this.renderer.setQuality(level),
       start: (seed) => {
         this.start(seed);
         return this.snapshot();

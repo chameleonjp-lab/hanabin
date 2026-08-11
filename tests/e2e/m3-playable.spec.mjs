@@ -9,6 +9,7 @@ const REQUIRED_TEST_API = [
   "recordedReplay",
   "transitions",
   "renderModel",
+  "setQuality",
 ];
 
 const viewports = [
@@ -221,6 +222,31 @@ test("M3 mouse input selects and detonates through the browser adapter", async (
   expect(snapshot.score).toBeGreaterThan(0);
   expect(snapshot.stats.detonationCount).toBeGreaterThanOrEqual(1);
   expect(snapshot.simulationFault).toBeNull();
+  assertClean(diagnostics);
+});
+
+test("M5 decoration quality changes do not change the deterministic game result", async ({ page }) => {
+  const diagnostics = await openPage(page, viewports[0]);
+
+  await callApi(page, "setQuality", "high");
+  await callApi(page, "start", 777);
+  await callApi(page, "advanceTicks", 180);
+  const highState = await callApi(page, "snapshot");
+  const highModel = await callApi(page, "renderModel");
+
+  await callApi(page, "setQuality", "low");
+  await callApi(page, "start", 777);
+  await callApi(page, "advanceTicks", 180);
+  const lowState = await callApi(page, "snapshot");
+  const lowModel = await callApi(page, "renderModel");
+
+  expect(lowState).toEqual(highState);
+  expect(highModel.canvas.dataset.renderQuality).toBe("high");
+  expect(lowModel.canvas.dataset.renderQuality).toBe("low");
+  expect(lowModel.canvas.dataset.competitiveLayer).toBe("protected");
+  expect(Number(lowModel.canvas.dataset.renderParticleBudget)).toBeLessThan(
+    Number(highModel.canvas.dataset.renderParticleBudget),
+  );
   assertClean(diagnostics);
 });
 

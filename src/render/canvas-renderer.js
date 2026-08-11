@@ -8,8 +8,13 @@ import {
   drawCompetitiveLayer,
   getEdgeAwareReticlePosition,
 } from "./competitive-layer.js";
+import { DecorativeLayer } from "./decorative-layer.js";
+import { QualityController } from "./quality-controller.js";
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const nowMs = () => typeof performance !== "undefined" && Number.isFinite(performance.now())
+  ? performance.now()
+  : 0;
 
 /** Canvas adapter. It never changes a game state and never feeds dimensions
  * back into the deterministic core. */
@@ -18,6 +23,8 @@ export class CanvasRenderer {
     boardWidth = BOARD_WIDTH,
     boardHeight = BOARD_HEIGHT,
     maxDevicePixelRatio = 2,
+    quality = "high",
+    autoQuality = true,
   } = {}) {
     if (!canvas || typeof canvas.getContext !== "function") {
       throw new TypeError("CanvasRenderer requires a 2D canvas");
@@ -28,6 +35,11 @@ export class CanvasRenderer {
     this.boardWidth = boardWidth;
     this.boardHeight = boardHeight;
     this.maxDevicePixelRatio = maxDevicePixelRatio;
+    this.qualityController = new QualityController({ initial: quality, auto: autoQuality });
+    this.decorativeLayer = new DecorativeLayer({
+      qualityController: this.qualityController,
+      capacity: this.qualityController.profile.particleCapacity,
+    });
     this.width = 1600;
     this.height = 900;
     this.devicePixelRatio = 1;
@@ -43,9 +55,14 @@ export class CanvasRenderer {
     const rect = this.canvas.getBoundingClientRect?.();
     const width = Math.max(1, Math.round(rect?.width || 1600));
     const height = Math.max(1, Math.round(rect?.height || width * 9 / 16));
+    const qualityScale = this.qualityController.profile.resolutionScale;
     const devicePixelRatio = typeof window === "undefined"
       ? 1
-      : clamp(Number(window.devicePixelRatio) || 1, 1, this.maxDevicePixelRatio);
+      : clamp(
+        clamp(Number(window.devicePixelRatio) || 1, 1, this.maxDevicePixelRatio) * qualityScale,
+        1,
+        this.maxDevicePixelRatio,
+      );
     this.width = width;
     this.height = height;
     this.devicePixelRatio = devicePixelRatio;
@@ -54,12 +71,22 @@ export class CanvasRenderer {
     this.canvas.dataset.cssWidth = String(width);
     this.canvas.dataset.cssHeight = String(height);
     this.canvas.dataset.devicePixelRatio = String(devicePixelRatio);
+    this.canvas.dataset.renderQuality = this.qualityController.level;
+    this.canvas.dataset.renderResolutionScale = String(qualityScale);
+    this.canvas.dataset.renderParticleBudget = String(this.qualityController.profile.particleCapacity);
+    this.canvas.dataset.competitiveLayer = "protected";
     this.ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
     return { width, height, devicePixelRatio };
   }
 
   boardPoint(x, y) {
     return boardToCanvas(x, y, this.width, this.height, this.boardWidth, this.boardHeight);
+  }
+
+  setQuality(level) {
+    const changed = this.qualityController.setQuality(level);
+    if (changed) this.resize();
+    return this.qualityController.snapshot();
   }
 
   drawBackground(state) {
@@ -108,16 +135,31 @@ export class CanvasRenderer {
     phase = "playing",
     rules = DEFAULT_RULES,
   } = {}) {
+    const startedAt = nowMs();
     if (!state) {
       this.drawBackground(null);
+      this.decorativeLayer.render(null);
+      this.canvas.dataset.renderQuality = this.qualityController.level;
       return;
     }
     const { ctx, width, height } = this;
     ctx.setTransform(this.devicePixelRatio, 0, 0, this.devicePixelRatio, 0, 0);
     this.drawBackground(state);
 
-    // Low-cost deterministic target labels remain visible even if all
-    // decorative quality work is removed in a later M5 pass.
+    // Decorative visuals are intentionally rendered before the competitive
+    // layer. Targets, selection count, forecast, reticle and exact geometry
+    // remain readable at every quality level.
+    this.decorativeLayer.render(ctx, {
+      state,
+      width,
+      height,
+      boardWidth: this.boardWidth,
+      boardHeight: this.boardHeight,
+      nowMs: startedAt,
+    });
+
+    // Competitive target labels remain visible independently from the M5
+    // decorative quality layer.
     drawCompetitiveLayer(ctx, {
       state,
       width,
@@ -156,11 +198,16 @@ export class CanvasRenderer {
       ctx.fillRect(0, 0, width, height);
       ctx.restore();
     }
+    if (this.qualityController.observe(Math.max(0, nowMs() - startedAt))) this.resize();
+    this.canvas.dataset.renderQuality = this.qualityController.level;
+    this.canvas.dataset.renderResolutionScale = String(this.qualityController.profile.resolutionScale);
+    this.canvas.dataset.renderParticleBudget = String(this.qualityController.profile.particleCapacity);
   }
 
   destroy() {
     this.resizeObserver?.disconnect();
     this.resizeObserver = null;
+    this.decorativeLayer.reset();
   }
 }
 
