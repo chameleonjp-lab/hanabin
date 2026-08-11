@@ -1,9 +1,9 @@
 # HANABIN 実装進捗
 
 - 更新日: 2026年8月12日
-- MVP進捗: **6/7**（公開URLのホーム→初回練習→本編画面と静的エントリーのHTTP 200は確認済み。公開URL上の結果画面、実機3端末、初見試遊が未確認）
-- 現在地: M1〜M7はPull Request [#4](https://github.com/chameleonjp-lab/hanabin/pull/4)、[#5](https://github.com/chameleonjp-lab/hanabin/pull/5)、[#6](https://github.com/chameleonjp-lab/hanabin/pull/6)、[#7](https://github.com/chameleonjp-lab/hanabin/pull/7)、[#8](https://github.com/chameleonjp-lab/hanabin/pull/8)、[#9](https://github.com/chameleonjp-lab/hanabin/pull/9)、[#10](https://github.com/chameleonjp-lab/hanabin/pull/10)、[#11](https://github.com/chameleonjp-lab/hanabin/pull/11)で実装本体を、[#12](https://github.com/chameleonjp-lab/hanabin/pull/12)、[#13](https://github.com/chameleonjp-lab/hanabin/pull/13)、[#14](https://github.com/chameleonjp-lab/hanabin/pull/14)、[#15](https://github.com/chameleonjp-lab/hanabin/pull/15)、[#16](https://github.com/chameleonjp-lab/hanabin/pull/16)でM7公開確認の記録を`main`へマージ済み。MVPは公開確認中
-- 実装コード: M1〜M7が`main`へマージ済み。自動検証は完了しているが、公開URL終端検査と手動の公開確認が残るため工程数は6/7とする
+- MVP進捗: **6/7**（公開URL専用の実時間終端検査は成功。実機3端末、初見試遊、Pages設定画面が未確認）
+- 現在地: M1〜M7はPull Request [#4](https://github.com/chameleonjp-lab/hanabin/pull/4)、[#5](https://github.com/chameleonjp-lab/hanabin/pull/5)、[#6](https://github.com/chameleonjp-lab/hanabin/pull/6)、[#7](https://github.com/chameleonjp-lab/hanabin/pull/7)、[#8](https://github.com/chameleonjp-lab/hanabin/pull/8)、[#9](https://github.com/chameleonjp-lab/hanabin/pull/9)、[#10](https://github.com/chameleonjp-lab/hanabin/pull/10)、[#11](https://github.com/chameleonjp-lab/hanabin/pull/11)で実装本体を、[#12](https://github.com/chameleonjp-lab/hanabin/pull/12)、[#13](https://github.com/chameleonjp-lab/hanabin/pull/13)、[#14](https://github.com/chameleonjp-lab/hanabin/pull/14)、[#15](https://github.com/chameleonjp-lab/hanabin/pull/15)、[#16](https://github.com/chameleonjp-lab/hanabin/pull/16)、[#17](https://github.com/chameleonjp-lab/hanabin/pull/17)でM7公開確認の記録を`main`へマージ済み。MVPは公開確認中
+- 実装コード: M1〜M7が`main`へマージ済み。自動検証と公開URL終端検査は完了しているが、実機・初見試遊・Pages設定画面の確認が残るため工程数は6/7とする
 
 ## MVP工程
 
@@ -15,7 +15,7 @@
 | M4 | 抜け道対策とゲーム設計審査 | 完了（`main`へマージ済み） | [#8](https://github.com/chameleonjp-lab/hanabin/pull/8) |
 | M5 | 本作独自の花火表現と性能対策 | 完了（`main`へマージ済み） | [#9](https://github.com/chameleonjp-lab/hanabin/pull/9) |
 | M6 | 製品画面、初回練習、保存、結果、音 | 完了（`main`へマージ済み） | [#10](https://github.com/chameleonjp-lab/hanabin/pull/10) |
-| M7 | 総合検証とMVP公開 | 自動検証・Pages準備・公開URLの静的配信は確認済み。公開URL終端検査を追加中で、結果画面・実機・初見試遊待ち | [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) / [#12](https://github.com/chameleonjp-lab/hanabin/pull/12) / [#13](https://github.com/chameleonjp-lab/hanabin/pull/13) / [#14](https://github.com/chameleonjp-lab/hanabin/pull/14) / [#15](https://github.com/chameleonjp-lab/hanabin/pull/15) / [#16](https://github.com/chameleonjp-lab/hanabin/pull/16) |
+| M7 | 総合検証とMVP公開 | 自動検証・Pages準備・公開URLの実時間終端検査は成功。実機・初見試遊・Pages設定画面待ち | [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) / [#12](https://github.com/chameleonjp-lab/hanabin/pull/12) / [#13](https://github.com/chameleonjp-lab/hanabin/pull/13) / [#14](https://github.com/chameleonjp-lab/hanabin/pull/14) / [#15](https://github.com/chameleonjp-lab/hanabin/pull/15) / [#16](https://github.com/chameleonjp-lab/hanabin/pull/16) |
 
 ## MVP後
 
@@ -31,7 +31,7 @@
 - Draft Pull Request作成中: 工程数へ加えない。
 - 利用者確認済み・マージ前: 工程数へ加えない。
 - `main`へマージ済み: 1工程完了として加える。
-- M7で初見外部試遊が未完了の場合: `6/7・公開試験中`と記録し、MVP完成とは扱わない。
+- M7で実機、初見外部試遊、Pages設定画面の確認が未完了の場合: `6/7・公開試験中`と記録し、MVP完成とは扱わない。
 
 ## M2の確認結果
 
@@ -81,7 +81,9 @@
 - Pull Request [#15](https://github.com/chameleonjp-lab/hanabin/pull/15)（マージコミット `f01c821da804a29aeec5507ba033d259376b6061`）で、PR #14のマージ後確認と公開URLのHTTP 200確認を`main`へ同期済み。
 - PR #15の[CI Core #37](https://github.com/chameleonjp-lab/hanabin/actions/runs/31520797668)と[CI Browser #37](https://github.com/chameleonjp-lab/hanabin/actions/runs/31520797666)は成功した。
 - Pull Request [#16](https://github.com/chameleonjp-lab/hanabin/pull/16)はマージコミット `15a7c808cf230908383bf6357ae36e22267ee180`で`main`へ反映済み。PR #16のCI Core #39とCI Browser #39も成功した。
-- 既存のBrowser CIはローカル静的サーバーを対象にするため、今回のDraft Pull Requestでは公開URLを実時間で確認する終端検査とPagesデプロイ後の専用Actionsを追加している。成功結果が出るまでは公開URLの結果画面を確認済みとは扱わない。
+- Pull Request [#17](https://github.com/chameleonjp-lab/hanabin/pull/17)はマージコミット `cd854f2c08e7f986ee97c7bd43fca0ee82b21dec`で`main`へ反映済み。
+- [Deploy GitHub Pages #7](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540518416)はPR #17のマージコミットを公開し、成功した。[Public Release Smoke #1](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540556019)も成功し、公開URLで結果画面までの実時間終端経路を確認した。
+- 既存のBrowser CIはローカル静的サーバーを対象にする。PR #17で追加した公開URL専用ActionsはPagesデプロイ後に実行され、公開URLの実時間終端検査に成功した。
 - 公開版のリリース版、ルール版、入力版、保存形式版を`src/config/release.js`へ固定した。
 - [CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136)はNode 22、Node 24、全量シミュレーションが成功した。
 - [CI Browser #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047138)はChromium E2E 24/24が成功した。
@@ -91,10 +93,11 @@
 - GitHub Pagesは`main`へのマージ後だけ、`index.html`、`styles/`、`src/`を公開するworkflowである。
 - 2026年8月12日、公開URLでホーム→初回練習→スキップ→カウントダウン→本編Canvas/HUDまで到達した。
 - 2026年8月12日、公開URLの静的エントリーへ直接アクセスし、HTTP 200、`HANABIN`のHTML、`src/config/release.js`の公開版固定情報を確認した。
-- 結果画面、実機3端末、初見5人、Pages設定画面は未確認であり、公開URLのホーム→ゲーム→結果条件がそろうまでMVP完成とは扱わない。
+- 2026年8月12日、Public Release Smoke #1で公開URLのホーム→初回練習→スキップ→カウントダウン→本編→実時間60秒→結果画面を確認した。結果画面は1回だけ登録され、JavaScriptエラー、4xx以上の応答、失敗リクエストは検出されなかった。
+- 実機3端末、初見5人、Pages設定画面は未確認であり、MVP完成とは扱わない。
 
 ## 次の作業
 
-今回の次工程は、GitHub Pagesの公開URL専用終端検査を実行できる状態にすることである。専用ActionsはPagesデプロイ成功後に起動し、公開URLでホーム→初回練習→スキップ→カウントダウン→本編→実時間60秒→結果画面を確認する。結果画面が1回だけ表示され、JavaScriptエラーや読み込み失敗がないことも確認する。
+PR #17のマージ後に実行された[Deploy GitHub Pages #7](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540518416)と[Public Release Smoke #1](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540556019)は成功した。公開URL専用Actionsは、公開URLでホーム→初回練習→スキップ→カウントダウン→本編→実時間60秒→結果画面へ到達し、結果画面の二重登録、JavaScriptエラー、4xx以上の読み込み失敗がないことを確認した。
 
-この自動検査が成功しても、iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018、初見5人、Pages設定画面の確認を推測で完了扱いにしない。MVP進捗は6/7のまま維持し、R1公式プレイとR2ランキングは保留する。
+次は、iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018の実機確認、初見5人の試遊、Pages設定画面の公開元確認を実際の証跡で記録する。これらを確認するまでMVP進捗は6/7のまま維持し、R1公式プレイとR2ランキングは保留する。
