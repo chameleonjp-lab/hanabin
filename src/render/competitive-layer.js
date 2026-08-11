@@ -176,10 +176,18 @@ export const drawCompetitiveLayer = (ctx, {
 
   if (pointer && (pointer.pressed || pointer.pointerId !== null || pointer.showReticle)) {
     const fingerPoint = toCanvas(pointer.fingerX ?? pointer.x, pointer.fingerY ?? pointer.y);
-    const aimPoint = toCanvas(pointer.aimX ?? pointer.x, pointer.aimY ?? pointer.y);
-    // x/y in the fixed input frame are the aim point. The finger is a
-    // display-only coordinate, so the line visibly explains the offset while
-    // selection uses the exact point shown by the reticle.
+    const reticleOffset = Math.min(width, height) * 0.1;
+    const reticle = getEdgeAwareReticlePosition(
+      fingerPoint.x,
+      fingerPoint.y,
+      width,
+      height,
+      { offset: reticleOffset, margin: Math.max(1, reticleOffset * 0.45) },
+    );
+    const aimPoint = { x: reticle.x, y: reticle.y };
+    // The finger is a display-only coordinate. The renderer derives the
+    // visible reticle from it so the offset remains on-canvas at every edge;
+    // fixed-tick selection continues to use the input frame's exact aim.
     drawLine(ctx, fingerPoint, aimPoint, "rgba(222, 243, 255, 0.7)", Math.max(1, width / 1300));
     ctx.save();
     ctx.strokeStyle = pointer.pressed ? "#f8fcff" : "rgba(121, 230, 255, 0.76)";
