@@ -421,13 +421,13 @@ test("M3 finalization stays live when a held pointer is released", async ({ page
   await page.mouse.move(box.left + box.width / 2, box.top + box.height / 2);
   await page.mouse.down();
   await callApi(page, "advanceTicks", 3_600);
-  await expect(page.locator('[data-screen="finalizing"]')).toBeVisible();
+  await expect(page.locator("#finalizing-screen")).toBeVisible();
   await page.mouse.up();
 
   const afterRelease = await callApi(page, "renderModel");
   expect(afterRelease.clock.paused).toBe(false);
   await page.clock.runFor(100);
-  await expect(page.locator('[data-screen="result"]')).toBeVisible();
+  await expect(page.locator("#result-screen")).toBeVisible();
   assertClean(diagnostics);
 });
 
@@ -445,7 +445,7 @@ test("M3 finalization resumes after a page lifecycle interruption", async ({ pag
   expect((await callApi(page, "renderModel")).clock.paused).toBe(false);
 
   await page.clock.runFor(100);
-  await expect(page.locator('[data-screen="result"]')).toBeVisible();
+  await expect(page.locator("#result-screen")).toBeVisible();
   assertClean(diagnostics);
 });
 
@@ -465,7 +465,7 @@ test("M3 finalization resumes after rotating through portrait", async ({ page })
   await expect(page.locator("#orientation-guide")).toBeHidden();
   expect((await callApi(page, "renderModel")).clock.paused).toBe(false);
   await page.clock.runFor(100);
-  await expect(page.locator('[data-screen="result"]')).toBeVisible();
+  await expect(page.locator("#result-screen")).toBeVisible();
   assertClean(diagnostics);
 });
 
@@ -473,9 +473,9 @@ test("M3 enters result exactly once after finalizing and remains idempotent", as
   const diagnostics = await openPage(page, viewports[0]);
   await beginPlaying(page);
   await callApi(page, "advanceTicks", 3_600);
-  await expect(page.locator('[data-screen="finalizing"]')).toBeVisible();
+  await expect(page.locator("#finalizing-screen")).toBeVisible();
   await callApi(page, "settleTerminal");
-  await expect(page.locator('[data-screen="result"]')).toBeVisible();
+  await expect(page.locator("#result-screen")).toBeVisible();
 
   const firstTransitions = await callApi(page, "transitions");
   expect(firstTransitions.filter((transition) => transition.to === "result")).toHaveLength(1);
