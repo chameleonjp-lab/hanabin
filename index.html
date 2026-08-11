@@ -43,7 +43,7 @@
       <section class="app-card game-app" aria-labelledby="app-title">
         <header class="game-header">
           <div>
-            <p class="eyebrow">HANABIN / M5 VISUAL PERFORMANCE</p>
+            <p class="eyebrow">HANABIN / M6 PRODUCT SHELL</p>
             <h1 id="app-title">花火の連鎖をつなぐ</h1>
           </div>
           <p id="app-status" class="status" role="status" aria-live="polite">読み込み中…</p>
@@ -62,6 +62,35 @@
               どこで起爆するかを決めてください。
             </p>
           </div>
+          <div class="profile-panel" aria-label="プレイヤー設定">
+            <div class="profile-panel__heading">
+              <span class="hud-label">PLAYER SETTINGS</span>
+              <span id="profile-best-label" class="profile-best-label">端末内ベスト</span>
+            </div>
+            <label class="field-row" for="player-name">
+              <span>名前（任意・12文字まで）</span>
+              <input id="player-name" name="player-name" type="text" maxlength="12" autocomplete="nickname" inputmode="text" placeholder="ゲストプレイヤー" />
+            </label>
+            <p id="profile-error" class="field-error" role="alert" hidden>名前は1〜12文字で入力してください。</p>
+            <div class="profile-settings-grid">
+              <label class="field-row" for="quality-select">
+                <span>演出品質</span>
+                <select id="quality-select" name="quality">
+                  <option value="high">高</option>
+                  <option value="medium">中</option>
+                  <option value="low">低</option>
+                </select>
+              </label>
+              <label class="toggle-row" for="sound-toggle">
+                <input id="sound-toggle" type="checkbox" />
+                <span>音を有効にする</span>
+              </label>
+            </div>
+            <div class="profile-best" aria-label="端末内ベスト記録">
+              <span>SCORE <strong id="home-best-score">0</strong></span>
+              <span>CHAIN <strong id="home-best-chain">0</strong></span>
+            </div>
+          </div>
           <div class="home-rules" aria-label="操作の要点">
             <span><i class="rule-dot rule-dot--cyan" aria-hidden="true"></i>最初の1本だけ有効</span>
             <span><i class="rule-dot rule-dot--gold" aria-hidden="true"></i>3つ以上で起爆</span>
@@ -69,6 +98,22 @@
           </div>
           <button id="start-button" class="primary-button" type="button">ゲームを開始</button>
           <p class="home-hint">画面を押して花火を選び、指を離して起爆します。</p>
+        </section>
+
+        <section id="practice-screen" class="screen screen--practice" data-screen="practice" hidden aria-labelledby="practice-title">
+          <p class="home-kicker">FIRST PRACTICE</p>
+          <h2 id="practice-title">最初の12秒だけ、操作を練習</h2>
+          <p id="practice-message" class="practice-message">3つ以上を同じ色でなぞり、指を離して起爆します。</p>
+          <div class="practice-value" aria-live="polite"><strong id="practice-value">12秒</strong></div>
+          <div class="practice-steps" aria-label="練習の手順">
+            <div><span>1</span><strong>押す</strong><small>同じ色の花火を選ぶ</small></div>
+            <div><span>2</span><strong>つなぐ</strong><small>3つ以上を線で結ぶ</small></div>
+            <div><span>3</span><strong>離す</strong><small>連鎖を起爆する</small></div>
+          </div>
+          <div class="practice-actions">
+            <button id="practice-start" class="primary-button" type="button">練習を始める</button>
+            <button id="practice-skip" class="secondary-button" type="button">練習をスキップ</button>
+          </div>
         </section>
 
         <section id="countdown-screen" class="screen screen--countdown" data-screen="countdown" hidden aria-live="assertive">
@@ -111,6 +156,11 @@
                 <span id="hud-forecast-items">—</span>
               </div>
             </div>
+            <div id="resume-overlay" class="resume-overlay" hidden aria-live="assertive">
+              <span>再開準備中</span>
+              <strong id="resume-value">3</strong>
+              <small>現在の選択は解除されました</small>
+            </div>
             <div id="play-message" class="play-message" aria-live="off"></div>
           </div>
           <p class="play-instruction">同じ色を3つ以上つないで、指を離す</p>
@@ -125,6 +175,7 @@
         <section id="result-screen" class="screen screen--result" data-screen="result" hidden aria-labelledby="result-title">
           <p class="home-kicker">RUN COMPLETE</p>
           <h2 id="result-title">今回の結果</h2>
+          <p id="result-player-name" class="result-player-name">ゲストプレイヤー</p>
           <div class="result-score">
             <span class="hud-label">SCORE</span>
             <strong id="result-score">0</strong>
@@ -135,15 +186,22 @@
             <div><span>直接選択</span><strong id="result-direct">0</strong></div>
             <div><span>連鎖捕捉</span><strong id="result-chain-targets">0</strong></div>
           </div>
+          <p id="result-best-mark" class="result-best-mark" hidden>自己ベスト更新</p>
+          <div class="result-record"><span>端末内ベスト</span><strong><span id="result-best-score">0</span> / 連鎖 <span id="result-best-chain">0</span></strong></div>
           <p id="result-replay" class="result-replay" role="status">入力記録を検証しています…</p>
+          <p id="result-hint" class="result-hint">次の波の予告を使ってみましょう。</p>
+          <div class="share-panel">
+            <button id="share-button" class="secondary-button" type="button">結果を共有</button>
+            <p id="share-status" class="share-status" role="status" aria-live="polite"></p>
+          </div>
           <div class="result-actions">
             <button id="retry-button" class="primary-button" type="button">もう一度遊ぶ</button>
             <button id="home-button" class="secondary-button" type="button">ホームへ戻る</button>
           </div>
         </section>
 
-        <p class="notice" id="m5-notice">
-          M5試作：花火の装飾品質を変えても、固定更新の判定と得点は変わりません。
+        <p class="notice" id="m6-notice">
+          M6：初回練習・端末内記録・結果共有を追加。音は初期状態で無効です。
         </p>
       </section>
     </main>

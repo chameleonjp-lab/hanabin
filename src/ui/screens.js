@@ -1,5 +1,6 @@
 const SCREEN_IDS = Object.freeze([
   "home",
+  "practice",
   "countdown",
   "play",
   "finalizing",
