@@ -2,7 +2,7 @@
 
 同色の花火を選び、起爆位置と時刻を考えて連鎖を伸ばす、スマートフォン向け60秒スコアアタックゲームです。
 
-M1の静的基盤、M2の決定的なゲーム判定・入力再生・簡易シミュレーター、M3のCanvas版、M4のゲームプレイ硬化は`main`へマージ済みです。現在はM5として、本作独自の花火表現と品質別の性能対策をDraft Pull Request向けに検証しています。音とランキングはまだ実装していません。
+M1〜M5（決定的判定、Canvas版、ゲームプレイ硬化、独自花火表現）は`main`へマージ済みです。現在はM6として、初回練習、端末内保存、結果導線、共有、音をDraft Pull Request向けに検証しています。ランキングはまだ実装していません。
 
 ## 実装を進める文書
 
@@ -22,6 +22,8 @@ M1の静的基盤、M2の決定的なゲーム判定・入力再生・簡易シ�
   M4の予告波、得点補正、抜け道対策、全量戦略比較、安全検査を記録します。
 - [`docs/PERFORMANCE_REPORT.md`](./docs/PERFORMANCE_REPORT.md)
   M5の装飾品質、光粒の上限、結果不変試験、未確認の端末性能を記録します。
+- [`docs/M6_PRODUCT_SHELL.md`](./docs/M6_PRODUCT_SHELL.md)
+  M6の初回練習、保存、結果、共有、音、中断復帰の境界と検査を記録します。
 
 ## ゲームの挙動を決める文書
 
@@ -65,5 +67,6 @@ M1の静的基盤、M2の決定的なゲーム判定・入力再生・簡易シ�
 - M2実装: Pull Request [#5](https://github.com/chameleonjp-lab/hanabin/pull/5)と独立レビュー補修 [#6](https://github.com/chameleonjp-lab/hanabin/pull/6)を`main`へマージ済み。Node契約試験、10,000 seed・20万波安全検査、1,000 seed×7戦略比較、7戦略再生監査が成功
 - M3実装: Pull Request [#7](https://github.com/chameleonjp-lab/hanabin/pull/7)を`main`へマージ済み
 - M4実装: Pull Request [#8](https://github.com/chameleonjp-lab/hanabin/pull/8)を`main`へマージ済み
-- M5実装: 選択線を保護した独自花火表現、光粒プール、品質別描画を作業ブランチで検証中
-- MVP実装: 4/7（M5は未マージのため未加算）
+- M5実装: Pull Request [#9](https://github.com/chameleonjp-lab/hanabin/pull/9)を`main`へマージ済み。選択線を保護した独自花火表現、光粒プール、品質別描画を確認済み
+- M6実装: 初回練習、端末内プロフィール、結果ヒント・共有、音設定を作業ブランチで検証中
+- MVP実装: 5/7（M6は未マージのため未加算）
