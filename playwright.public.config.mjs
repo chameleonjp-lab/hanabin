@@ -2,7 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: /m7-public-release\\.spec\\.mjs/,
+  testMatch: /m7-public-release\.spec\.mjs/,
   timeout: 110_000,
   fullyParallel: false,
   retries: 2,
