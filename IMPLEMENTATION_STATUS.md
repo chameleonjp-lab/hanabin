@@ -1,9 +1,9 @@
 # HANABIN 実装進捗
 
 - 更新日: 2026年8月11日
-- MVP進捗: **6/7**（M1〜M6が`main`へマージ済み、M7をDraft Pull Request向けに検証中）
-- 現在地: M1〜M6はPull Request [#4](https://github.com/chameleonjp-lab/hanabin/pull/4)、[#5](https://github.com/chameleonjp-lab/hanabin/pull/5)、[#6](https://github.com/chameleonjp-lab/hanabin/pull/6)、[#7](https://github.com/chameleonjp-lab/hanabin/pull/7)、[#8](https://github.com/chameleonjp-lab/hanabin/pull/8)、[#9](https://github.com/chameleonjp-lab/hanabin/pull/9)、[#10](https://github.com/chameleonjp-lab/hanabin/pull/10)で`main`へマージ済み。M7の公開候補検証を作業ブランチで実施中
-- 実装コード: M1〜M6が`main`へマージ済み。M7は未マージのため工程数へ加えない
+- MVP進捗: **6/7**（M7の自動検証・Pages準備は`main`へマージ済み。実機・初見試遊・公開URL確認待ち）
+- 現在地: M1〜M7はPull Request [#4](https://github.com/chameleonjp-lab/hanabin/pull/4)、[#5](https://github.com/chameleonjp-lab/hanabin/pull/5)、[#6](https://github.com/chameleonjp-lab/hanabin/pull/6)、[#7](https://github.com/chameleonjp-lab/hanabin/pull/7)、[#8](https://github.com/chameleonjp-lab/hanabin/pull/8)、[#9](https://github.com/chameleonjp-lab/hanabin/pull/9)、[#10](https://github.com/chameleonjp-lab/hanabin/pull/10)、[#11](https://github.com/chameleonjp-lab/hanabin/pull/11)で`main`へマージ済み。MVPは公開確認中
+- 実装コード: M1〜M7が`main`へマージ済み。自動検証は完了しているが、手動の公開確認が残るため工程数は6/7とする
 
 ## MVP工程
 
@@ -15,7 +15,7 @@
 | M4 | 抜け道対策とゲーム設計審査 | 完了（`main`へマージ済み） | [#8](https://github.com/chameleonjp-lab/hanabin/pull/8) |
 | M5 | 本作独自の花火表現と性能対策 | 完了（`main`へマージ済み） | [#9](https://github.com/chameleonjp-lab/hanabin/pull/9) |
 | M6 | 製品画面、初回練習、保存、結果、音 | 完了（`main`へマージ済み） | [#10](https://github.com/chameleonjp-lab/hanabin/pull/10) |
-| M7 | 総合検証とMVP公開 | 実装・自動検査中（Draft Pull Request準備中） | — |
+| M7 | 総合検証とMVP公開 | 自動検証・Pages準備は完了（`main`へマージ済み）。実機・初見試遊・公開URL確認待ち | [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) |
 
 ## MVP後
 
@@ -75,12 +75,14 @@
 
 ## M7の確認状況
 
+- Pull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11)を`main`へマージ済み。マージコミットは`942a28441549305f4e1d8c57535f9c87de695db7`。
 - 公開版のリリース版、ルール版、入力版、保存形式版を`src/config/release.js`へ固定した。
-- 10,000シード安全検査、1,000シード×7戦略比較、厳格な再生監査は既存の最終ゲートを使用する。
-- GitHub Pagesは`main`へのマージ後だけ、`index.html`、`styles/`、`src/`を公開するworkflowを追加した。
-- `docs/MVP_RELEASE_REPORT.md`へ自動検査、Pages準備、実機検査、初見試遊の結果を分けて記録する。
-- 実機3端末と初見外部試遊が終わるまで、MVP完成とは扱わない。
+- [CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136)はNode 22、Node 24、全量シミュレーションが成功した。
+- [CI Browser #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047138)はChromium E2E 24/24が成功した。
+- シミュレーション証跡の`m2-simulation-report`は[Artifact](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136/artifacts/9097408031)へ保存済み。
+- GitHub Pagesは`main`へのマージ後だけ、`index.html`、`styles/`、`src/`を公開するworkflowである。
+- 実機3端末、初見5人、Pages設定画面、公開後URLのホームから結果までの確認が終わるまで、MVP完成とは扱わない。
 
 ## 次の作業
 
-M7をDraft Pull Requestへ登録し、10,000シード安全検査、1,000シード×7戦略比較、全ブラウザE2E、公開版固定情報、GitHub Pages artifactを確認する。実機3端末と初見外部試遊は公開候補の確認としてまとめ、未実施の項目を完了扱いにしない。Ready化とマージはユーザー本人の明示指示まで行わない。
+M7のマージ後対応として、CI証跡と公開候補レポートを`main`の状態へ更新し、GitHub Pages設定と公開後URLのホーム→ゲーム→結果確認、実機3端末、初見5人の実測結果を記録する。未確認の項目を完了扱いにしない。R1公式プレイとR2ランキングは、MVP完成と利用者の明示指示まで保留する。
