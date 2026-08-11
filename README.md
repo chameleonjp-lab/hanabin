@@ -26,6 +26,8 @@ M1〜M7（決定的判定、Canvas版、ゲームプレイ硬化、独自花火�
   M6の初回練習、保存、結果、共有、音、中断復帰の境界と検査を記録します。
 - [`docs/MVP_RELEASE_REPORT.md`](./docs/MVP_RELEASE_REPORT.md)
   M7の自動検査、公開版固定情報、GitHub Pages、実機検査、初見試遊の結果を記録します。
+- [`docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md`](./docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md)
+  実機3端末、初見5人、Pages設定の確認結果を、未確認と実測値を分けて記録します。
 
 ## ゲームの挙動を決める文書
 
