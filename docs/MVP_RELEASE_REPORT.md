@@ -2,8 +2,8 @@
 
 - 作成日: 2026年8月11日
 - 対象リポジトリ: `chameleonjp-lab/hanabin`
-- 対象ブランチ: `agent/m7-mvp-release`
-- 状態: M7 Draft Pull Request向け検証中
+- 対象ブランチ: `main`（M7マージコミット `942a28441549305f4e1d8c57535f9c87de695db7`）
+- 状態: M7マージ済み・公開確認中
 - MVP判定: **未完了**。実機3端末と初見外部試遊が未実施のため、公開候補として記録する。
 
 ## 1. 公開版の固定情報
@@ -26,20 +26,20 @@
 
 | 検査 | 結果 |
 |---|---|
-| JavaScript構文 | 成功 |
-| 公開版固定情報 | 成功 |
-| M7公開契約単体検査 | 成功 |
-| M1〜M6既存単体検査 | 成功 |
-| 10,000シード安全検査 | ローカル成功。Actionsで再確認 |
-| 1,000シード×7戦略比較 | ローカル成功。Actionsで再確認 |
-| 厳格な再生監査 | ローカル7/7成功。Actionsで再確認 |
-| Chromium全E2E | Actionsで最終確認 |
+| JavaScript構文 | [CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136)のNode 22/24で成功 |
+| 公開版固定情報 | [CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136)の単体試験で成功 |
+| M7公開契約単体検査 | [CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136)の単体試験で成功 |
+| M1〜M6既存単体検査 | [CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136)のNode 22/24で成功 |
+| 10,000シード安全検査 | [CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136)の全量シミュレーションで成功 |
+| 1,000シード×7戦略比較 | [CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136)の全量シミュレーションで成功 |
+| 厳格な再生監査 | [CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136)で7/7成功 |
+| Chromium全E2E | [CI Browser #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047138)で24/24成功 |
 
 ローカルのフルゲートはNode.js 24.14.0で実行した。安全検査は10,000/10,000シード、36,000,000 tick、生成波200,000件を処理し、fault、不変条件違反、非決定性、選択不能波、完全重複、予告不一致、生成規則違反、乱数分離違反はすべて0件だった。処理時間は安全検査約60.1秒、戦略比較約518.9秒、全体約580.3秒だった。
 
-戦略比較は7,000実行すべてが成功し、平均得点の首位は`forecast`（39,862.35点）だった。`shortest-three`は28,929.642点、`wait-six`は28,277.244点、`full-sweep`は19,365.098点、`idle-first-half`は11,659.062点、`dense-detonation`は27,091.7点、`random`は7,394.408点だった。Actionsの実行番号と`m2-simulation-report.json`はDraft PR作成後に追記する。
+戦略比較は7,000実行すべてが成功し、平均得点の首位は`forecast`（39,862.35点）だった。`shortest-three`は28,929.642点、`wait-six`は28,277.244点、`full-sweep`は19,365.098点、`idle-first-half`は11,659.062点、`dense-detonation`は27,091.7点、`random`は7,394.408点だった。マージ後のActions証跡は[CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136)と[CI Browser #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047138)で確認できる。シミュレーション証跡は[m2-simulation-report Artifact](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136/artifacts/9097408031)へ保存されている。
 
-Playwrightは24テストを登録できることを確認した。作業環境にはChromium実体がなく、ブラウザ本体のダウンロードも制限されたため、ブラウザの実行結果はGitHub Actionsで確認する。
+PlaywrightはGitHub Actions Browser #29で24テストを実行し、24/24成功した。作業環境にはChromium実体がなかったため、ここではGitHub Actionsの実行結果を正式なブラウザ証跡とする。
 
 ### 2.2 最終自動条件
 
@@ -50,6 +50,13 @@ Playwrightは24テストを登録できることを確認した。作業環境�
 - 3,600 tick後に新しい入力を受け付けず、結果画面を二重に登録しない。
 - `/hanabin/`の相対パスからホーム、ゲーム、結果まで読み込める。
 
+### 2.3 M7マージ後の自動検証証跡
+
+- Pull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11)は、マージコミット `942a28441549305f4e1d8c57535f9c87de695db7`で`main`へ反映済み。
+- [CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136)は、Node 22、Node 24、10,000シード安全検査、1,000シード×7戦略比較、厳格な再生監査がすべて成功。
+- [CI Browser #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047138)は、24/24テストが成功。
+- [m2-simulation-report Artifact](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136/artifacts/9097408031)を保存済み。
+
 ## 3. GitHub Pages
 
 `.github/workflows/pages.yml`を追加した。`main`へのpush、または手動実行を対象に、次の3つだけをartifactへ入れる。
@@ -58,7 +65,7 @@ Playwrightは24テストを登録できることを確認した。作業環境�
 - `styles/`
 - `src/`
 
-テスト、文書、GitHub Actionsの設定、パッケージ管理ファイルは公開artifactへ入れない。Pull RequestではPagesをデプロイせず、`main`へマージされた後だけデプロイする。Pagesの設定画面で公開元をGitHub Actionsにする操作は、リポジトリ管理者が確認する。
+テスト、文書、GitHub Actionsの設定、パッケージ管理ファイルは公開artifactへ入れない。Pull RequestではPagesをデプロイせず、`main`へマージされた後だけデプロイする。M7のマージでこのworkflowの公開対象になったが、Pages設定画面の公開元と公開後URLのホーム→ゲーム→結果確認は未実施である。Pagesの設定画面で公開元をGitHub Actionsにする操作は、リポジトリ管理者が確認する。
 
 ## 4. 実機検査
 
