@@ -5,6 +5,7 @@ import {
 import {
   boardToCanvas,
   drawCompetitiveLayer,
+  getEdgeAwareReticlePosition,
 } from "./competitive-layer.js";
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
@@ -132,12 +133,16 @@ export class CanvasRenderer {
         pointer.fingerX ?? pointer.x,
         pointer.fingerY ?? pointer.y,
       );
-      const aimPoint = this.boardPoint(
-        pointer.aimX ?? pointer.x,
-        pointer.aimY ?? pointer.y,
+      const reticleOffset = Math.min(width, height) * 0.1;
+      const reticle = getEdgeAwareReticlePosition(
+        fingerPoint.x,
+        fingerPoint.y,
+        width,
+        height,
+        { offset: reticleOffset, margin: Math.max(1, reticleOffset * 0.45) },
       );
-      this.canvas.dataset.reticleX = String(Math.round(aimPoint.x));
-      this.canvas.dataset.reticleY = String(Math.round(aimPoint.y));
+      this.canvas.dataset.reticleX = String(Math.round(reticle.x));
+      this.canvas.dataset.reticleY = String(Math.round(reticle.y));
       this.canvas.dataset.pointerX = String(Math.round(fingerPoint.x));
       this.canvas.dataset.pointerY = String(Math.round(fingerPoint.y));
     }
