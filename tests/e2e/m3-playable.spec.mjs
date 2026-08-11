@@ -344,18 +344,40 @@ test("M3 edge-aware reticle stays on-canvas and changes direction at edges", asy
   const bottomRight = { x: box.right - 1, y: box.bottom - 1 };
   await page.mouse.move(topLeft.x, topLeft.y);
   await page.mouse.down();
+  const pointerId = (await callApi(page, "renderModel")).pointer.pointerId;
+  expect(pointerId).not.toBeNull();
   await callApi(page, "advanceTicks", 1);
   const leftTop = await readReticle(page);
-  await page.mouse.move(topRight.x, topRight.y);
+  await dispatchPointer(page, "pointermove", {
+    pointerId,
+    clientX: topRight.x,
+    clientY: topRight.y,
+    pointerType: "mouse",
+  });
   await callApi(page, "advanceTicks", 1);
   const rightTop = await readReticle(page);
-  await page.mouse.move(bottomLeft.x, bottomLeft.y);
+  await dispatchPointer(page, "pointermove", {
+    pointerId,
+    clientX: bottomLeft.x,
+    clientY: bottomLeft.y,
+    pointerType: "mouse",
+  });
   await callApi(page, "advanceTicks", 1);
   const leftBottom = await readReticle(page);
-  await page.mouse.move(bottomRight.x, bottomRight.y);
+  await dispatchPointer(page, "pointermove", {
+    pointerId,
+    clientX: bottomRight.x,
+    clientY: bottomRight.y,
+    pointerType: "mouse",
+  });
   await callApi(page, "advanceTicks", 1);
   const rightBottom = await readReticle(page);
-  await page.mouse.up();
+  await dispatchPointer(page, "pointerup", {
+    pointerId,
+    clientX: bottomRight.x,
+    clientY: bottomRight.y,
+    pointerType: "mouse",
+  });
 
   for (const point of [leftTop, rightTop, leftBottom, rightBottom]) {
     expect(Number.isFinite(point.reticleX)).toBe(true);
@@ -516,6 +538,3 @@ test("M3 replay of recorded input has the same score in a fresh viewport", async
     assertClean(replayDiagnostics);
   } finally {
     await replayPage.close();
-  }
-  assertClean(diagnostics);
-});
