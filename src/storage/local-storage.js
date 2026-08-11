@@ -1,4 +1,9 @@
-const DEFAULT_KEY = "hanabin:profile:v1";
+import {
+  PROFILE_STORAGE_KEY,
+  STORAGE_FORMAT_VERSION,
+} from "../config/release.js";
+
+const DEFAULT_KEY = PROFILE_STORAGE_KEY;
 const QUALITY_LEVELS = Object.freeze(["low", "medium", "high"]);
 
 export const DEFAULT_PROFILE = Object.freeze({
@@ -109,6 +114,6 @@ export const createProfileStore = (storage = readGlobalStorage(), key = DEFAULT_
   };
 };
 
-export { DEFAULT_KEY as PROFILE_STORAGE_KEY, QUALITY_LEVELS };
+export { DEFAULT_KEY as PROFILE_STORAGE_KEY, QUALITY_LEVELS, STORAGE_FORMAT_VERSION };
 
 export default createProfileStore;

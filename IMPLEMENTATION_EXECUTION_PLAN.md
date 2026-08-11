@@ -2,8 +2,8 @@
 
 - 作成日: 2026年8月9日
 - 対象リポジトリ: `chameleonjp-lab/hanabin`
-- 状態: M6実装・自動検査中
-- MVP実装進捗: **5/7**
+- 状態: M7公開候補・自動検査中
+- MVP実装進捗: **6/7**
 - 対象範囲: MVP完成と公開まで。オンラインランキングはMVP後の別工程とする
 
 ---
@@ -294,6 +294,7 @@ src/
   app.js
   config/
     rules.js
+    release.js
     waves.js
   core/
     constants.js
@@ -333,6 +334,7 @@ src/
 scripts/
   serve.mjs
   check-syntax.mjs
+  check-release.mjs
   run-simulations.mjs
   generate-replay-fixtures.mjs
 tests/
@@ -342,6 +344,7 @@ tests/
 docs/
   GAMEPLAY_GATE_1.md
   PERFORMANCE_REPORT.md
+  M6_PRODUCT_SHELL.md
   MVP_RELEASE_REPORT.md
 .github/
   workflows/
@@ -817,6 +820,8 @@ M5では、判定層・競技表示層へ装飾用の状態を戻さない。光
 - 10,000シードの最終試験
 - 1,000シード以上の自動戦略比較
 - 全ブラウザE2E
+- `src/config/release.js`による公開版固定情報
+- `scripts/check-release.mjs`による公開前の構成検査
 - 対象端末の連続プレイ
 - GitHub Pagesの公開設定
 - `docs/MVP_RELEASE_REPORT.md`
@@ -1004,12 +1009,12 @@ Canvas 2Dから別の描画基盤へ変更する場合は、実機計測でCanva
 
 ## 22. 次に開始する作業
 
-M5のPull Requestがマージされたため、次に開始するのはM6である。
+M6のPull Requestがマージされたため、次に開始するのはM7である。
 
 ```text
-ブランチ: agent/m6-product-shell
-目的: 製品導線、初回練習、保存、結果、音を追加する
-進捗: 5/7 → M6マージ後6/7
+ブランチ: agent/m7-mvp-release
+目的: 最終検証、公開版固定、GitHub Pages公開候補を整える
+進捗: 6/7 → M7マージ後7/7（実機・初見試遊を含む）
 ```
 
-M6ではゲームルールと再生ログを変更しない。製品シェルの保存、音、練習、結果表示を決定的なゲームセッションの外側へ置き、初回起動から再挑戦までの導線を完成させる。
+M7ではゲームルールを変更しない。10,000シード安全検査、1,000シード×7戦略比較、全ブラウザE2E、公開版固定情報、Pages artifactを同じ工程で確認する。実機3端末と初見外部試遊が未完了なら、公開試験中として記録し、MVP完成とは扱わない。
