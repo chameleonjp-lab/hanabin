@@ -473,6 +473,7 @@ export class GameController {
       replay: (replay) => clone(replayGame(replay, { rules: this.session.rules })),
       transitions: () => this.screens.history(),
       renderModel: () => this.renderModel(),
+      setQuality: (level) => this.renderer.setQuality(level),
       start: (seed) => {
         this.start(seed);
         return this.snapshot();

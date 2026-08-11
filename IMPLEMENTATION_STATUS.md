@@ -1,9 +1,9 @@
 # HANABIN 実装進捗
 
 - 更新日: 2026年8月11日
-- MVP進捗: **3/7**（M1〜M3が`main`へマージ済み、M4をDraft Pull Request向けに検証中）
-- 現在地: M1〜M3はPull Request [#4](https://github.com/chameleonjp-lab/hanabin/pull/4)、[#5](https://github.com/chameleonjp-lab/hanabin/pull/5)、[#6](https://github.com/chameleonjp-lab/hanabin/pull/6)、[#7](https://github.com/chameleonjp-lab/hanabin/pull/7)で`main`へマージ済み。M4の予告波とゲームプレイ硬化を作業ブランチで検証中
-- 実装コード: M1〜M3が`main`へマージ済み。M4は未マージのため工程数へ加えない
+- MVP進捗: **4/7**（M1〜M4が`main`へマージ済み、M5をDraft Pull Request向けに検証中）
+- 現在地: M1〜M4はPull Request [#4](https://github.com/chameleonjp-lab/hanabin/pull/4)、[#5](https://github.com/chameleonjp-lab/hanabin/pull/5)、[#6](https://github.com/chameleonjp-lab/hanabin/pull/6)、[#7](https://github.com/chameleonjp-lab/hanabin/pull/7)、[#8](https://github.com/chameleonjp-lab/hanabin/pull/8)で`main`へマージ済み。M5の独自花火表現と品質別描画を作業ブランチで検証中
+- 実装コード: M1〜M4が`main`へマージ済み。M5は未マージのため工程数へ加えない
 
 ## MVP工程
 
@@ -12,8 +12,8 @@
 | M1 | 静的基盤と自動試験 | 完了（`main`へマージ済み） | [#4](https://github.com/chameleonjp-lab/hanabin/pull/4) |
 | M2 | 決定的ゲーム判定と簡易シミュレーター | 完了（独立レビュー補修を含め`main`へマージ済み） | [#5](https://github.com/chameleonjp-lab/hanabin/pull/5) / [#6](https://github.com/chameleonjp-lab/hanabin/pull/6) |
 | M3 | 円表示で遊べるブラウザ版 | 完了（`main`へマージ済み） | [#7](https://github.com/chameleonjp-lab/hanabin/pull/7) |
-| M4 | 抜け道対策とゲーム設計審査 | 実装・自動検査中（Draft Pull Request準備中） | — |
-| M5 | 本作独自の花火表現と性能対策 | 未開始 | — |
+| M4 | 抜け道対策とゲーム設計審査 | 完了（`main`へマージ済み） | [#8](https://github.com/chameleonjp-lab/hanabin/pull/8) |
+| M5 | 本作独自の花火表現と性能対策 | 実装・自動検査中（Draft Pull Request準備中） | — |
 | M6 | 製品画面、初回練習、保存、結果、音 | 未開始 | — |
 | M7 | 総合検証とMVP公開 | 未開始 | — |
 
@@ -56,8 +56,15 @@
 - 各波に次波の主要色を持つ5個の予告対象を追加し、HUDへ次の2波の色・位置・順番・到着までの秒数を表示する。
 - 予告対象を5個選んだ起爆には予告計画ボーナスを付け、予告を見て準備する操作を得点へ反映する。
 - 直接爆発半径と選択リンク距離を、コア判定と同じルール値からCanvasへ弱く表示する。
-- M4のNode試験、100 seedの短縮比較、10,000 seed安全検査、1,000 seed×7戦略比較を確認中。Chromium試験はDraft Pull RequestのGitHub Actionsで確認する。
+- M4のNode試験、10,000 seed安全検査、1,000 seed×7戦略比較、Chromium試験はPull Request #8で成功し、`main`へマージ済み。
+
+## M5の確認状況
+
+- 競技表示層を装飾層の前面に残し、対象、選択線、爆発半径、HUDに必要な情報を品質変更で削除しない構成へ変更する。
+- 高・中・低の3品質、固定容量の光粒プール、連鎖世代ごとの輪・残像・大連鎖反応、品質別のCanvas解像度倍率を追加する。
+- 装飾品質を変えても、同じシードと固定更新入力の結果が一致するブラウザ試験を追加する。
+- 実機の持続フレームレートはこの工程で断定せず、`docs/PERFORMANCE_REPORT.md`へ自動検査結果と未確認項目を分けて記録する。
 
 ## 次の作業
 
-M4をDraft Pull Requestへ登録し、GitHub ActionsのNode 22/24、全量シミュレーション、Chromiumブラウザ試験を確認する。iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018の実機確認は利用者側の確認項目として残す。Ready化とマージはユーザー本人の明示指示まで行わない。
+M5をDraft Pull Requestへ登録し、GitHub ActionsのNode 22/24、全量シミュレーション、Chromiumブラウザ試験を確認する。実機確認はM7の公開候補検証へまとめ、工程ごとの確認は行わない。Ready化とマージはユーザー本人の明示指示まで行わない。
