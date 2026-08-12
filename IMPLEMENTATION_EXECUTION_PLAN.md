@@ -913,6 +913,16 @@ Pull Request [#14](https://github.com/chameleonjp-lab/hanabin/pull/14)は、マ�
 - HTTP 200と自動E2Eの成功は、公開URL上で人がクリックして結果画面まで到達した証拠とは分けて扱う。
 - 公開URLの結果画面、実機3端末、初見5人、Pages設定画面は未確認のため、MVPは6/7のままとする。
 
+
+### 16.10 PR #20マージ後の記録同期
+
+Pull Request [#20](https://github.com/chameleonjp-lab/hanabin/pull/20)は2026年8月12日に`main`へマージされ、マージコミットは`25c0fc7e35292098c2c09a0878760944591e27a4`である。PR #20は、PR #19のマージ結果とCI成功、M7手動受入未完了を、計画書・進捗・README・公開候補レポートへ同期した文書のみの変更である。
+
+- [CI Core #47](https://github.com/chameleonjp-lab/hanabin/actions/runs/31549096595)は成功した。
+- [CI Browser #47](https://github.com/chameleonjp-lab/hanabin/actions/runs/31549096537)は成功した。
+- ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していない。
+- 実機3端末、初見5人、Pages設定画面は未確認のため、MVP 6/7とR1/R2保留を維持する。
+
 ---
 
 ## 17. MVP後のランキング工程
