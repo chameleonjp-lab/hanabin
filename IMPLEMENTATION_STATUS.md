@@ -2,7 +2,7 @@
 
 - 更新日: 2026年8月12日
 - MVP進捗: **6/7**（公開URL専用の実時間終端検査は成功。実機3端末、初見試遊、Pages設定画面が未確認）
-- 現在地: M1〜M7はPull Request [#4](https://github.com/chameleonjp-lab/hanabin/pull/4)、[#5](https://github.com/chameleonjp-lab/hanabin/pull/5)、[#6](https://github.com/chameleonjp-lab/hanabin/pull/6)、[#7](https://github.com/chameleonjp-lab/hanabin/pull/7)、[#8](https://github.com/chameleonjp-lab/hanabin/pull/8)、[#9](https://github.com/chameleonjp-lab/hanabin/pull/9)、[#10](https://github.com/chameleonjp-lab/hanabin/pull/10)、[#11](https://github.com/chameleonjp-lab/hanabin/pull/11)で実装本体を、[#12](https://github.com/chameleonjp-lab/hanabin/pull/12)、[#13](https://github.com/chameleonjp-lab/hanabin/pull/13)、[#14](https://github.com/chameleonjp-lab/hanabin/pull/14)、[#15](https://github.com/chameleonjp-lab/hanabin/pull/15)、[#16](https://github.com/chameleonjp-lab/hanabin/pull/16)、[#17](https://github.com/chameleonjp-lab/hanabin/pull/17)でM7公開確認の記録を`main`へマージ済み。MVPは公開確認中
+- 現在地: M1〜M7はPull Request [#4](https://github.com/chameleonjp-lab/hanabin/pull/4)、[#5](https://github.com/chameleonjp-lab/hanabin/pull/5)、[#6](https://github.com/chameleonjp-lab/hanabin/pull/6)、[#7](https://github.com/chameleonjp-lab/hanabin/pull/7)、[#8](https://github.com/chameleonjp-lab/hanabin/pull/8)、[#9](https://github.com/chameleonjp-lab/hanabin/pull/9)、[#10](https://github.com/chameleonjp-lab/hanabin/pull/10)、[#11](https://github.com/chameleonjp-lab/hanabin/pull/11)で実装本体を、[#12](https://github.com/chameleonjp-lab/hanabin/pull/12)、[#13](https://github.com/chameleonjp-lab/hanabin/pull/13)、[#14](https://github.com/chameleonjp-lab/hanabin/pull/14)、[#15](https://github.com/chameleonjp-lab/hanabin/pull/15)、[#16](https://github.com/chameleonjp-lab/hanabin/pull/16)、[#17](https://github.com/chameleonjp-lab/hanabin/pull/17)、[#19](https://github.com/chameleonjp-lab/hanabin/pull/19)でM7公開確認の記録を`main`へマージ済み。MVPは公開確認中
 - 実装コード: M1〜M7が`main`へマージ済み。自動検証と公開URL終端検査は完了しているが、実機・初見試遊・Pages設定画面の確認が残るため工程数は6/7とする
 
 ## MVP工程
@@ -15,7 +15,7 @@
 | M4 | 抜け道対策とゲーム設計審査 | 完了（`main`へマージ済み） | [#8](https://github.com/chameleonjp-lab/hanabin/pull/8) |
 | M5 | 本作独自の花火表現と性能対策 | 完了（`main`へマージ済み） | [#9](https://github.com/chameleonjp-lab/hanabin/pull/9) |
 | M6 | 製品画面、初回練習、保存、結果、音 | 完了（`main`へマージ済み） | [#10](https://github.com/chameleonjp-lab/hanabin/pull/10) |
-| M7 | 総合検証とMVP公開 | 自動検証・Pages準備・公開URLの実時間終端検査は成功。実機・初見試遊・Pages設定画面待ち | [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) / [#12](https://github.com/chameleonjp-lab/hanabin/pull/12) / [#13](https://github.com/chameleonjp-lab/hanabin/pull/13) / [#14](https://github.com/chameleonjp-lab/hanabin/pull/14) / [#15](https://github.com/chameleonjp-lab/hanabin/pull/15) / [#16](https://github.com/chameleonjp-lab/hanabin/pull/16) / [#17](https://github.com/chameleonjp-lab/hanabin/pull/17) |
+| M7 | 総合検証とMVP公開 | 自動検証・Pages準備・公開URLの実時間終端検査は成功。実機・初見試遊・Pages設定画面待ち | [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) / [#12](https://github.com/chameleonjp-lab/hanabin/pull/12) / [#13](https://github.com/chameleonjp-lab/hanabin/pull/13) / [#14](https://github.com/chameleonjp-lab/hanabin/pull/14) / [#15](https://github.com/chameleonjp-lab/hanabin/pull/15) / [#16](https://github.com/chameleonjp-lab/hanabin/pull/16) / [#17](https://github.com/chameleonjp-lab/hanabin/pull/17) / [#19](https://github.com/chameleonjp-lab/hanabin/pull/19) |
 
 ## MVP後
 
@@ -83,6 +83,8 @@
 - Pull Request [#16](https://github.com/chameleonjp-lab/hanabin/pull/16)はマージコミット `15a7c808cf230908383bf6357ae36e22267ee180`で`main`へ反映済み。PR #16のCI Core #39とCI Browser #39も成功した。
 - Pull Request [#17](https://github.com/chameleonjp-lab/hanabin/pull/17)はマージコミット `cd854f2c08e7f986ee97c7bd43fca0ee82b21dec`で`main`へ反映済み。
 - [Deploy GitHub Pages #7](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540518416)はPR #17のマージコミットを公開し、成功した。[Public Release Smoke #1](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540556019)も成功し、公開URLで結果画面までの実時間終端経路を確認した。
+- Pull Request [#19](https://github.com/chameleonjp-lab/hanabin/pull/19)はマージコミット `ce9101673126671001dd8350dc729733e4e2209c`で`main`へ反映済み。M7手動受入チェックリストを追加し、実機3端末・初見5人・Pages設定画面の確認を未確認のまま記録できるようにした。
+- PR #19の[CI Core #45](https://github.com/chameleonjp-lab/hanabin/actions/runs/31547650607)と[CI Browser #45](https://github.com/chameleonjp-lab/hanabin/actions/runs/31547650595)は成功した。ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していない。
 - 既存のBrowser CIはローカル静的サーバーを対象にする。PR #17で追加した公開URL専用ActionsはPagesデプロイ後に実行され、公開URLの実時間終端検査に成功した。
 - 公開版のリリース版、ルール版、入力版、保存形式版を`src/config/release.js`へ固定した。
 - [CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136)はNode 22、Node 24、全量シミュレーションが成功した。
