@@ -2,7 +2,7 @@
 
 - 作成日: 2026年8月12日
 - 対象リポジトリ: `chameleonjp-lab/hanabin`
-- 対象ブランチ: `main`（M7実装マージコミット `942a28441549305f4e1d8c57535f9c87de695db7`、公開確認記録マージコミット `09a29d6d94781fe12a37c930a78e0bff36f3c85a`、PR #14同期マージコミット `a9441c65b6900fd2b18b7a9fc10bd7499062885c`、PR #15同期マージコミット `f01c821da804a29aeec5507ba033d259376b6061`、PR #16同期マージコミット `15a7c808cf230908383bf6357ae36e22267ee180`、PR #17公開URL終端検査マージコミット `cd854f2c08e7f986ee97c7bd43fca0ee82b21dec`、PR #19手動受入チェックリスト同期マージコミット `ce9101673126671001dd8350dc729733e4e2209c`、PR #20記録同期マージコミット `25c0fc7e35292098c2c09a0878760944591e27a4`、PR #21記録同期マージコミット `f52325024cd0bb2601684550b3953f676afab627`、PR #22記録同期マージコミット `5d18a02ca23c793aef6a7b50484bad1cc80de1ce`）
+- 対象ブランチ: `main`（M7実装マージコミット `942a28441549305f4e1d8c57535f9c87de695db7`、公開確認記録マージコミット `09a29d6d94781fe12a37c930a78e0bff36f3c85a`、PR #14同期マージコミット `a9441c65b6900fd2b18b7a9fc10bd7499062885c`、PR #15同期マージコミット `f01c821da804a29aeec5507ba033d259376b6061`、PR #16同期マージコミット `15a7c808cf230908383bf6357ae36e22267ee180`、PR #17公開URL終端検査マージコミット `cd854f2c08e7f986ee97c7bd43fca0ee82b21dec`、PR #19手動受入チェックリスト同期マージコミット `ce9101673126671001dd8350dc729733e4e2209c`、PR #20記録同期マージコミット `25c0fc7e35292098c2c09a0878760944591e27a4`、PR #21記録同期マージコミット `f52325024cd0bb2601684550b3953f676afab627`、PR #22記録同期マージコミット `5d18a02ca23c793aef6a7b50484bad1cc80de1ce`、PR #23記録同期マージコミット `aea8eeb2425a2f4bcf82e9aafd2401ff1bc55e84`）
 - 状態: M7マージ済み・公開確認中
 - MVP判定: **未完了**。実機3端末、初見外部試遊、Pages設定画面の確認が未実施のため、公開候補として記録する。
 
@@ -119,6 +119,15 @@ PlaywrightはGitHub Actions Browser #29で24テストを実行し、24/24成功�
 - PR #22は、PR #21のマージ後記録を計画書・進捗・README・公開候補レポートの4文書へ同期しました。
 - PR #22の[CI Core #51](https://github.com/chameleonjp-lab/hanabin/actions/runs/31553411376)と[CI Browser #51](https://github.com/chameleonjp-lab/hanabin/actions/runs/31553411462)は成功しました。
 - PR #22は文書のみの変更で、ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していません。
+- 実機3端末、初見5人、Pages設定画面は未確認のままなので、MVP 6/7とR1/R2保留を維持します。
+
+
+### 2.12 PR #23マージ後の記録同期
+
+- Pull Request [#23](https://github.com/chameleonjp-lab/hanabin/pull/23)はマージコミット `aea8eeb2425a2f4bcf82e9aafd2401ff1bc55e84`で`main`へ反映済みです。
+- PR #23は、PR #22のマージ後記録を計画書・進捗・README・公開候補レポートの4文書へ同期しました。
+- PR #23の[CI Core #53](https://github.com/chameleonjp-lab/hanabin/actions/runs/31554230532)と[CI Browser #53](https://github.com/chameleonjp-lab/hanabin/actions/runs/31554230533)は成功しました。
+- PR #23は文書のみの変更で、ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していません。
 - 実機3端末、初見5人、Pages設定画面は未確認のままなので、MVP 6/7とR1/R2保留を維持します。
 
 ## 3. GitHub Pages
