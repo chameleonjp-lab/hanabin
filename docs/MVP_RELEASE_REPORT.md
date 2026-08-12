@@ -2,7 +2,7 @@
 
 - 作成日: 2026年8月12日
 - 対象リポジトリ: `chameleonjp-lab/hanabin`
-- 対象ブランチ: `main`（M7実装マージコミット `942a28441549305f4e1d8c57535f9c87de695db7`、公開確認記録マージコミット `09a29d6d94781fe12a37c930a78e0bff36f3c85a`、PR #14同期マージコミット `a9441c65b6900fd2b18b7a9fc10bd7499062885c`、PR #15同期マージコミット `f01c821da804a29aeec5507ba033d259376b6061`、PR #16同期マージコミット `15a7c808cf230908383bf6357ae36e22267ee180`、PR #17公開URL終端検査マージコミット `cd854f2c08e7f986ee97c7bd43fca0ee82b21dec`）
+- 対象ブランチ: `main`（M7実装マージコミット `942a28441549305f4e1d8c57535f9c87de695db7`、公開確認記録マージコミット `09a29d6d94781fe12a37c930a78e0bff36f3c85a`、PR #14同期マージコミット `a9441c65b6900fd2b18b7a9fc10bd7499062885c`、PR #15同期マージコミット `f01c821da804a29aeec5507ba033d259376b6061`、PR #16同期マージコミット `15a7c808cf230908383bf6357ae36e22267ee180`、PR #17公開URL終端検査マージコミット `cd854f2c08e7f986ee97c7bd43fca0ee82b21dec`、PR #19手動受入チェックリスト同期マージコミット `ce9101673126671001dd8350dc729733e4e2209c`）
 - 状態: M7マージ済み・公開確認中
 - MVP判定: **未完了**。実機3端末、初見外部試遊、Pages設定画面の確認が未実施のため、公開候補として記録する。
 
@@ -86,6 +86,14 @@ PlaywrightはGitHub Actions Browser #29で24テストを実行し、24/24成功�
 - 公開URLでホーム→初回練習→スキップ→カウントダウン→本編→実時間60秒→結果画面まで到達しました。
 - 結果画面は1回だけ登録され、JavaScriptエラー、4xx以上の応答、失敗リクエストは検出されませんでした。
 - これは公開URLの自動終端検査の成功記録です。iPhone・iPadの実機確認、初見5人の試遊、Pages設定画面の確認は別条件として未確認のまま残します。
+
+### 2.8 PR #19マージ後の手動受入記録
+
+- Pull Request [#19](https://github.com/chameleonjp-lab/hanabin/pull/19)はマージコミット `ce9101673126671001dd8350dc729733e4e2209c`で`main`へ反映済みです。
+- `docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md`を追加し、計画書・進捗・README・本レポートから参照できるようにしました。
+- PR #19の[CI Core #45](https://github.com/chameleonjp-lab/hanabin/actions/runs/31547650607)と[CI Browser #45](https://github.com/chameleonjp-lab/hanabin/actions/runs/31547650595)は成功しました。
+- PR #19は文書のみの変更で、ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していません。
+- 実機3端末、初見5人、Pages設定画面は未確認のままなので、MVP 6/7とR1/R2保留を維持します。
 
 ## 3. GitHub Pages
 
