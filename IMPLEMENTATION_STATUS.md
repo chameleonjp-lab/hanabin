@@ -2,7 +2,7 @@
 
 - 更新日: 2026年8月12日
 - MVP進捗: **6/7**（公開URL専用の実時間終端検査は成功。実機3端末、初見試遊、Pages設定画面が未確認）
-- 現在地: M1〜M7はPull Request [#4](https://github.com/chameleonjp-lab/hanabin/pull/4)、[#5](https://github.com/chameleonjp-lab/hanabin/pull/5)、[#6](https://github.com/chameleonjp-lab/hanabin/pull/6)、[#7](https://github.com/chameleonjp-lab/hanabin/pull/7)、[#8](https://github.com/chameleonjp-lab/hanabin/pull/8)、[#9](https://github.com/chameleonjp-lab/hanabin/pull/9)、[#10](https://github.com/chameleonjp-lab/hanabin/pull/10)、[#11](https://github.com/chameleonjp-lab/hanabin/pull/11)で実装本体を、[#12](https://github.com/chameleonjp-lab/hanabin/pull/12)、[#13](https://github.com/chameleonjp-lab/hanabin/pull/13)、[#14](https://github.com/chameleonjp-lab/hanabin/pull/14)、[#15](https://github.com/chameleonjp-lab/hanabin/pull/15)、[#16](https://github.com/chameleonjp-lab/hanabin/pull/16)、[#17](https://github.com/chameleonjp-lab/hanabin/pull/17)、[#19](https://github.com/chameleonjp-lab/hanabin/pull/19)、[#20](https://github.com/chameleonjp-lab/hanabin/pull/20)でM7公開確認の記録を`main`へマージ済み。MVPは公開確認中
+- 現在地: M1〜M7はPull Request [#4](https://github.com/chameleonjp-lab/hanabin/pull/4)、[#5](https://github.com/chameleonjp-lab/hanabin/pull/5)、[#6](https://github.com/chameleonjp-lab/hanabin/pull/6)、[#7](https://github.com/chameleonjp-lab/hanabin/pull/7)、[#8](https://github.com/chameleonjp-lab/hanabin/pull/8)、[#9](https://github.com/chameleonjp-lab/hanabin/pull/9)、[#10](https://github.com/chameleonjp-lab/hanabin/pull/10)、[#11](https://github.com/chameleonjp-lab/hanabin/pull/11)で実装本体を、[#12](https://github.com/chameleonjp-lab/hanabin/pull/12)、[#13](https://github.com/chameleonjp-lab/hanabin/pull/13)、[#14](https://github.com/chameleonjp-lab/hanabin/pull/14)、[#15](https://github.com/chameleonjp-lab/hanabin/pull/15)、[#16](https://github.com/chameleonjp-lab/hanabin/pull/16)、[#17](https://github.com/chameleonjp-lab/hanabin/pull/17)、[#19](https://github.com/chameleonjp-lab/hanabin/pull/19)、[#20](https://github.com/chameleonjp-lab/hanabin/pull/20)、[#21](https://github.com/chameleonjp-lab/hanabin/pull/21)でM7公開確認の記録を`main`へマージ済み。MVPは公開確認中
 - 実装コード: M1〜M7が`main`へマージ済み。自動検証と公開URL終端検査は完了しているが、実機・初見試遊・Pages設定画面の確認が残るため工程数は6/7とする
 
 ## MVP工程
@@ -15,7 +15,7 @@
 | M4 | 抜け道対策とゲーム設計審査 | 完了（`main`へマージ済み） | [#8](https://github.com/chameleonjp-lab/hanabin/pull/8) |
 | M5 | 本作独自の花火表現と性能対策 | 完了（`main`へマージ済み） | [#9](https://github.com/chameleonjp-lab/hanabin/pull/9) |
 | M6 | 製品画面、初回練習、保存、結果、音 | 完了（`main`へマージ済み） | [#10](https://github.com/chameleonjp-lab/hanabin/pull/10) |
-| M7 | 総合検証とMVP公開 | 自動検証・Pages準備・公開URLの実時間終端検査は成功。実機・初見試遊・Pages設定画面待ち | [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) / [#12](https://github.com/chameleonjp-lab/hanabin/pull/12) / [#13](https://github.com/chameleonjp-lab/hanabin/pull/13) / [#14](https://github.com/chameleonjp-lab/hanabin/pull/14) / [#15](https://github.com/chameleonjp-lab/hanabin/pull/15) / [#16](https://github.com/chameleonjp-lab/hanabin/pull/16) / [#17](https://github.com/chameleonjp-lab/hanabin/pull/17) / [#19](https://github.com/chameleonjp-lab/hanabin/pull/19) / [#20](https://github.com/chameleonjp-lab/hanabin/pull/20) |
+| M7 | 総合検証とMVP公開 | 自動検証・Pages準備・公開URLの実時間終端検査は成功。実機・初見試遊・Pages設定画面待ち | [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) / [#12](https://github.com/chameleonjp-lab/hanabin/pull/12) / [#13](https://github.com/chameleonjp-lab/hanabin/pull/13) / [#14](https://github.com/chameleonjp-lab/hanabin/pull/14) / [#15](https://github.com/chameleonjp-lab/hanabin/pull/15) / [#16](https://github.com/chameleonjp-lab/hanabin/pull/16) / [#17](https://github.com/chameleonjp-lab/hanabin/pull/17) / [#19](https://github.com/chameleonjp-lab/hanabin/pull/19) / [#20](https://github.com/chameleonjp-lab/hanabin/pull/20) / [#21](https://github.com/chameleonjp-lab/hanabin/pull/21) |
 
 ## MVP後
 
@@ -86,6 +86,8 @@
 - Pull Request [#19](https://github.com/chameleonjp-lab/hanabin/pull/19)はマージコミット `ce9101673126671001dd8350dc729733e4e2209c`で`main`へ反映済み。M7手動受入チェックリストを追加し、実機3端末・初見5人・Pages設定画面の確認を未確認のまま記録できるようにした。
 - Pull Request [#20](https://github.com/chameleonjp-lab/hanabin/pull/20)はマージコミット `25c0fc7e35292098c2c09a0878760944591e27a4`で`main`へ反映済み。計画書・進捗・README・公開候補レポートの4文書へPR #20のマージ結果を同期した。
 - PR #20の[CI Core #47](https://github.com/chameleonjp-lab/hanabin/actions/runs/31549096595)と[CI Browser #47](https://github.com/chameleonjp-lab/hanabin/actions/runs/31549096537)は成功した。ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していない。
+- Pull Request [#21](https://github.com/chameleonjp-lab/hanabin/pull/21)はマージコミット `f52325024cd0bb2601684550b3953f676afab627`で`main`へ反映済み。PR #20のマージ後記録を計画書・進捗・README・公開候補レポートの4文書へ同期した。
+- PR #21の[CI Core #49](https://github.com/chameleonjp-lab/hanabin/actions/runs/31551055627)と[CI Browser #49](https://github.com/chameleonjp-lab/hanabin/actions/runs/31551055613)は成功した。ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していない。
 - PR #19の[CI Core #45](https://github.com/chameleonjp-lab/hanabin/actions/runs/31547650607)と[CI Browser #45](https://github.com/chameleonjp-lab/hanabin/actions/runs/31547650595)は成功した。ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していない。
 - 既存のBrowser CIはローカル静的サーバーを対象にする。PR #17で追加した公開URL専用ActionsはPagesデプロイ後に実行され、公開URLの実時間終端検査に成功した。
 - 公開版のリリース版、ルール版、入力版、保存形式版を`src/config/release.js`へ固定した。
@@ -102,6 +104,6 @@
 
 ## 次の作業
 
-PR #20のマージ後に、計画書・進捗・README・公開候補レポートへの記録同期も完了した。PR #17のマージ後に実行された[Deploy GitHub Pages #7](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540518416)と[Public Release Smoke #1](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540556019)は成功した。公開URL専用Actionsは、公開URLでホーム→初回練習→スキップ→カウントダウン→本編→実時間60秒→結果画面へ到達し、結果画面の二重登録、JavaScriptエラー、4xx以上の読み込み失敗がないことを確認した。
+PR #21のマージ後に、PR #20のマージ後記録を計画書・進捗・README・公開候補レポートへ同期した。PR #21の[CI Core #49](https://github.com/chameleonjp-lab/hanabin/actions/runs/31551055627)と[CI Browser #49](https://github.com/chameleonjp-lab/hanabin/actions/runs/31551055613)は成功した。PR #17のマージ後に実行された[Deploy GitHub Pages #7](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540518416)と[Public Release Smoke #1](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540556019)は成功した。公開URL専用Actionsは、公開URLでホーム→初回練習→スキップ→カウントダウン→本編→実時間60秒→結果画面へ到達し、結果画面の二重登録、JavaScriptエラー、4xx以上の読み込み失敗がないことを確認した。
 
 次は、[M7手動受入チェックリスト](./docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md)に沿って、iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018の実機確認、初見5人の試遊、Pages設定画面の公開元確認を実際の証跡で記録する。チェックリストの未確認欄が残る間はMVP進捗を6/7のまま維持し、R1公式プレイとR2ランキングは保留する。
