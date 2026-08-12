@@ -2,7 +2,7 @@
 
 - 作成日: 2026年8月12日
 - 対象リポジトリ: `chameleonjp-lab/hanabin`
-- 対象ブランチ: `main`（M7実装マージコミット `942a28441549305f4e1d8c57535f9c87de695db7`、公開確認記録マージコミット `09a29d6d94781fe12a37c930a78e0bff36f3c85a`、PR #14同期マージコミット `a9441c65b6900fd2b18b7a9fc10bd7499062885c`、PR #15同期マージコミット `f01c821da804a29aeec5507ba033d259376b6061`、PR #16同期マージコミット `15a7c808cf230908383bf6357ae36e22267ee180`、PR #17公開URL終端検査マージコミット `cd854f2c08e7f986ee97c7bd43fca0ee82b21dec`、PR #19手動受入チェックリスト同期マージコミット `ce9101673126671001dd8350dc729733e4e2209c`、PR #20記録同期マージコミット `25c0fc7e35292098c2c09a0878760944591e27a4`）
+- 対象ブランチ: `main`（M7実装マージコミット `942a28441549305f4e1d8c57535f9c87de695db7`、公開確認記録マージコミット `09a29d6d94781fe12a37c930a78e0bff36f3c85a`、PR #14同期マージコミット `a9441c65b6900fd2b18b7a9fc10bd7499062885c`、PR #15同期マージコミット `f01c821da804a29aeec5507ba033d259376b6061`、PR #16同期マージコミット `15a7c808cf230908383bf6357ae36e22267ee180`、PR #17公開URL終端検査マージコミット `cd854f2c08e7f986ee97c7bd43fca0ee82b21dec`、PR #19手動受入チェックリスト同期マージコミット `ce9101673126671001dd8350dc729733e4e2209c`、PR #20記録同期マージコミット `25c0fc7e35292098c2c09a0878760944591e27a4`、PR #21記録同期マージコミット `f52325024cd0bb2601684550b3953f676afab627`）
 - 状態: M7マージ済み・公開確認中
 - MVP判定: **未完了**。実機3端末、初見外部試遊、Pages設定画面の確認が未実施のため、公開候補として記録する。
 
@@ -103,6 +103,15 @@ PlaywrightはGitHub Actions Browser #29で24テストを実行し、24/24成功�
 - PR #20の[CI Core #47](https://github.com/chameleonjp-lab/hanabin/actions/runs/31549096595)と[CI Browser #47](https://github.com/chameleonjp-lab/hanabin/actions/runs/31549096537)は成功しました。
 - ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していません。
 - 実機3端末、初見5人、Pages設定画面は未確認のままなので、MVP 6/7とR1/R2保留を維持します。
+
+### 2.10 PR #21マージ後の記録同期
+
+- Pull Request [#21](https://github.com/chameleonjp-lab/hanabin/pull/21)はマージコミット `f52325024cd0bb2601684550b3953f676afab627`で`main`へ反映済みです。
+- PR #21は、PR #20のマージ後記録を計画書・進捗・README・公開候補レポートの4文書へ同期しました。
+- PR #21の[CI Core #49](https://github.com/chameleonjp-lab/hanabin/actions/runs/31551055627)と[CI Browser #49](https://github.com/chameleonjp-lab/hanabin/actions/runs/31551055613)は成功しました。
+- PR #21は文書のみの変更で、ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していません。
+- 実機3端末、初見5人、Pages設定画面は未確認のままなので、MVP 6/7とR1/R2保留を維持します。
+
 
 ## 3. GitHub Pages
 
