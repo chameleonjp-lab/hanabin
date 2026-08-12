@@ -932,6 +932,15 @@ Pull Request [#21](https://github.com/chameleonjp-lab/hanabin/pull/21)は2026年
 - ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していない。
 - 実機3端末、初見5人、Pages設定画面は未確認のため、MVP 6/7とR1/R2保留を維持する。
 
+
+### 16.12 PR #22マージ後の記録同期
+
+Pull Request [#22](https://github.com/chameleonjp-lab/hanabin/pull/22)は2026年8月12日に`main`へマージされ、マージコミットは`5d18a02ca23c793aef6a7b50484bad1cc80de1ce`である。PR #22は、PR #21のマージ結果とCI成功、M7手動受入未完了を、計画書・進捗・README・公開候補レポートへ同期した文書のみの変更である。
+
+- [CI Core #51](https://github.com/chameleonjp-lab/hanabin/actions/runs/31553411376)は成功した。
+- [CI Browser #51](https://github.com/chameleonjp-lab/hanabin/actions/runs/31553411462)は成功した。
+- ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していない。
+- 実機3端末、初見5人、Pages設定画面は未確認のため、MVP 6/7とR1/R2保留を維持する。
 ---
 
 ## 17. MVP後のランキング工程
