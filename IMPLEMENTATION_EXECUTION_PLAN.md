@@ -901,7 +901,7 @@ Pull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) は2026�
 - [CI Browser #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047138): Chromium E2E 24/24が成功。
 - [シミュレーション証跡Artifact](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136/artifacts/9097408031): `m2-simulation-report`を保存済み。
 - 2026年8月12日、公開URL [https://chameleonjp-lab.github.io/hanabin/](https://chameleonjp-lab.github.io/hanabin/)を確認した。直アクセスでホームを表示し、「ゲームを開始」→初回練習→スキップ→カウントダウン→本編Canvas/HUD（残り時間、得点、連鎖、次の2波予告）まで到達した。
-- この確認では結果画面まで到達していない。実機3端末、初見5人、Pages設定画面の確認も未実施であり、MVP完成とは記録しない。
+- 公開URL専用Actionsで本編から結果画面まで到達した。実機3端末、初見5人、Pages設定画面の確認は未実施であり、MVP完成とは記録しない。
 - R1公式プレイとR2ランキングは、MVP完成と利用者の開始指示まで保留する。
 
 ### 16.9 PR #14マージ後の確認
@@ -1040,5 +1040,9 @@ Pull Request [#17](https://github.com/chameleonjp-lab/hanabin/pull/17)が2026年
 ```
 
 公開URL専用検査は、テスト用の固定tick操作口を公開ページで使わず、利用者向けの操作を実時間で実行した。結果画面の二重登録がなく、JavaScriptエラー、4xx以上の応答、失敗リクエストも検出されなかった。
+
+Pull Request [#19](https://github.com/chameleonjp-lab/hanabin/pull/19)は2026年8月11日に`main`へマージされ、マージコミットは`ce9101673126671001dd8350dc729733e4e2209c`である。M7手動受入チェックリストを追加し、実機3端末・初見5人・Pages設定画面の確認を未確認のまま記録できる状態にした。
+
+[CI Core #45](https://github.com/chameleonjp-lab/hanabin/actions/runs/31547650607)と[CI Browser #45](https://github.com/chameleonjp-lab/hanabin/actions/runs/31547650595)は成功した。ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していない。
 
 次は、[M7手動受入チェックリスト](./docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md)に沿って、iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018の実機確認、初見5人の試遊、Pages設定画面の公開元確認を実際の証跡で記録する。チェックリストの未確認欄が残る間はMVPを7/7へ進めない。R1公式プレイとR2ランキングは、MVP完成および利用者の明示指示まで保留する。
