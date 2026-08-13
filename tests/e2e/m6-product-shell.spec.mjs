@@ -61,7 +61,9 @@ test("M6 first practice succeeds only after connecting three targets and releasi
 
   await expect(canvas).toHaveAttribute("data-practice-state", "success");
   await expect(page.locator("#practice-progress")).toHaveText("3 / 3");
-  await expect(page.locator("#play-screen")).toBeVisible({ timeout: 3_000 });
+  await expect(page.locator("#countdown-screen")).toBeVisible({ timeout: 3_000 });
+  await callApi(page, "advanceTicks", 1);
+  await expect(page.locator("#play-screen")).toBeVisible();
   expect((await callApi(page, "profile"))).toMatchObject({
     practiceCompleted: true,
     practiceSkipped: false,
