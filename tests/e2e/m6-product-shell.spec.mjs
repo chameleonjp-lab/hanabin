@@ -33,7 +33,52 @@ test("M6 first practice can be skipped and then starts the real game", async ({ 
   await callApi(page, "skipPractice");
   await callApi(page, "advanceTicks", 1);
   await expect(page.locator("#play-screen")).toBeVisible();
-  expect((await callApi(page, "profile")).practiceSkipped).toBe(true);
+  expect((await callApi(page, "profile"))).toMatchObject({
+    practiceCompleted: false,
+    practiceSkipped: true,
+  });
+});
+
+test("M6 first practice succeeds only after connecting three targets and releasing", async ({ page }) => {
+  await openPage(page);
+  await page.locator("#start-button").click();
+  await page.locator("#practice-start").click();
+  const canvas = page.locator("#practice-canvas");
+  await expect(canvas).toHaveAttribute("data-practice-state", "running");
+
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  const encodedTargets = await canvas.getAttribute("data-practice-targets");
+  const targets = encodedTargets.split("|").map((value) => {
+    const [x, y] = value.split(",").map(Number);
+    return { x: box.x + x * box.width, y: box.y + y * box.height };
+  });
+
+  await page.mouse.move(targets[0].x, targets[0].y);
+  await page.mouse.down();
+  for (const target of targets) await page.mouse.move(target.x, target.y);
+  await page.mouse.up();
+
+  await expect(canvas).toHaveAttribute("data-practice-state", "success");
+  await expect(page.locator("#practice-progress")).toHaveText("3 / 3");
+  await expect(page.locator("#play-screen")).toBeVisible({ timeout: 3_000 });
+  expect((await callApi(page, "profile"))).toMatchObject({
+    practiceCompleted: true,
+    practiceSkipped: false,
+  });
+});
+
+test("M6 practice timeout does not mark the practice as complete", async ({ page }) => {
+  await openPage(page);
+  await page.locator("#start-button").click();
+  await page.locator("#practice-start").click();
+  await page.clock.runFor(12_500);
+  await expect(page.locator("#practice-canvas")).toHaveAttribute("data-practice-state", "expired");
+  expect((await callApi(page, "profile"))).toMatchObject({
+    practiceCompleted: false,
+    practiceSkipped: false,
+  });
+  await expect(page.locator("#practice-screen")).toBeVisible();
 });
 
 test("M6 profile name is rendered as text, best record is saved, and share URL is last", async ({ page }) => {
