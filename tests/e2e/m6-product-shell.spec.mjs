@@ -83,6 +83,50 @@ test("M6 practice timeout does not mark the practice as complete", async ({ page
   await expect(page.locator("#practice-screen")).toBeVisible();
 });
 
+test("M6 forecast success is announced during play and counted in the result", async ({ page }) => {
+  await openPage(page);
+  await page.locator("#start-button").click();
+  await page.locator("#practice-skip").click();
+  await callApi(page, "advanceTicks", 1);
+  await expect(page.locator("#play-screen")).toBeVisible();
+
+  const state = await callApi(page, "snapshot");
+  const nextWave = state.upcomingWaves[0];
+  const targets = state.fireworks
+    .filter((entity) => entity.status === "active" && entity.visible !== false)
+    .filter((entity) => entity.forecastForWaveIndex === nextWave.waveIndex)
+    .filter((entity) => entity.color === nextWave.primaryColor)
+    .slice(0, 5);
+  expect(targets).toHaveLength(5);
+
+  const box = await page.locator("#game-canvas").boundingBox();
+  expect(box).not.toBeNull();
+  const pointForTarget = (target) => ({
+    x: box.x + target.x / BOARD_WIDTH * box.width,
+    y: Math.min(
+      box.y + box.height - 2,
+      box.y + target.y / BOARD_HEIGHT * box.height + Math.min(box.width, box.height) * 0.1,
+    ),
+  });
+  await page.mouse.move(pointForTarget(targets[0]).x, pointForTarget(targets[0]).y);
+  await page.mouse.down();
+  for (const target of targets) {
+    const point = pointForTarget(target);
+    await page.mouse.move(point.x, point.y);
+    await callApi(page, "advanceTicks", 3);
+  }
+  await page.mouse.up();
+  await callApi(page, "advanceTicks", 1);
+
+  await expect(page.locator("#play-message")).toHaveText("予告成功！次の波を先回りしました");
+  expect((await callApi(page, "snapshot")).bonusEvents
+    .some((event) => event.forecastPlanAmount > 0)).toBe(true);
+
+  await callApi(page, "settleTerminal");
+  await expect(page.locator("#result-screen")).toBeVisible();
+  await expect(page.locator("#result-forecast-successes")).toHaveText("1");
+});
+
 test("M6 profile name is rendered as text, best record is saved, and share URL is last", async ({ page }) => {
   await openPage(page);
   await callApi(page, "setPlayerName", "<b>A</b>");
