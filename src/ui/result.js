@@ -1,3 +1,5 @@
+import { forecastSuccessCountFor } from "./forecast-feedback.js";
+
 const formatScore = (value) => Math.max(0, Math.trunc(Number(value) || 0)).toLocaleString("ja-JP");
 
 const safeText = (value, fallback = "") => typeof value === "string" ? value : fallback;
@@ -55,6 +57,7 @@ export const renderResult = (root, state, {
   setText("result-detonations", Math.max(0, Math.trunc(stats.detonationCount ?? 0)));
   setText("result-direct", Math.max(0, Math.trunc(stats.directTargets ?? 0)));
   setText("result-chain-targets", Math.max(0, Math.trunc(stats.chainTargets ?? 0)));
+  setText("result-forecast-successes", forecastSuccessCountFor(state));
   setText("result-player-name", safeText(profile.name) || "ゲストプレイヤー");
   setText("result-best-score", formatScore(profile.bestScore ?? 0));
   setText("result-best-chain", Math.max(0, Math.trunc(profile.bestChain ?? 0)));

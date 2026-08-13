@@ -13,12 +13,17 @@ import {
   publicUrlFor,
   resultHintFor,
 } from "../../src/ui/result.js";
+import { updatePlayMessage } from "../../src/ui/hud.js";
 import {
   normalizePracticePoint,
   PRACTICE_SECONDS,
   PRACTICE_TARGET_COUNT,
   PRACTICE_TARGETS,
 } from "../../src/ui/tutorial.js";
+import {
+  forecastSuccessCountFor,
+  forecastSuccessForAction,
+} from "../../src/ui/forecast-feedback.js";
 
 const fakeStorage = (initial = null) => {
   let value = initial;
@@ -109,4 +114,26 @@ test("M6 practice uses three fixed same-colour targets and normalizes touch poin
     height: 100,
   }), { x: 0, y: 0 });
   assert.equal(normalizePracticePoint(0, 0, { left: 0, top: 0, width: 0, height: 100 }), null);
+});
+
+test("M6 forecast feedback derives successful plans from the score ledger", () => {
+  const state = {
+    bonusEvents: [
+      { actionId: 4, forecastPlanAmount: 0 },
+      { actionId: 9, forecastPlanAmount: 1_000 },
+      { actionId: 12, forecastPlanAmount: 1_000 },
+    ],
+  };
+  assert.equal(forecastSuccessCountFor(state), 2);
+  assert.equal(forecastSuccessForAction(state, 9)?.forecastPlanAmount, 1_000);
+  assert.equal(forecastSuccessForAction(state, 4), null);
+});
+
+test("M6 play feedback names a forecast success instead of only showing chain count", () => {
+  const element = { textContent: "" };
+  updatePlayMessage(element, {
+    lastAction: { type: "detonate", actionId: 9, count: 7 },
+    bonusEvents: [{ actionId: 9, forecastPlanAmount: 1_000 }],
+  });
+  assert.equal(element.textContent, "予告成功！次の波を先回りしました");
 });

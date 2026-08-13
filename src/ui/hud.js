@@ -1,5 +1,6 @@
 import { COLORS, DEFAULT_RULES } from "../config/rules.js";
 import { colorName, colorValue, colorSymbol } from "../render/competitive-layer.js";
+import { forecastSuccessForAction } from "./forecast-feedback.js";
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const byId = (root, id) => root?.querySelector?.(`#${id}`) ?? null;
@@ -94,8 +95,13 @@ export const updatePlayMessage = (element, state, phase = "playing") => {
   if (phase === "finalizing") message = "最後の連鎖を確定中…";
   else if (state?.simulationFault) message = "判定エラー：このプレイは無効です";
   else if (state?.lastAction?.type === "detonate") {
-    const count = Number(state.lastAction.count) || 0;
-    message = count > 0 ? `${count}個の連鎖` : "連鎖を探しましょう";
+    const forecastSuccess = forecastSuccessForAction(state, state.lastAction.actionId);
+    if (forecastSuccess) {
+      message = "予告成功！次の波を先回りしました";
+    } else {
+      const count = Number(state.lastAction.count) || 0;
+      message = count > 0 ? `${count}個の連鎖` : "連鎖を探しましょう";
+    }
   } else if (state?.selectedIds?.length >= 3) {
     message = "指を離して起爆";
   }

@@ -51,6 +51,7 @@ test("M1 entry files exist without a build step", async () => {
     "src/render/particle-pool.js",
     "src/render/quality-controller.js",
     "src/ui/tutorial.js",
+    "src/ui/forecast-feedback.js",
     "src/ui/result.js",
     "src/audio/sound.js",
     "src/storage/local-storage.js",
