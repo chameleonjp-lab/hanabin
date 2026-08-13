@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  pages: read
 
 jobs:
   public:
@@ -38,6 +39,11 @@ jobs:
         with:
           node-version: 24.x
           cache: npm
+
+      - name: Verify Pages uses the GitHub Actions source
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/check-pages-source.mjs
 
       - name: Install development dependencies
         run: npm ci

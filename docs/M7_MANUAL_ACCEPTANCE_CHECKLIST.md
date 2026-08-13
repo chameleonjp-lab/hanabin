@@ -86,13 +86,15 @@
 
 ## 4. GitHub Pages設定
 
-リポジトリ管理者がGitHubのリポジトリ設定を開き、Pagesの公開元がGitHub Actionsであることを確認する。
+2026年8月13日にGitHub Pages APIで公開設定を確認した。公開ページは稼働しているが、公開元はGitHub Actionsではなく`legacy`方式の`main`直下だった。計画と一致しないため不合格とし、[Issue #27](https://github.com/chameleonjp-lab/hanabin/issues/27)で修正を管理する。
 
 | 確認項目 | 結果 | 証跡・メモ |
 |---|---|---|
-| Pagesの公開元がGitHub Actions | 未確認 |  |
-| 公開URLが `https://chameleonjp-lab.github.io/hanabin/` である | 自動検査で確認済み |  |
-| `main`へのマージ後にPagesデプロイが成功する | 自動検査で確認済み |  |
+| Pagesの公開元がGitHub Actions | 不合格 | APIは`build_type: legacy`、`source: main /` |
+| 公開URLが `https://chameleonjp-lab.github.io/hanabin/` である | 確認済み | APIの`html_url`と公開ページを確認 |
+| HTTPSが有効 | 確認済み | APIの`https_enforced: true`を確認 |
+| GitHub Actionsへ切り替え後、Pages APIが`build_type: workflow` | 未確認 | Issue #27完了後に確認 |
+| GitHub Actionsへ切り替え後、公開対象外URLが404 | 未確認 | 公開URL専用検査で確認 |
 
 ## 5. M7の完了判定
 
@@ -100,7 +102,7 @@
 
 - iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018の必須項目を確認した。
 - 初見5人の試遊結果を記録し、合格条件を判定した。
-- Pagesの公開元がGitHub Actionsであることを確認した。
+- Pagesの公開元がGitHub Actionsであり、限定artifactだけを配信することを確認した。
 - 自動検査の成功記録と手動確認の記録を混同していない。
 
 確認後は、この文書の未確認欄を実測値へ更新し、`IMPLEMENTATION_STATUS.md`と`docs/MVP_RELEASE_REPORT.md`のM7判定を同じPull Requestで更新する。R1公式プレイとR2ランキングは、MVP完了後に別工程として扱う。

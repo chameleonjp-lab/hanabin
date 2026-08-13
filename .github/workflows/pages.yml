@@ -3,6 +3,15 @@ name: Deploy GitHub Pages
 on:
   push:
     branches: [main]
+    paths:
+      - index.html
+      - "styles/**"
+      - "src/**"
+      - .github/workflows/pages.yml
+      - .github/workflows/public-release.yml
+      - playwright.public.config.mjs
+      - scripts/check-pages-source.mjs
+      - tests/e2e/m7-public-release.spec.mjs
   workflow_dispatch:
 
 permissions:
