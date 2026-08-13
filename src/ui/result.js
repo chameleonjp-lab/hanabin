@@ -10,11 +10,11 @@ export const resultHintFor = (state = {}) => {
   const directTargets = Math.max(0, Math.trunc(Number(stats.directTargets) || 0));
   const chainTargets = Math.max(0, Math.trunc(Number(stats.chainTargets) || 0));
   if (Math.max(0, Number(state.finalScore ?? state.score) || 0) <= 0) {
-    return "まずは同じ色の花火を3つ見つけて、3tick押し続けてみましょう。";
+    return "まずは同じ色の花火を3つ見つけ、指を押したまま少し待ってから離してみましょう。";
   }
   if (maxChain < 5) return "次の波の予告を見て、同じ色を先回りしてつなぐと連鎖が伸びます。";
   if (directTargets > chainTargets) return "次は選択した花火を5個まで増やし、予告対象を準備に使ってみましょう。";
-  return "連鎖の途中で次の色へ視線を移し、起爆後の9tickを準備に使ってみましょう。";
+  return "連鎖の途中で次の色へ視線を移し、起爆後の短い待ち時間に次の花火を準備してみましょう。";
 };
 
 export const publicUrlFor = (location = globalThis.location) => {
