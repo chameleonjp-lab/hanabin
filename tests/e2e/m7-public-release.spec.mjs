@@ -60,7 +60,9 @@ test("published Pages does not expose repository-only files", async ({ request }
   const repositoryOnlyPaths = [
     "package.json",
     "README.md",
+    "README.html",
     "docs/MVP_RELEASE_REPORT.md",
+    "docs/MVP_RELEASE_REPORT.html",
     ".github/workflows/pages.yml",
   ];
 

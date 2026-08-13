@@ -32,6 +32,10 @@ const checks = [
   [pagesWorkflow.includes('- "styles/**"'), "styles must trigger Pages"],
   [pagesWorkflow.includes('- "src/**"'), "src must trigger Pages"],
   [pagesWorkflow.includes("- .github/workflows/pages.yml"), "Pages workflow changes must trigger Pages"],
+  [pagesWorkflow.includes("- .github/workflows/public-release.yml"), "public smoke workflow changes must trigger Pages"],
+  [pagesWorkflow.includes("- playwright.public.config.mjs"), "public smoke config changes must trigger Pages"],
+  [pagesWorkflow.includes("- scripts/check-pages-source.mjs"), "Pages source check changes must trigger Pages"],
+  [pagesWorkflow.includes("- tests/e2e/m7-public-release.spec.mjs"), "public smoke test changes must trigger Pages"],
 ];
 
 const failures = checks.filter(([ok]) => !ok).map(([, message]) => message);

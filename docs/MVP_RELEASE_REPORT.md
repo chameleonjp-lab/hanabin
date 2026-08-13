@@ -89,7 +89,7 @@ Issue #27に沿って公開元をGitHub Actionsへ切り替えた後、次をす
 - Pages APIが`build_type: workflow`を返す。
 - `Deploy GitHub Pages`が成功する。
 - Public Release Smokeが成功する。
-- `package.json`、`README.md`、`docs/MVP_RELEASE_REPORT.md`、`.github/workflows/pages.yml`の公開URLが404を返す。
+- `package.json`、`README.md`、`README.html`、`docs/MVP_RELEASE_REPORT.md`、`docs/MVP_RELEASE_REPORT.html`、`.github/workflows/pages.yml`の公開URLが404を返す。
 - ホームから結果画面までの経路を維持する。
 
 ## 5. 実機検査

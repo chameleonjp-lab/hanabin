@@ -49,6 +49,10 @@ test("M7 Pages workflow deploys only the default branch artifact", async () => {
     '"styles/**"',
     '"src/**"',
     ".github/workflows/pages.yml",
+    ".github/workflows/public-release.yml",
+    "playwright.public.config.mjs",
+    "scripts/check-pages-source.mjs",
+    "tests/e2e/m7-public-release.spec.mjs",
   ]) {
     assert.equal(workflow.includes(`- ${releasePath}`), true, `${releasePath} must trigger Pages`);
   }
