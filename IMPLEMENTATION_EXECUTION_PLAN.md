@@ -2,8 +2,8 @@
 
 - 作成日: 2026年8月9日
 - 対象リポジトリ: `chameleonjp-lab/hanabin`
-- 状態: M7マージ済み・公開確認中
-- MVP実装進捗: **6/7**（公開URL専用の実時間終端検査は成功。実機3端末、初見試遊、Pages設定画面が未確認）
+- 状態: M7実装マージ済み・受入中
+- MVP受入進捗: **6/7**（公開URL終端検査は成功。Pages公開元は不合格。実機3端末と初見試遊は未確認）
 - 対象範囲: MVP完成と公開まで。オンラインランキングはMVP後の別工程とする
 
 ---
@@ -58,13 +58,13 @@
 
 ### 3.2 作業の進捗表示
 
-MVPの進捗は、完了した大工程数を使って表示する。
+実装状態と受入状態を分ける。MVPの進捗は、完了条件を満たして受入に合格した大工程数を使って表示する。
 
 ```text
 MVP進捗: 0/7
 ```
 
-Pull Requestを作成しただけでは完了に数えない。利用者が確認し、`main`へマージされた時点で1工程完了とする。
+Pull Requestを作成しただけでは実装済み、受入合格のどちらにも数えない。対象コードが`main`へマージされた時点で実装済みとし、自動検査と手動確認を含む完了条件がそろった時点で受入合格とする。文書だけを変更したPull Requestのマージ履歴はGitHubを正本とし、進捗判定が変わらない限り本書へ追記しない。
 
 ### 3.3 各Pull Requestに必ず書く内容
 
@@ -367,7 +367,7 @@ docs/
 | M4 | `agent/m4-gameplay-hardening` | 抜け道対策とゲーム設計審査 | 単純戦略が最適でない |
 | M5 | `agent/m5-visual-performance` | 独自の花火表現と性能調整 | 品質差で結果が変わらない |
 | M6 | `agent/m6-product-shell` | 練習、画面、保存、結果、音 | 初回から再挑戦まで完結する |
-| M7 | `agent/m7-mvp-release` | 全検証、GitHub Pages、MVP候補 | 自動検証・Pages準備は`main`へ反映済み。公開URLの本編画面まで確認済み。結果画面・実機・初見試遊待ち |
+| M7 | `agent/m7-mvp-release` | 全検証、GitHub Pages、MVP候補 | 実装は`main`へ反映済み。公開URLの結果画面まで自動確認済み。Pages公開元の修正、実機3端末、初見5人待ち |
 
 ---
 
@@ -889,94 +889,28 @@ M5では、判定層・競技表示層へ装飾用の状態を戻さない。光
 ### 16.7 完了条件
 
 - 自動試験、E2E、実機試験、初見試遊がすべて完了する。
+- GitHub Pages APIが`build_type: workflow`を返し、限定artifactから公開される。
+- リポジトリ専用の文書、設定、パッケージファイルが公開URLで404を返す。
 - GitHub Pagesの公開URLで遊べる。
 - `docs/MVP_RELEASE_REPORT.md`に根拠が残る。
 - `IMPLEMENTATION_STATUS.md`を7/7へ更新する。
 
-### 16.8 M7マージ後の状態
+### 16.8 M7実装後の受入状態
 
-Pull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) は2026年8月11日に `main` へマージされ、マージコミットは `942a28441549305f4e1d8c57535f9c87de695db7` である。M7ではゲームルールと判定値を変更せず、公開候補の自動検証とGitHub Pages準備を確定した。
+M7の実装コードはPull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11)で`main`へ反映済みである。公開URL専用の終端検査はPull Request [#17](https://github.com/chameleonjp-lab/hanabin/pull/17)で追加し、[Public Release Smoke #1](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540556019)でホームから実時間60秒後の結果画面まで成功した。手動確認の記録方法はPull Request [#19](https://github.com/chameleonjp-lab/hanabin/pull/19)で追加した。
 
-- [CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136): Node 22、Node 24、全量シミュレーションが成功。
-- [CI Browser #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047138): Chromium E2E 24/24が成功。
-- [シミュレーション証跡Artifact](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136/artifacts/9097408031): `m2-simulation-report`を保存済み。
-- 2026年8月12日、公開URL [https://chameleonjp-lab.github.io/hanabin/](https://chameleonjp-lab.github.io/hanabin/)を確認した。直アクセスでホームを表示し、「ゲームを開始」→初回練習→スキップ→カウントダウン→本編Canvas/HUD（残り時間、得点、連鎖、次の2波予告）まで到達した。
-- 公開URL専用Actionsで本編から結果画面まで到達した。実機3端末、初見5人、Pages設定画面の確認は未実施であり、MVP完成とは記録しない。
-- R1公式プレイとR2ランキングは、MVP完成と利用者の開始指示まで保留する。
+2026年8月13日にGitHub Pages APIを確認したところ、公開状態は`built`、HTTPSは有効だったが、公開方式は`legacy`、公開元は`main`の`/`だった。計画しているGitHub Actionsの限定artifact公開とは一致しないため、M7受入は不合格のままとする。
 
-### 16.9 PR #14マージ後の確認
+### 16.9 M7に残る条件
 
-Pull Request [#14](https://github.com/chameleonjp-lab/hanabin/pull/14)は、マージコミット `a9441c65b6900fd2b18b7a9fc10bd7499062885c`で`main`へ反映済みである。ゲームコードとルールは変更していない。
+- [Issue #27](https://github.com/chameleonjp-lab/hanabin/issues/27)に沿って、Pagesの公開元をGitHub Actionsへ切り替える。
+- 切り替え後、Pages APIが`build_type: workflow`を返すことを確認する。
+- 公開URLの終端検査と、公開対象外URLが404になる検査を成功させる。
+- iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018の実機確認を記録する。
+- 初見5人の試遊結果を記録する。
+- すべてそろうまでMVP受入を6/7、R1とR2を保留のままにする。
 
-- [CI Core #35](https://github.com/chameleonjp-lab/hanabin/actions/runs/31518762135)と[CI Browser #35](https://github.com/chameleonjp-lab/hanabin/actions/runs/31518762120)が成功した。
-- 公開URLの静的エントリーはHTTP 200を返し、`HANABIN`のHTMLと公開版固定情報を読み込める。
-- HTTP 200と自動E2Eの成功は、公開URL上で人がクリックして結果画面まで到達した証拠とは分けて扱う。
-- 公開URLの結果画面、実機3端末、初見5人、Pages設定画面は未確認のため、MVPは6/7のままとする。
-
-
-### 16.10 PR #20マージ後の記録同期
-
-Pull Request [#20](https://github.com/chameleonjp-lab/hanabin/pull/20)は2026年8月12日に`main`へマージされ、マージコミットは`25c0fc7e35292098c2c09a0878760944591e27a4`である。PR #20は、PR #19のマージ結果とCI成功、M7手動受入未完了を、計画書・進捗・README・公開候補レポートへ同期した文書のみの変更である。
-
-- [CI Core #47](https://github.com/chameleonjp-lab/hanabin/actions/runs/31549096595)は成功した。
-- [CI Browser #47](https://github.com/chameleonjp-lab/hanabin/actions/runs/31549096537)は成功した。
-- ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していない。
-- 実機3端末、初見5人、Pages設定画面は未確認のため、MVP 6/7とR1/R2保留を維持する。
-
-### 16.11 PR #21マージ後の記録同期
-
-Pull Request [#21](https://github.com/chameleonjp-lab/hanabin/pull/21)は2026年8月12日に`main`へマージされ、マージコミットは`f52325024cd0bb2601684550b3953f676afab627`である。PR #21は、PR #20のマージ結果とCI成功、M7手動受入未完了を、計画書・進捗・README・公開候補レポートへ同期した文書のみの変更である。
-
-- [CI Core #49](https://github.com/chameleonjp-lab/hanabin/actions/runs/31551055627)は成功した。
-- [CI Browser #49](https://github.com/chameleonjp-lab/hanabin/actions/runs/31551055613)は成功した。
-- ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していない。
-- 実機3端末、初見5人、Pages設定画面は未確認のため、MVP 6/7とR1/R2保留を維持する。
-
-
-### 16.12 PR #22マージ後の記録同期
-
-Pull Request [#22](https://github.com/chameleonjp-lab/hanabin/pull/22)は2026年8月12日に`main`へマージされ、マージコミットは`5d18a02ca23c793aef6a7b50484bad1cc80de1ce`である。PR #22は、PR #21のマージ結果とCI成功、M7手動受入未完了を、計画書・進捗・README・公開候補レポートへ同期した文書のみの変更である。
-
-- [CI Core #51](https://github.com/chameleonjp-lab/hanabin/actions/runs/31553411376)は成功した。
-- [CI Browser #51](https://github.com/chameleonjp-lab/hanabin/actions/runs/31553411462)は成功した。
-- ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していない。
-- 実機3端末、初見5人、Pages設定画面は未確認のため、MVP 6/7とR1/R2保留を維持する。
-
-
-### 16.13 PR #23マージ後の記録同期
-
-Pull Request [#23](https://github.com/chameleonjp-lab/hanabin/pull/23)は2026年8月12日に`main`へマージされ、マージコミットは`aea8eeb2425a2f4bcf82e9aafd2401ff1bc55e84`である。PR #23は、PR #22のマージ結果とCI成功、M7手動受入未完了を、計画書・進捗・README・公開候補レポートへ同期した文書のみの変更である。
-
-- [CI Core #53](https://github.com/chameleonjp-lab/hanabin/actions/runs/31554230532)は成功した。
-- [CI Browser #53](https://github.com/chameleonjp-lab/hanabin/actions/runs/31554230533)は成功した。
-- ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していない。
-- 実機3端末、初見5人、Pages設定画面は未確認のため、MVP 6/7とR1/R2保留を維持する。### 16.13 PR #23マージ後の記録同期
-
-Pull Request [#23](https://github.com/chameleonjp-lab/hanabin/pull/23)は2026年8月12日に`main`へマージされ、マージコミットは`aea8eeb2425a2f4bcf82e9aafd2401ff1bc55e84`である。PR #23は、PR #22のマージ結果とCI成功、M7手動受入未完了を、計画書・進捗・README・公開候補レポートへ同期した文書のみの変更である。
-
-- [CI Core #53](https://github.com/chameleonjp-lab/hanabin/actions/runs/31554230532)は成功した。
-- [CI Browser #53](https://github.com/chameleonjp-lab/hanabin/actions/runs/31554230533)は成功した。
-- ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していない。
-- 実機3端末、初見5人、Pages設定画面は未確認のため、MVP 6/7とR1/R2保留を維持する。
-
-### 16.14 PR #24マージ後の記録同期
-
-Pull Request [#24](https://github.com/chameleonjp-lab/hanabin/pull/24)は2026年8月12日に`main`へマージされ、マージコミットは`47597d9c0d5141d68dbc89c275e725cd5cb52dfc`である。PR #24は、PR #23のマージ結果とCI成功、M7手動受入未完了を、計画書・進捗・README・公開候補レポートへ同期した文書のみの変更である。
-
-- [CI Core #55](https://github.com/chameleonjp-lab/hanabin/actions/runs/31560129137)は成功した。
-- [CI Browser #55](https://github.com/chameleonjp-lab/hanabin/actions/runs/31560129132)は成功した。
-- ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していない。
-- 実機3端末、初見5人、Pages設定画面は未確認のため、MVP 6/7とR1/R2保留を維持する。
-
-
-### 16.15 PR #25マージ後の記録同期
-
-Pull Request [#25](https://github.com/chameleonjp-lab/hanabin/pull/25)は2026年8月12日に`main`へマージされ、マージコミットは`2cf71713c4ec5175e73381ab209bdc9a95d5edbc`である。PR #25は、PR #24のマージ結果とCI成功、M7手動受入未完了を、計画書・進捗・README・公開候補レポートへ同期した文書のみの変更である。
-
-- [CI Core #57](https://github.com/chameleonjp-lab/hanabin/actions/runs/31560963728)は成功した。
-- [CI Browser #57](https://github.com/chameleonjp-lab/hanabin/actions/runs/31560963806)は成功した。
-- ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していない。
-- 実機3端末、初見5人、Pages設定画面は未確認のため、MVP 6/7とR1/R2保留を維持する。
+文書だけを変更したPull Requestの番号やマージSHAは、進捗判定が変わらない限り追記しない。履歴の正本にはGitHubのPull Request一覧を使う。
 ---
 
 ## 17. MVP後のランキング工程
@@ -1093,20 +1027,12 @@ Canvas 2Dから別の描画基盤へ変更する場合は、実機計測でCanva
 
 ## 22. 次に開始する作業
 
-Pull Request [#17](https://github.com/chameleonjp-lab/hanabin/pull/17)が2026年8月12日に`main`へマージされた。マージコミットは`cd854f2c08e7f986ee97c7bd43fca0ee82b21dec`である。PR #17の変更により、GitHub Pagesの公開URL終端検査をPagesデプロイ後に実行できる状態になった。
+最優先は、[Issue #27](https://github.com/chameleonjp-lab/hanabin/issues/27)のPages公開元修正である。
 
-[Deploy GitHub Pages #7](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540518416)はPR #17のマージコミットを公開し、成功した。その後の[Public Release Smoke #1](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540556019)も成功し、公開URLでホーム→初回練習→スキップ→カウントダウン→本編→実時間60秒→結果画面まで到達した。
+1. リポジトリ管理者が`Settings → Pages → Build and deployment → Source`で`GitHub Actions`を選ぶ。
+2. `Deploy GitHub Pages`を`main`で実行する。
+3. Pages APIの`build_type: workflow`、公開URLの終端経路、公開対象外URLの404を確認する。
+4. 実機3端末と初見5人の試遊を記録する。
+5. すべて合格した場合だけMVP受入を7/7へ更新する。
 
-```text
-ブランチ: agent/m7-post-public-smoke-20260812
-目的: 公開URL終端検査の証跡を同期し、残るM7確認条件を管理する
-進捗: 6/7・公開確認中
-```
-
-公開URL専用検査は、テスト用の固定tick操作口を公開ページで使わず、利用者向けの操作を実時間で実行した。結果画面の二重登録がなく、JavaScriptエラー、4xx以上の応答、失敗リクエストも検出されなかった。
-
-Pull Request [#19](https://github.com/chameleonjp-lab/hanabin/pull/19)は2026年8月11日に`main`へマージされ、マージコミットは`ce9101673126671001dd8350dc729733e4e2209c`である。M7手動受入チェックリストを追加し、実機3端末・初見5人・Pages設定画面の確認を未確認のまま記録できる状態にした。
-
-[CI Core #45](https://github.com/chameleonjp-lab/hanabin/actions/runs/31547650607)と[CI Browser #45](https://github.com/chameleonjp-lab/hanabin/actions/runs/31547650595)は成功した。ゲームコード、ゲームルール、得点、保存形式、公開artifactは変更していない。
-
-次は、[M7手動受入チェックリスト](./docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md)に沿って、iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018の実機確認、初見5人の試遊、Pages設定画面の公開元確認を実際の証跡で記録する。チェックリストの未確認欄が残る間はMVPを7/7へ進めない。R1公式プレイとR2ランキングは、MVP完成および利用者の明示指示まで保留する。
+Pages設定の不一致を直すまでは、ゲームルール、得点、保存形式、ランキングを変更しない。設定修正後にゲーム改善へ進む場合は、説明だけになっている初回練習を、実際に3個選択して起爆まで体験できる練習へ変える作業を次候補とする。

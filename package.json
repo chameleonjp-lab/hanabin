@@ -11,6 +11,7 @@
     "test": "node --test",
     "test:syntax": "node scripts/check-syntax.mjs",
     "test:release": "node scripts/check-release.mjs",
+    "test:pages-source": "node scripts/check-pages-source.mjs",
     "test:m2:simulation": "node scripts/run-simulations.mjs",
     "test:browser": "playwright test",
     "test:public": "playwright test --config=playwright.public.config.mjs",

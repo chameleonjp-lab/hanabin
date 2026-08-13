@@ -55,3 +55,17 @@ test("published Pages reaches the result screen through the real terminal flow",
 
   assertClean(diagnostics);
 });
+
+test("published Pages does not expose repository-only files", async ({ request }) => {
+  const repositoryOnlyPaths = [
+    "package.json",
+    "README.md",
+    "docs/MVP_RELEASE_REPORT.md",
+    ".github/workflows/pages.yml",
+  ];
+
+  for (const path of repositoryOnlyPaths) {
+    const response = await request.get(path, { failOnStatusCode: false });
+    expect(response.status(), `${path} must not be part of the public artifact`).toBe(404);
+  }
+});

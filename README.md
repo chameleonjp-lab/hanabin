@@ -2,7 +2,7 @@
 
 同色の花火を選び、起爆位置と時刻を考えて連鎖を伸ばす、スマートフォン向け60秒スコアアタックゲームです。
 
-M1〜M7（決定的判定、Canvas版、ゲームプレイ硬化、独自花火表現、製品導線、公開候補の自動検証）は`main`へマージ済みです。現在はM7の公開確認中で、公開URL専用の実時間終端検査は成功しています。実機・初見試遊・Pages設定確認を残しています。ランキングはまだ実装していません。
+M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未完了で、公開URL専用の実時間終端検査は成功していますが、GitHub Pagesの公開元修正、実機3端末、初見5人の試遊が残っています。ランキングはまだ実装していません。
 
 ## 実装を進める文書
 
@@ -73,5 +73,6 @@ M1〜M7（決定的判定、Canvas版、ゲームプレイ硬化、独自花火�
 - M4実装: Pull Request [#8](https://github.com/chameleonjp-lab/hanabin/pull/8)を`main`へマージ済み
 - M5実装: Pull Request [#9](https://github.com/chameleonjp-lab/hanabin/pull/9)を`main`へマージ済み。選択線を保護した独自花火表現、光粒プール、品質別描画を確認済み
 - M6実装: Pull Request [#10](https://github.com/chameleonjp-lab/hanabin/pull/10)を`main`へマージ済み。初回練習、端末内プロフィール、結果ヒント・共有、音設定を確認済み
-- M7実装: Pull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11)を`main`へマージ済み。公開版固定情報、最終自動検証、GitHub Pages準備を確認済み。公開確認記録はPull Request [#13](https://github.com/chameleonjp-lab/hanabin/pull/13)、[#14](https://github.com/chameleonjp-lab/hanabin/pull/14)、[#15](https://github.com/chameleonjp-lab/hanabin/pull/15)、[#16](https://github.com/chameleonjp-lab/hanabin/pull/16)、[#17](https://github.com/chameleonjp-lab/hanabin/pull/17)、[#19](https://github.com/chameleonjp-lab/hanabin/pull/19)、[#20](https://github.com/chameleonjp-lab/hanabin/pull/20)、[#21](https://github.com/chameleonjp-lab/hanabin/pull/21)、[#22](https://github.com/chameleonjp-lab/hanabin/pull/22)、[#23](https://github.com/chameleonjp-lab/hanabin/pull/23)、[#24](https://github.com/chameleonjp-lab/hanabin/pull/24)、[#25](https://github.com/chameleonjp-lab/hanabin/pull/25)で`main`へ反映済み。PR #21でPR #20のマージ後記録を4文書へ同期し、PR #22でPR #21のマージ後記録を4文書へ同期し、PR #23でPR #22のマージ後記録を4文書へ同期し、PR #24でPR #23のマージ後記録を4文書へ同期し、PR #25でPR #24のマージ後記録を4文書へ同期した。公開URL専用の実時間終端検査は成功し、M7手動受入チェックリストも追加済み
-- MVP実装: 6/7（自動検証と公開URL終端検査は完了。実機・初見試遊・Pages設定確認が残るため未完成）
+- M7実装: Pull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11)で公開版固定情報と最終自動検証を、[#17](https://github.com/chameleonjp-lab/hanabin/pull/17)で公開URL専用検査を、[#19](https://github.com/chameleonjp-lab/hanabin/pull/19)で手動受入チェックリストを`main`へ反映済み
+- MVP受入: 6/7。GitHub Pages APIで公開元が`legacy`（`main`直下）であることを確認したため、計画どおりのGitHub Actionsへ切り替えるまでM7は不合格。実機3端末と初見5人も未確認
+- 文書だけを変更したPull Requestのマージ履歴はGitHubを正本とし、進捗判定が変わらない限り各文書へ追記しない

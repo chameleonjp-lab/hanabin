@@ -44,4 +44,21 @@ test("M7 Pages workflow deploys only the default branch artifact", async () => {
   assert.match(workflow, /actions\/deploy-pages@v4/u);
   assert.match(workflow, /path:\s+\.\/site/u);
   assert.doesNotMatch(workflow, /npm (?:ci|install)/u);
+  for (const releasePath of [
+    "index.html",
+    '"styles/**"',
+    '"src/**"',
+    ".github/workflows/pages.yml",
+  ]) {
+    assert.equal(workflow.includes(`- ${releasePath}`), true, `${releasePath} must trigger Pages`);
+  }
+  assert.doesNotMatch(workflow, /- (?:README\.md|docs\/|package\.json)/u);
+});
+
+test("public release workflow rejects a non-Actions Pages source", async () => {
+  const workflow = await readProjectFile(".github/workflows/public-release.yml");
+
+  assert.match(workflow, /pages:\s+read/u);
+  assert.match(workflow, /node scripts\/check-pages-source\.mjs/u);
+  assert.match(workflow, /GITHUB_TOKEN:\s+\$\{\{ secrets\.GITHUB_TOKEN \}\}/u);
 });

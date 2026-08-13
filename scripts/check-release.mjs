@@ -28,6 +28,10 @@ const checks = [
   [/branches:\s*\[main\]/u.test(pagesWorkflow), "Pages must publish from main only"],
   [/actions\/upload-pages-artifact@v4/u.test(pagesWorkflow), "Pages artifact action is missing"],
   [/actions\/deploy-pages@v4/u.test(pagesWorkflow), "Pages deploy action is missing"],
+  [pagesWorkflow.includes("- index.html"), "index.html must trigger Pages"],
+  [pagesWorkflow.includes('- "styles/**"'), "styles must trigger Pages"],
+  [pagesWorkflow.includes('- "src/**"'), "src must trigger Pages"],
+  [pagesWorkflow.includes("- .github/workflows/pages.yml"), "Pages workflow changes must trigger Pages"],
 ];
 
 const failures = checks.filter(([ok]) => !ok).map(([, message]) => message);
@@ -38,6 +42,7 @@ if (failures.length) {
   console.log(JSON.stringify({
     release: RELEASE_MANIFEST,
     packageVersion: packageJson.version,
-    pages: "main-only GitHub Pages workflow",
+    pagesWorkflow: "main-only limited-artifact workflow contract",
+    pagesRemoteSetting: "checked separately through GitHub Pages API",
   }, null, 2));
 }
