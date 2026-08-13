@@ -72,6 +72,7 @@ const openPage = async (page, viewport) => {
 
 const beginPlaying = async (page) => {
   await page.locator("#start-button").click();
+  await page.locator("#practice-skip").click();
   // GameController.advanceTicks() bypasses the wall-clock countdown while
   // still exercising the real start button and session transition.
   await callApi(page, "advanceTicks", 1);

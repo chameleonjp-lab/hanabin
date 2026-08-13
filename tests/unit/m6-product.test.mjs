@@ -13,7 +13,12 @@ import {
   publicUrlFor,
   resultHintFor,
 } from "../../src/ui/result.js";
-import { PRACTICE_SECONDS } from "../../src/ui/tutorial.js";
+import {
+  normalizePracticePoint,
+  PRACTICE_SECONDS,
+  PRACTICE_TARGET_COUNT,
+  PRACTICE_TARGETS,
+} from "../../src/ui/tutorial.js";
 
 const fakeStorage = (initial = null) => {
   let value = initial;
@@ -92,4 +97,16 @@ test("M6 sound is silent by default and only creates audio when enabled", () => 
   const enabled = new SoundController({ enabled: true, contextFactory: () => fakeContext });
   assert.equal(enabled.detonation(), true);
   assert.equal(PRACTICE_SECONDS, 12);
+});
+
+test("M6 practice uses three fixed same-colour targets and normalizes touch points", () => {
+  assert.equal(PRACTICE_TARGETS.length, PRACTICE_TARGET_COUNT);
+  assert.equal(new Set(PRACTICE_TARGETS.map((target) => target.color)).size, 1);
+  assert.deepEqual(normalizePracticePoint(25, 50, {
+    left: 25,
+    top: 50,
+    width: 200,
+    height: 100,
+  }), { x: 0, y: 0 });
+  assert.equal(normalizePracticePoint(0, 0, { left: 0, top: 0, width: 0, height: 100 }), null);
 });

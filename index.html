@@ -105,6 +105,18 @@
           <h2 id="practice-title">最初の12秒だけ、操作を練習</h2>
           <p id="practice-message" class="practice-message">3つ以上を同じ色でなぞり、指を離して起爆します。</p>
           <div class="practice-value" aria-live="polite"><strong id="practice-value">12秒</strong></div>
+          <div id="practice-board" class="practice-board" data-practice-state="ready">
+            <canvas
+              id="practice-canvas"
+              width="960"
+              height="540"
+              aria-label="練習用の花火盤。同じ色の花火を3つなぞって指を離します"
+            ></canvas>
+            <div class="practice-board-status" aria-live="polite">
+              <span id="practice-progress">0 / 3</span>
+              <span id="practice-feedback">光っている3つをつないでください</span>
+            </div>
+          </div>
           <div class="practice-steps" aria-label="練習の手順">
             <div><span>1</span><strong>押す</strong><small>同じ色の花火を選ぶ</small></div>
             <div><span>2</span><strong>つなぐ</strong><small>3つ以上を線で結ぶ</small></div>

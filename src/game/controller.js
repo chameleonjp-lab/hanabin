@@ -228,7 +228,7 @@ export class GameController {
 
   finishPractice(skipped = false) {
     this.profile = this.profileStore.update({
-      practiceCompleted: true,
+      practiceCompleted: skipped !== true,
       practiceSkipped: skipped === true,
     });
     this.applyProfileToControls();
@@ -621,7 +621,9 @@ export class GameController {
     if (this.deterministicTestMode) this.stopLoop();
     if (this.deterministicTestMode && this.clockPaused && !this.isPortrait()) this.resumeClock();
     if (this.isPortrait() || this.clockPaused) return this.snapshot();
-    if (this.screens.phase === "practice") this.tutorial.complete(true);
+    // The real practice requires a pointer gesture. Test callers must use the
+    // explicit skip path instead of silently completing it through ticks.
+    if (this.screens.phase === "practice") return this.snapshot();
     if (this.phase === "home" || this.phase === "countdown") this.session.beginPlay();
     const state = this.session.advanceTicks(count);
     if (this.deterministicTestMode) {
@@ -693,7 +695,6 @@ export class GameController {
       setQuality: (level) => this.renderer.setQuality(level),
       setPlayerName: (name) => this.setPlayerName(name),
       setSoundEnabled: (enabled) => this.setSoundEnabled(enabled),
-      completePractice: () => this.tutorial.complete(true),
       skipPractice: () => this.tutorial.skip(),
       shareText: () => this.shareButton?.dataset.shareText ?? "",
       profile: () => ({ ...this.profile }),
