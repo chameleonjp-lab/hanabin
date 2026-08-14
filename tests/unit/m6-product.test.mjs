@@ -74,6 +74,14 @@ test("M6 result hint is one deterministic sentence and share URL is last", () =>
   assert.equal(share.split("\n").at(-1), url);
 });
 
+test("M6 result hints use player-facing operation words instead of internal tick units", () => {
+  const firstHint = resultHintFor({ score: 0, stats: {} });
+  const chainHint = resultHintFor({ score: 1_000, stats: { maxChain: 5, directTargets: 1, chainTargets: 9 } });
+  assert.match(firstHint, /指を押したまま少し待ってから離して/);
+  assert.match(chainHint, /短い待ち時間に次の花火を準備/);
+  assert.doesNotMatch(`${firstHint} ${chainHint}`, /\btick\b/i);
+});
+
 test("M6 sound is silent by default and only creates audio when enabled", () => {
   let contexts = 0;
   const disabled = new SoundController({ contextFactory: () => { contexts += 1; return null; } });
