@@ -1,19 +1,18 @@
 # HANABIN 実装進捗
 
-- 更新日: 2026年8月13日
+- 更新日: 2026年8月16日
 - 実装状態: **7/7**（M1〜M7のコードは`main`へマージ済み）
 - MVP受入: **6/7**（M7は不合格のまま）
 - 公開URL: [HANABIN](https://chameleonjp-lab.github.io/hanabin/)
 
 ## 現在地
 
-公開URL専用の実時間終端検査は、ホームから結果画面まで成功している。ただし、2026年8月13日にGitHub Pages APIを確認した結果、公開元は計画どおりのGitHub Actionsではなく、`legacy`方式の`main`直下だった。
+公開URL専用の実時間終端検査は、設定変更後もホームから結果画面まで成功している。2026年8月16日にGitHub Pages APIを確認し、公開元がGitHub Actionsへ切り替わったこと、限定artifact以外のファイルが公開されていないことを確認した。
 
-そのため、現在のM7残件は次の3つである。
+そのため、現在のM7残件は次の2つである。
 
-1. [Issue #27](https://github.com/chameleonjp-lab/hanabin/issues/27)に沿って、Pagesの公開元をGitHub Actionsへ切り替え、再検証する。
-2. iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018で実機確認する。
-3. 初見5人の試遊結果を記録する。
+1. iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018で実機確認する。
+2. 初見5人の試遊結果を記録する。
 
 実機と初見試遊は未確認のまま扱う。R1公式プレイとR2ランキングは、MVP受入完了と利用者の開始指示まで進めない。
 
@@ -57,24 +56,24 @@
 ### M7: 公開候補
 
 - 公開版、ルール版、入力記録版、保存形式版を固定した。
-- [CI Core #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047136)でNode 22/24、全量シミュレーション、再生監査が成功した。
-- [CI Browser #29](https://github.com/chameleonjp-lab/hanabin/actions/runs/31481047138)でChromium 24/24が成功した。
-- [Public Release Smoke #1](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540556019)で、公開URLのホーム→練習→カウントダウン→本編→実時間60秒→結果画面が成功した。
-- 実機・初見試遊・Pages設定の正本は、[M7手動受入チェックリスト](./docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md)とする。
+- [CI Core #70](https://github.com/chameleonjp-lab/hanabin/actions/runs/31758858560)でNode 22/24、全量シミュレーション、再生監査が成功した。
+- [CI Browser #70](https://github.com/chameleonjp-lab/hanabin/actions/runs/31758858505)でChromiumのブラウザ試験が成功した。
+- [Deploy GitHub Pages #21](https://github.com/chameleonjp-lab/hanabin/actions/runs/31915623844)で限定artifactの公開に成功した。
+- [Public Release Smoke #16](https://github.com/chameleonjp-lab/hanabin/actions/runs/31915642023)で、公開URLの終端経路と公開対象外URLの404検査が2テスト成功した。
+- 実機・初見試遊の正本は、[M7手動受入チェックリスト](./docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md)とする。
 
 ## GitHub Pagesの判定
 
-2026年8月13日のAPI確認値は次のとおりである。
+2026年8月16日のAPIと公開URL検査で、GitHub Actionsの限定artifact公開を確認した。
 
 | 項目 | 確認値 | 判定 |
 |---|---|---|
 | 公開状態 | `built` | 確認済み |
 | 公開URL | `https://chameleonjp-lab.github.io/hanabin/` | 確認済み |
 | HTTPS | 有効 | 確認済み |
-| 公開方式 | `legacy` | 不合格 |
-| 公開元 | `main`の`/` | 不合格 |
-
-計画は`.github/workflows/pages.yml`が作る限定artifactだけを公開する方式である。現在は`main`直下を公開しているため、文書や開発用ファイルが公開対象外であることを保証できない。公開元をGitHub Actionsへ切り替えた後、公開対象外URLが404になる検査も成功させる。
+| 公開方式 | `workflow` | 合格 |
+| 公開元 | `.github/workflows/pages.yml`の限定artifact | 合格 |
+| 公開対象外URL | 6種類を404確認 | 合格 |
 
 ## MVP後
 
@@ -85,8 +84,6 @@
 
 ## 次の作業
 
-1. Issue #27の手順でPagesの公開元をGitHub Actionsへ切り替える。
-2. `Deploy GitHub Pages`を`main`で実行する。
-3. Pages APIの`build_type: workflow`、公開URLの終端経路、公開対象外URLの404を確認する。
-4. 実機3端末と初見5人の試遊を記録する。
-5. すべて合格した場合だけMVP受入を7/7へ更新する。
+1. iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018で実機確認する。
+2. 初見5人の試遊を記録する。
+3. すべて合格した場合だけMVP受入を7/7へ更新する。

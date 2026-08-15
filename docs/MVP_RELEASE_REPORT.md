@@ -1,7 +1,7 @@
 # HANABIN MVP公開候補レポート
 
 - 作成日: 2026年8月12日
-- 最終更新日: 2026年8月13日
+- 最終更新日: 2026年8月16日
 - 対象リポジトリ: `chameleonjp-lab/hanabin`
 - 対象: `main`のMVPリリース版`0.1.0`
 - 実装状態: M1〜M7をマージ済み
@@ -9,14 +9,16 @@
 
 ## 1. 現在の判定
 
-公開URLは表示でき、公開URL専用の自動検査でホームから結果画面まで到達している。しかし、2026年8月13日のGitHub Pages API確認で、公開元が計画と違うことが判明した。
+公開URLは表示でき、設定変更後の公開URL専用自動検査も成功している。2026年8月16日（日本時間）にGitHub Pages APIを再確認し、公開元がGitHub Actionsへ切り替わったことを確認した。
 
-- 現在の公開方式: `legacy`
-- 現在の公開元: `main`の`/`
-- 計画した公開方式: `.github/workflows/pages.yml`が作る限定artifact
-- 修正課題: [Issue #27](https://github.com/chameleonjp-lab/hanabin/issues/27)
+- 現在の公開方式: `workflow`
+- 現在の公開元: `.github/workflows/pages.yml`が作る限定artifact
+- 公開URL: https://chameleonjp-lab.github.io/hanabin/
+- Deploy GitHub Pages: 成功
+- Public Release Smoke: 成功（2テスト）
+- 実機3端末と初見5人の試遊: 未確認
 
-この不一致に加え、実機3端末と初見5人の試遊も未確認である。したがってM7とMVPは完了扱いにしない。
+Pages公開設定と自動検査は合格したが、実機確認と初見試遊が残っているため、M7とMVPは完了扱いにしない。
 
 ## 2. 公開版の固定情報
 
@@ -51,9 +53,10 @@
 
 ### 3.2 公開URL終端検査
 
-[Public Release Smoke #1](https://github.com/chameleonjp-lab/hanabin/actions/runs/31540556019)で、次の経路を利用者向けの実時間操作として確認した。
+設定変更後の[Public Release Smoke #16](https://github.com/chameleonjp-lab/hanabin/actions/runs/31915642023)で、次の2テストが成功した。
 
-ホーム → 初回練習 → スキップ → カウントダウン → 本編 → 実時間60秒 → 結果画面
+1. 公開Pagesのホーム → 初回練習 → スキップ → カウントダウン → 本編 → 実時間60秒 → 結果画面
+2. 公開対象外の `package.json`、README、docs、workflow設定がすべて404
 
 結果画面は1回だけ登録され、JavaScriptエラー、4xx以上の応答、失敗リクエストは検出されなかった。これはChromiumによる自動検査であり、iPhone・iPadの実機確認ではない。
 
@@ -69,28 +72,30 @@
 
 テスト、文書、GitHub Actions設定、パッケージ管理ファイルは公開しない計画である。
 
-### 4.2 2026年8月13日のAPI確認
+### 4.2 2026年8月16日のAPI確認
 
 | 確認項目 | 値 | 判定 |
 |---|---|---|
 | 公開状態 | `built` | 確認済み |
 | 公開URL | `https://chameleonjp-lab.github.io/hanabin/` | 確認済み |
 | HTTPS | 有効 | 確認済み |
-| `build_type` | `legacy` | 不合格 |
-| `source.branch` | `main` | 不合格 |
-| `source.path` | `/` | 不合格 |
+| `build_type` | `workflow` | 合格 |
+| `source.branch` | `main` | 確認済み |
+| `source.path` | `/` | 確認済み |
+| Deploy GitHub Pages | 成功 | [run #21](https://github.com/chameleonjp-lab/hanabin/actions/runs/31915623844) |
+| Public Release Smoke | 2テスト成功 | [run #16](https://github.com/chameleonjp-lab/hanabin/actions/runs/31915642023) |
 
-現在は`main`直下を公開する旧方式であり、限定artifactだけを公開するという計画を満たしていない。カスタムPagesワークフローが成功していても、現在有効な公開元がGitHub Actionsである証明にはならない。
+現在はGitHub Actionsの限定artifactを公開している。公開対象外URLの404とホームから結果画面までの経路も、上記Smokeで確認した。
 
-### 4.3 修正後の確認
+### 4.3 修正後の確認結果
 
-Issue #27に沿って公開元をGitHub Actionsへ切り替えた後、次をすべて確認する。
+Issue #27に沿って公開元をGitHub Actionsへ切り替え、次を確認した。
 
-- Pages APIが`build_type: workflow`を返す。
-- `Deploy GitHub Pages`が成功する。
-- Public Release Smokeが成功する。
-- `package.json`、`README.md`、`README.html`、`docs/MVP_RELEASE_REPORT.md`、`docs/MVP_RELEASE_REPORT.html`、`.github/workflows/pages.yml`の公開URLが404を返す。
-- ホームから結果画面までの経路を維持する。
+- Pages APIが`build_type: workflow`を返した。
+- `Deploy GitHub Pages`が成功した。
+- Public Release Smokeが2テスト成功した。
+- `package.json`、`README.md`、`README.html`、`docs/MVP_RELEASE_REPORT.md`、`docs/MVP_RELEASE_REPORT.html`、`.github/workflows/pages.yml`が公開URLで404を返した。
+- ホームから結果画面までの経路を維持した。
 
 ## 5. 実機検査
 

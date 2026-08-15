@@ -3,7 +3,7 @@
 - 作成日: 2026年8月9日
 - 対象リポジトリ: `chameleonjp-lab/hanabin`
 - 状態: M7実装マージ済み・受入中
-- MVP受入進捗: **6/7**（公開URL終端検査は成功。Pages公開元は不合格。実機3端末と初見試遊は未確認）
+- MVP受入進捗: **6/7**（PagesはGitHub Actions限定artifact公開と自動検査まで合格。実機3端末と初見試遊は未確認）
 - 対象範囲: MVP完成と公開まで。オンラインランキングはMVP後の別工程とする
 
 ---
@@ -908,11 +908,10 @@ M7の実装コードはPull Request [#11](https://github.com/chameleonjp-lab/han
 
 2026年8月13日にGitHub Pages APIを確認したところ、公開状態は`built`、HTTPSは有効だったが、公開方式は`legacy`、公開元は`main`の`/`だった。計画しているGitHub Actionsの限定artifact公開とは一致しないため、M7受入は不合格のままとする。
 
+2026年8月16日にPages設定をGitHub Actionsへ切り替え、[Deploy GitHub Pages #21](https://github.com/chameleonjp-lab/hanabin/actions/runs/31915623844)と[Public Release Smoke #16](https://github.com/chameleonjp-lab/hanabin/actions/runs/31915642023)を成功させた。Pages APIは`build_type: workflow`を返し、公開対象外URLの404も確認できた。実機3端末と初見5人の試遊は未確認のため、M7受入は6/7のままとする。
+
 ### 16.9 M7に残る条件
 
-- [Issue #27](https://github.com/chameleonjp-lab/hanabin/issues/27)に沿って、Pagesの公開元をGitHub Actionsへ切り替える。
-- 切り替え後、Pages APIが`build_type: workflow`を返すことを確認する。
-- 公開URLの終端検査と、公開対象外URLが404になる検査を成功させる。
 - iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018の実機確認を記録する。
 - 初見5人の試遊結果を記録する。
 - すべてそろうまでMVP受入を6/7、R1とR2を保留のままにする。
@@ -1034,12 +1033,10 @@ Canvas 2Dから別の描画基盤へ変更する場合は、実機計測でCanva
 
 ## 22. 次に開始する作業
 
-最優先は、[Issue #27](https://github.com/chameleonjp-lab/hanabin/issues/27)のPages公開元修正である。
+Pagesの公開元切替と公開URL自動検査は完了した。次は、実機3端末と初見5人の試遊を記録する。
 
-1. リポジトリ管理者が`Settings → Pages → Build and deployment → Source`で`GitHub Actions`を選ぶ。
-2. `Deploy GitHub Pages`を`main`で実行する。
-3. Pages APIの`build_type: workflow`、公開URLの終端経路、公開対象外URLの404を確認する。
-4. 実機3端末と初見5人の試遊を記録する。
-5. すべて合格した場合だけMVP受入を7/7へ更新する。
+1. iPhone 17 Pro、iPhone 11 Pro、iPad Pro 2018で手動受入を行う。
+2. 初見5人の試遊結果を記録する。
+3. すべて合格した場合だけMVP受入を7/7へ更新する。
 
-Pages設定の不一致は、管理画面での切替と再検証が必要な別残件としてIssue #27で管理する。ゲームルール、得点、保存形式、ランキングは変更しない。コード側では、既存の`bonusEvents`から予告成功を表示する対応を先に進め、その後にM7の実機3端末・初見5人試遊へ移る。
+Pages設定の変更履歴と自動検査の証跡はIssue #27とM7関連文書に残す。ゲームルール、得点、保存形式、ランキングは変更しない。
