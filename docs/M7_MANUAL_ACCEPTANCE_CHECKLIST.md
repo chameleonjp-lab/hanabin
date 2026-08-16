@@ -2,7 +2,7 @@
 
 - 対象リポジトリ: `chameleonjp-lab/hanabin`
 - 対象工程: M7 総合検証とMVP公開
-- 現在の判定: **未完了**
+- 現在の判定: **未完了（6/7・Pages公開確認済み）**
 - 公開URL: [HANABIN](https://chameleonjp-lab.github.io/hanabin/)
 - この文書の役割: 自動検査で確認できない実機、初見試遊、GitHub Pages設定を、実際の証跡で記録する
 
@@ -86,15 +86,16 @@
 
 ## 4. GitHub Pages設定
 
-2026年8月13日にGitHub Pages APIで公開設定を確認した。公開ページは稼働しているが、公開元はGitHub Actionsではなく`legacy`方式の`main`直下だった。計画と一致しないため不合格とし、[Issue #27](https://github.com/chameleonjp-lab/hanabin/issues/27)で修正を管理する。
+2026年8月16日（日本時間）に、GitHub Pages API、Deploy GitHub Pages、公開URL専用の自動検査を再確認した。設定変更後の公開元はGitHub Actionsになり、限定artifactだけが公開されている。実機3端末と初見5人の試遊は別項目のため、この確認だけでM7を7/7にはしない。
 
 | 確認項目 | 結果 | 証跡・メモ |
 |---|---|---|
-| Pagesの公開元がGitHub Actions | 不合格 | APIは`build_type: legacy`、`source: main /` |
-| 公開URLが `https://chameleonjp-lab.github.io/hanabin/` である | 確認済み | APIの`html_url`と公開ページを確認 |
-| HTTPSが有効 | 確認済み | APIの`https_enforced: true`を確認 |
-| GitHub Actionsへ切り替え後、Pages APIが`build_type: workflow` | 未確認 | Issue #27完了後に確認 |
-| GitHub Actionsへ切り替え後、公開対象外URLが404 | 未確認 | 公開URL専用検査で確認 |
+| Pagesの公開元がGitHub Actions | 合格 | Pages APIが`build_type: workflow`、`source: main /`を返した |
+| Deploy GitHub Pages | 合格 | [Deploy GitHub Pages #21](https://github.com/chameleonjp-lab/hanabin/actions/runs/31915623844) |
+| Public Release Smoke | 合格 | [Public Release Smoke #16](https://github.com/chameleonjp-lab/hanabin/actions/runs/31915642023)で2テスト成功 |
+| 公開URLが `https://chameleonjp-lab.github.io/hanabin/` である | 確認済み | Pages APIの`html_url`を確認 |
+| HTTPSが有効 | 確認済み | Pages APIの`https_enforced: true`を確認 |
+| 公開対象外URLが404 | 合格 | `package.json`、README、docs、workflow設定を公開URLから検査し、すべて404 |
 
 ## 5. M7の完了判定
 
