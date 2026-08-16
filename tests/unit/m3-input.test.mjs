@@ -136,6 +136,34 @@ test("clientToBoard is based on CSS geometry, not backing-store DPR", () => {
   );
 });
 
+test("touch input uses the finger position instead of the mouse reticle offset", () => {
+  withBrowserGlobals(() => {
+    const element = makeEventTarget({ width: 200, height: 100 });
+    const controller = new PointerController(element);
+
+    element.dispatch("pointerdown", {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 100,
+      clientY: 50,
+    });
+    const touchPosition = controller.position;
+    assert.equal(touchPosition.x, touchPosition.fingerX);
+    assert.equal(touchPosition.y, touchPosition.fingerY);
+
+    controller.clear();
+    element.dispatch("pointerdown", {
+      pointerId: 2,
+      pointerType: "mouse",
+      clientX: 100,
+      clientY: 50,
+    });
+    const mousePosition = controller.position;
+    assert.notEqual(mousePosition.y, mousePosition.fingerY);
+    controller.destroy();
+  });
+});
+
 test("clientToBoard returns null for a zero or invalid rect", () => {
   assert.equal(clientToBoard(10, 10, { left: 0, top: 0, width: 0, height: 100 }), null);
   assert.equal(clientToBoard(10, 10, { left: 0, top: 0, width: 100, height: 0 }), null);

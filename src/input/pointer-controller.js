@@ -10,6 +10,11 @@ import {
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
+// Touch input maps the finger to the target. Mouse input keeps the small
+// above-finger offset that prevents the cursor from covering the reticle.
+export const TOUCH_AIM_OFFSET_RATIO = 0;
+export const MOUSE_AIM_OFFSET_RATIO = 0.1;
+
 /**
  * Convert a browser client coordinate into M2's fixed 16:9 board.  The
  * renderer may change the canvas backing resolution or device-pixel ratio;
@@ -119,6 +124,10 @@ export class PointerController {
     window.addEventListener("pagehide", this.handlers.pagehide, { passive: true });
     window.addEventListener("orientationchange", this.handlers.orientationchange, { passive: true });
     element.style.touchAction = "none";
+    element.style.userSelect = "none";
+    element.style.webkitUserSelect = "none";
+    element.style.webkitTouchCallout = "none";
+    element.style.webkitTapHighlightColor = "transparent";
   }
 
   boardPoint(event) {
@@ -127,7 +136,13 @@ export class PointerController {
       event.clientX,
       event.clientY,
       this.element.getBoundingClientRect(),
-      { boardWidth: this.boardWidth, boardHeight: this.boardHeight },
+      {
+        boardWidth: this.boardWidth,
+        boardHeight: this.boardHeight,
+        aimOffsetRatio: event?.pointerType === "touch"
+          ? TOUCH_AIM_OFFSET_RATIO
+          : MOUSE_AIM_OFFSET_RATIO,
+      },
     );
     return point;
   }
