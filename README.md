@@ -2,7 +2,7 @@
 
 同色の花火を選び、起爆位置と時刻を考えて連鎖を伸ばす、スマートフォン向け60秒スコアアタックゲームです。
 
-M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未完了で、公開URL専用の実時間終端検査は成功していますが、GitHub Pagesの公開元修正、実機3端末、初見5人の試遊が残っています。ランキングはまだ実装していません。
+M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未完了で、公開URL専用の実時間終端検査とGitHub Pagesの公開元修正は完了していますが、iPhone 17 Pro（横画面のみ）の実機確認と初見5人の試遊が残っています。ランキングはまだ実装していません。
 
 ## 実装を進める文書
 
@@ -27,7 +27,7 @@ M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未�
 - [`docs/MVP_RELEASE_REPORT.md`](./docs/MVP_RELEASE_REPORT.md)
   M7の自動検査、公開版固定情報、GitHub Pages、実機検査、初見試遊の結果を記録します。
 - [`docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md`](./docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md)
-  実機3端末、初見5人、Pages設定の確認結果を、未確認と実測値を分けて記録します。
+  iPhone 17 Pro（横画面のみ）、初見5人、Pages設定の確認結果を、未確認と実測値を分けて記録します。
 
 ## ゲームの挙動を決める文書
 
@@ -74,5 +74,6 @@ M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未�
 - M5実装: Pull Request [#9](https://github.com/chameleonjp-lab/hanabin/pull/9)を`main`へマージ済み。選択線を保護した独自花火表現、光粒プール、品質別描画を確認済み
 - M6実装: Pull Request [#10](https://github.com/chameleonjp-lab/hanabin/pull/10)を`main`へマージ済み。初回練習、端末内プロフィール、結果ヒント・共有、音設定を確認済み
 - M7実装: Pull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11)で公開版固定情報と最終自動検証を、[#17](https://github.com/chameleonjp-lab/hanabin/pull/17)で公開URL専用検査を、[#19](https://github.com/chameleonjp-lab/hanabin/pull/19)で手動受入チェックリストを`main`へ反映済み
-- MVP受入: 6/7。GitHub Pages APIで公開元が`legacy`（`main`直下）であることを確認したため、計画どおりのGitHub Actionsへ切り替えるまでM7は不合格。実機3端末と初見5人も未確認
+- MVP受入: 6/7。GitHub PagesはGitHub Actionsの限定artifact公開へ切り替え済み。iPhone 17 Pro（横画面のみ）の実機確認と初見5人の試遊は未確認
+- 実機受入対象: iPhone 17 Proのみ。縦画面は非対応で、横画面で指を押したまま色を選び、指を離して起爆する
 - 文書だけを変更したPull Requestのマージ履歴はGitHubを正本とし、進捗判定が変わらない限り各文書へ追記しない

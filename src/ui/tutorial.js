@@ -70,6 +70,7 @@ export class TutorialController {
     this.feedbackElement = element.querySelector("#practice-feedback");
     this.startButton = element.querySelector("#practice-start");
     this.skipButton = element.querySelector("#practice-skip");
+    this.continueButton = element.querySelector("#practice-continue");
     this.handlers = {
       pointerdown: (event) => this.handlePointerDown(event),
       pointermove: (event) => this.handlePointerMove(event),
@@ -81,11 +82,16 @@ export class TutorialController {
     };
     this.startButton?.addEventListener("click", () => this.begin());
     this.skipButton?.addEventListener("click", () => this.skip());
+    this.continueButton?.addEventListener("click", () => this.continue());
     for (const type of ["pointerdown", "pointermove", "pointerup", "pointercancel"]) {
       this.canvas.addEventListener(type, this.handlers[type], { passive: false });
     }
     this.canvas.addEventListener("contextmenu", this.handlers.contextmenu, { passive: false });
     this.canvas.style.touchAction = "none";
+    this.canvas.style.userSelect = "none";
+    this.canvas.style.webkitUserSelect = "none";
+    this.canvas.style.webkitTouchCallout = "none";
+    this.canvas.style.webkitTapHighlightColor = "transparent";
     this.canvas.dataset.practiceTargets = PRACTICE_TARGETS.map((target) => `${target.x},${target.y}`).join("|");
     this.render();
   }
@@ -104,7 +110,7 @@ export class TutorialController {
 
   begin() {
     if (this.state === "running") return this.snapshot();
-    if (!["ready", "expired"].includes(this.state)) return this.snapshot();
+    if (!["ready", "expired", "success"].includes(this.state)) return this.snapshot();
     this.stopSuccessTimer();
     this.remainingSeconds = this.durationSeconds;
     this.startedAtMs = Date.now();
@@ -132,15 +138,22 @@ export class TutorialController {
   succeed() {
     if (this.state === "success" || this.state === "skipped") return this.snapshot();
     this.stopTimer();
+    this.stopSuccessTimer();
     this.clearPointer();
     this.remainingSeconds = Math.max(0, this.remainingSeconds);
     this.state = "success";
     this.render();
+    return this.snapshot();
+  }
+
+  continue() {
+    if (this.state !== "success") return this.snapshot();
     this.stopSuccessTimer();
-    this.successTimeoutId = setTimeout(() => {
-      this.successTimeoutId = null;
-      this.onComplete?.({ skipped: false, selectedCount: this.selectedIds.length });
-    }, PRACTICE_SUCCESS_DISPLAY_MS);
+    this.clearPointer();
+    const selectedCount = this.selectedIds.length;
+    this.state = "completed";
+    this.render();
+    this.onComplete?.({ skipped: false, selectedCount });
     return this.snapshot();
   }
 
@@ -362,7 +375,7 @@ export class TutorialController {
           : boardState === "expired"
             ? "時間切れです。もう一度、3つをつないでみましょう。"
             : boardState === "success"
-              ? "成功！3つの花火を巻き込めました。"
+              ? "成功！もう一度練習するか、本番へ進めます。"
               : "練習を飛ばして、本番へ進みます。";
     }
     if (this.progressElement) this.progressElement.textContent = `${this.selectedIds.length} / ${PRACTICE_TARGET_COUNT}`;
@@ -376,9 +389,16 @@ export class TutorialController {
             : `${this.selectedIds.length}個選択中。指を離さないでください`;
     }
     if (this.startButton) {
-      this.startButton.hidden = !["ready", "expired"].includes(boardState);
-      this.startButton.disabled = !["ready", "expired"].includes(boardState);
-      this.startButton.textContent = boardState === "expired" ? "もう一度練習する" : "練習を始める";
+      const canBegin = ["ready", "expired", "success"].includes(boardState);
+      this.startButton.hidden = !canBegin;
+      this.startButton.disabled = !canBegin;
+      this.startButton.textContent = ["expired", "success"].includes(boardState)
+        ? "もう一度練習する"
+        : "練習を始める";
+    }
+    if (this.continueButton) {
+      this.continueButton.hidden = boardState !== "success";
+      this.continueButton.disabled = boardState !== "success";
     }
     if (this.skipButton) {
       this.skipButton.hidden = !["ready", "running", "expired"].includes(boardState);
