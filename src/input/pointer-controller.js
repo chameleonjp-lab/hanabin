@@ -35,20 +35,20 @@ export const clientToBoard = (clientX, clientY, rect, {
   const fingerX = clamp((Number(clientX) - rect.left) / rect.width, 0, 1);
   const fingerY = clamp((Number(clientY) - rect.top) / rect.height, 0, 1);
   const shortSide = Math.min(rect.width, rect.height);
-  const offset = Math.max(1, shortSide * aimOffsetRatio);
-  const margin = Math.max(1, offset * 0.45);
+  const offset = aimOffsetRatio > 0 ? shortSide * aimOffsetRatio : 0;
+  const margin = offset > 0 ? Math.max(1, offset * 0.45) : 0;
   let aimPixelX = fingerX * rect.width;
   let aimPixelY = fingerY * rect.height - offset;
 
   // The aim is normally above the finger.  At the top edge there is no room
   // above, so move sideways toward the board interior; at the bottom edge the
   // upward aim remains the safe direction.  Always clamp the aim itself.
-  if (aimPixelY < margin) {
+  if (offset > 0 && aimPixelY < margin) {
     const direction = fingerX <= 0.5 ? 1 : -1;
     aimPixelX += direction * offset;
     aimPixelY = fingerY * rect.height;
   }
-  if (fingerY > 1 - margin / rect.height) aimPixelY = fingerY * rect.height - offset;
+  if (offset > 0 && fingerY > 1 - margin / rect.height) aimPixelY = fingerY * rect.height - offset;
   aimPixelX = clamp(aimPixelX, margin, rect.width - margin);
   aimPixelY = clamp(aimPixelY, margin, rect.height - margin);
 
