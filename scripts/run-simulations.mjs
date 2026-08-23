@@ -1,5 +1,7 @@
 import { performance } from "node:perf_hooks";
 import { appendFileSync, writeFileSync } from "node:fs";
+import { DEFAULT_RULES, rulesFingerprint } from "../src/config/rules.js";
+import { RELEASE_MANIFEST } from "../src/config/release.js";
 import { replayGame } from "../src/core/replay.js";
 import { compareStrategies, runSafetySweep, runSimulation } from "../src/core/simulation.js";
 import { stateFingerprint } from "../src/core/state.js";
@@ -25,8 +27,14 @@ const replayAudit = STRATEGY_NAMES.map((strategy) => {
 });
 
 // The core API keeps compatibility fields for callers, but the CI artifact
-// contains only O(1) aggregate evidence rather than 7,000 per-case records.
+// contains only O(1) aggregate evidence rather than 8,000 per-case records.
 const compact = {
+  metadata: {
+    ...RELEASE_MANIFEST,
+    rulesFingerprint: rulesFingerprint(DEFAULT_RULES),
+    commitSha: process.env.GITHUB_SHA ?? null,
+    strategyNames: [...STRATEGY_NAMES],
+  },
   safety: {
     requestedSeeds: safety.requestedSeeds,
     processedSeeds: safety.processedSeeds,
@@ -72,6 +80,8 @@ if (process.env.GITHUB_STEP_SUMMARY) {
   appendFileSync(process.env.GITHUB_STEP_SUMMARY, [
     "## M4 deterministic gameplay gate",
     "",
+    `- Rule: ${compact.metadata.ruleVersion} / ${compact.metadata.rulesFingerprint}`,
+    `- Commit: ${compact.metadata.commitSha ?? "local-uncommitted"}`,
     `- Safety: ${safety.processedSeeds} seeds / ${safety.faults} faults / ${safety.invalidStates} invalid states`,
     `- Generation: ${safety.generatedWavesInspected} waves / ${safety.unselectableWaves} unselectable / ${safety.exactOverlapViolations} exact overlaps`,
     `- Comparison: ${comparison.processedRuns} runs / ${comparison.strategyCount} strategies`,

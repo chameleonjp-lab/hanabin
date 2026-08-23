@@ -23,6 +23,16 @@ export const colorSymbol = (color) => {
   return DISPLAY_SYMBOLS[index] ?? "✦";
 };
 
+export const isForecastBridgeForNextWave = (entity, state) => {
+  const nextWaveIndex = state?.upcomingWaves?.[0]?.waveIndex;
+  return Number.isInteger(nextWaveIndex) &&
+    Number.isInteger(entity?.forecastForWaveIndex) &&
+    entity.forecastForWaveIndex === nextWaveIndex;
+};
+
+export const displayEntityRadius = (scale, rules = DEFAULT_RULES) =>
+  Math.max(10, rules.entityRadius * Math.max(0, Number(scale) || 0) * 1.2);
+
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 /** Return an on-board reticle position with direction changing at the edges. */
@@ -100,7 +110,7 @@ export const drawCompetitiveLayer = (ctx, {
     return recordsById.get(String(id));
   }).filter(Boolean);
   const scale = Math.min(width / boardWidth, height / boardHeight);
-  const entityRadius = Math.max(4, rules.entityRadius * scale);
+  const entityRadius = displayEntityRadius(scale, rules);
 
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -166,11 +176,21 @@ export const drawCompetitiveLayer = (ctx, {
   const candidates = [...(state.fireworks ?? [])]
     .filter((entity) => entity.status === "active" && entity.visible !== false)
     .sort((left, right) => Number(left.depth ?? 0) - Number(right.depth ?? 0));
+  const forecastBridgeCount = candidates
+    .filter((entity) => isForecastBridgeForNextWave(entity, state)).length;
+  if (ctx.canvas?.dataset) {
+    ctx.canvas.dataset.forecastBridgeCount = String(forecastBridgeCount);
+    ctx.canvas.dataset.forecastWaveIndex = Number.isInteger(state.upcomingWaves?.[0]?.waveIndex)
+      ? String(state.upcomingWaves[0].waveIndex)
+      : "";
+    ctx.canvas.dataset.displayEntityRadius = String(entityRadius);
+  }
   for (const entity of candidates) {
     const point = toCanvas(entity.x, entity.y);
     const color = colorValue(entity.color);
     const selected = selectedIds.has(String(entity.id));
     const hovered = String(state.hoverCandidateId) === String(entity.id);
+    const forecastBridge = isForecastBridgeForNextWave(entity, state);
     const depthScale = 0.82 + Math.min(0.32, Math.max(0, Number(entity.depth ?? 0)) / 4000);
     const radius = entityRadius * depthScale;
     ctx.save();
@@ -187,11 +207,44 @@ export const drawCompetitiveLayer = (ctx, {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(colorSymbol(entity.color), point.x, point.y + 0.5);
-    if (selected || hovered) {
-      ctx.strokeStyle = selected ? "#f8fcff" : "rgba(255, 255, 255, 0.72)";
+    // The forecast bonus requires at least three of the five selected
+    // targets to be linked to the next wave.  Keep that competitive fact
+    // visible at every quality level with a gold double ring.
+    if (forecastBridge) {
+      ctx.strokeStyle = "rgba(255, 209, 102, 0.96)";
+      ctx.lineWidth = Math.max(1.2, radius * 0.11);
+      for (const multiplier of [1.48, 1.78]) {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, radius * multiplier, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+    if (selected) {
+      ctx.strokeStyle = "#f8fcff";
       ctx.lineWidth = Math.max(1.3, radius * 0.14);
       ctx.beginPath();
-      ctx.arc(point.x, point.y, radius * (selected ? 1.55 : 1.35), 0, Math.PI * 2);
+      ctx.arc(point.x, point.y, radius * 1.55, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (hovered) {
+      const progress = clamp(
+        Math.max(0, Number(state.hoverTicks) || 0) / Math.max(1, Number(rules.minHoldTicks) || 1),
+        0,
+        1,
+      );
+      ctx.lineWidth = Math.max(1.3, radius * 0.14);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.24)";
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, radius * 1.46, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.94)";
+      ctx.beginPath();
+      ctx.arc(
+        point.x,
+        point.y,
+        radius * 1.46,
+        -Math.PI / 2,
+        -Math.PI / 2 + Math.PI * 2 * progress,
+      );
       ctx.stroke();
     }
     ctx.restore();
@@ -219,18 +272,14 @@ export const drawCompetitiveLayer = (ctx, {
 
   if (pointer && (pointer.pressed || pointer.pointerId !== null || pointer.showReticle)) {
     const fingerPoint = toCanvas(pointer.fingerX ?? pointer.x, pointer.fingerY ?? pointer.y);
-    const reticleOffset = Math.min(width, height) * 0.1;
-    const reticle = getEdgeAwareReticlePosition(
-      fingerPoint.x,
-      fingerPoint.y,
-      width,
-      height,
-      { offset: reticleOffset, margin: Math.max(1, reticleOffset * 0.45) },
+    const aimPoint = toCanvas(
+      pointer.aimX ?? pointer.x ?? pointer.fingerX,
+      pointer.aimY ?? pointer.y ?? pointer.fingerY,
     );
-    const aimPoint = { x: reticle.x, y: reticle.y };
-    // The finger is a display-only coordinate. The renderer derives the
-    // visible reticle from it so the offset remains on-canvas at every edge;
-    // fixed-tick selection continues to use the input frame's exact aim.
+    // PointerController has already applied the input-mode-specific aim:
+    // touch stays under the finger while mouse keeps its edge-aware offset.
+    // Drawing that exact point keeps the visible reticle and fixed-tick hit
+    // test identical without putting presentation fields in the replay.
     drawLine(ctx, fingerPoint, aimPoint, "rgba(222, 243, 255, 0.7)", Math.max(1, width / 1300));
     ctx.save();
     ctx.strokeStyle = pointer.pressed ? "#f8fcff" : "rgba(121, 230, 255, 0.76)";

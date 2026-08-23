@@ -14,6 +14,7 @@ import {
   createReplayLog,
   validateReplayLog,
   replayGame,
+  replayDeterministic,
   runSimulation,
   STRATEGY_NAMES,
 } from "../../src/core/index.js";
@@ -27,6 +28,7 @@ test("M2 fixed-point rules are explicit and bounded", () => {
   assert.equal(DEFAULT_RULES.minimumSelection, 3);
   assert.equal(DEFAULT_RULES.selectionHoldTicks, 3);
   assert.equal(DEFAULT_RULES.selectionLinkDistance, 5_140);
+  assert.equal(DEFAULT_RULES.selectionHitRadius, 520);
   assert.equal(DEFAULT_RULES.selectionTimeoutTicks, 150);
   assert.deepEqual([DEFAULT_RULES.lifetimeMinTicks, DEFAULT_RULES.lifetimeMaxTicks], [240, 420]);
   assert.deepEqual([DEFAULT_RULES.sameColorRadius, DEFAULT_RULES.differentColorRadius], [90, 78]);
@@ -92,16 +94,28 @@ test("replay metadata is strict and a complete replay is deterministic", () => {
   assert.throws(() => createReplayLog({ seed: 1, rules: DEFAULT_RULES, frames: [] }), /Invalid replay/);
   assert.ok(validateReplayLog({ seed: 1, ruleVersion: DEFAULT_RULES.ruleVersion, inputSchemaVersion: DEFAULT_RULES.inputSchemaVersion, maxTicks: 3_600, frames: [] }).length);
   const simulation = runSimulation(44, { strategy: "shortest-three" });
+  assert.equal(simulation.replay.ruleVersion, "m4-gameplay-2");
   assert.equal(simulation.replay.frames.length, 3_600);
+  const legacyReplay = replayGame({
+    ...simulation.replay,
+    ruleVersion: "m4-gameplay-1",
+  });
+  assert.equal(legacyReplay.simulationFault?.code, "INVALID_REPLAY");
+  assert.ok(legacyReplay.validationErrors.includes("RULE_VERSION"));
   const replay = replayGame(simulation.replay);
   assert.equal(replay.simulationFault, null);
   assert.equal(replay.state.score, simulation.state.score);
   assert.equal(replay.state.tick, simulation.state.tick);
   assert.equal(replay.state.inputFrames.length, simulation.state.inputFrames.length);
+  const deterministic = replayDeterministic(simulation.replay);
+  assert.equal(deterministic.deterministic, true);
+  assert.deepEqual(deterministic.first.validationErrors, []);
+  assert.deepEqual(deterministic.first.state, simulation.state);
+  assert.deepEqual(deterministic.second.state, simulation.state);
 });
 
-test("seven strategies remain bounded and fault-free for one seed", () => {
-  assert.equal(STRATEGY_NAMES.length, 7);
+test("eight strategies remain bounded and fault-free for one seed", () => {
+  assert.equal(STRATEGY_NAMES.length, 8);
   for (const strategy of STRATEGY_NAMES) {
     const result = runSimulation(5, { strategy, decisionLimit: 25 });
     assert.equal(result.simulationFault, null, strategy);

@@ -81,6 +81,7 @@ export class PointerController {
     boardHeight = BOARD_HEIGHT,
     onChange = null,
     onInterrupt = null,
+    onLifecycle = null,
     isInputAllowed = null,
   } = {}) {
     if (!element || typeof element.addEventListener !== "function") {
@@ -93,8 +94,10 @@ export class PointerController {
     this.fingerX = 0;
     this.fingerY = 0;
     this.pendingRelease = false;
+    this.deferredPointer = null;
     this.onChange = typeof onChange === "function" ? onChange : null;
     this.onInterrupt = typeof onInterrupt === "function" ? onInterrupt : null;
+    this.onLifecycle = typeof onLifecycle === "function" ? onLifecycle : null;
     this.isInputAllowed = typeof isInputAllowed === "function" ? isInputAllowed : () => true;
     this.destroyed = false;
     this.handlers = {
@@ -107,10 +110,10 @@ export class PointerController {
         if (event.cancelable) event.preventDefault();
       },
       visibilitychange: () => {
-        if (document.visibilityState !== "visible") this.interrupt("visibilitychange");
+        if (document.visibilityState !== "visible") this.handleLifecycle("visibilitychange");
       },
-      pagehide: () => this.interrupt("pagehide"),
-      orientationchange: () => this.interrupt("orientationchange"),
+      pagehide: () => this.handleLifecycle("pagehide"),
+      orientationchange: () => this.handleLifecycle("orientationchange"),
     };
     for (const type of ["pointerdown", "pointermove", "pointerup", "pointercancel"]) {
       element.addEventListener(type, this.handlers[type], { passive: false });
@@ -161,6 +164,7 @@ export class PointerController {
   notify(change = {}) {
     const position = this.position;
     if (this.element.dataset) {
+      if (change.type) this.element.dataset.lastPointerChange = String(change.type);
       this.element.dataset.activePointerId = position.pointerId === null ? "" : String(position.pointerId);
       this.element.dataset.pointerPressed = position.pressed ? "true" : "false";
       this.element.dataset.aimX = String(position.aimX);
@@ -205,8 +209,37 @@ export class PointerController {
     // Keep a pending release/cancel marker ahead of a new pointerdown so the
     // next fixed tick records the boundary instead of transferring ownership
     // before the previous action has been sampled.
-    if (this.sampler.marker !== null || this.pendingRelease) return;
     const pointerId = pointerIdOf(event);
+    const ownerPointerId = this.sampler.activePointerId ?? this.deferredPointer?.pointerId ?? null;
+    if (ownerPointerId !== null && ownerPointerId !== pointerId) {
+      const ignoredCount = Math.max(0, Number(this.element.dataset?.secondaryPointerIgnored) || 0) + 1;
+      if (this.element.dataset) this.element.dataset.secondaryPointerIgnored = String(ignoredCount);
+      this.notify({
+        type: "secondary-pointer-ignored",
+        secondaryPointerId: pointerId,
+        ownerPointerId,
+      });
+      return;
+    }
+    if (this.sampler.marker !== null || this.pendingRelease) {
+      const normalized = this.normalizeEvent(event, "pointerdown");
+      const point = this.boardPoint(event);
+      if (!normalized || !point || !this.capture(pointerId)) {
+        this.notify({ type: "pointerdown-ignored-pending-boundary", ignoredPointerId: pointerId });
+        return;
+      }
+      // Preserve the unsampled release/cancel as the next fixed-tick frame,
+      // but keep a genuinely held second tap ready for the following tick.
+      // This removes the narrow dead zone without overwriting replay order.
+      this.deferredPointer = {
+        pointerId,
+        normalized,
+        fingerX: point.fingerX,
+        fingerY: point.fingerY,
+      };
+      this.notify({ type: "pointerdown-queued-after-boundary", pointerId });
+      return;
+    }
     const normalized = this.normalizeEvent(event, "pointerdown");
     if (!normalized) return;
     const accepted = updatePointerSampler(this.sampler, normalized);
@@ -228,6 +261,26 @@ export class PointerController {
   handlePointerMove(event) {
     if (event.cancelable) event.preventDefault();
     const pointerId = pointerIdOf(event);
+    if (this.deferredPointer?.pointerId === pointerId) {
+      if (!this.isInputAllowed()) {
+        this.interrupt("input-disabled");
+        return;
+      }
+      const normalized = this.normalizeEvent(event, "pointerdown");
+      const point = this.boardPoint(event);
+      if (!normalized || !point) {
+        this.interrupt("invalid-pointer-geometry");
+        return;
+      }
+      this.deferredPointer = {
+        pointerId,
+        normalized,
+        fingerX: point.fingerX,
+        fingerY: point.fingerY,
+      };
+      this.notify({ type: "deferred-pointermove", pointerId });
+      return;
+    }
     if (!this.isInputAllowed() && this.sampler.activePointerId === pointerId) {
       // The phase may have moved to finalizing while a finger is still down.
       // Release that gesture without inventing an orientation lifecycle pause.
@@ -252,7 +305,13 @@ export class PointerController {
     if (event.cancelable) event.preventDefault();
     const pointerId = pointerIdOf(event);
     if (pointerId === null) {
-      if (this.sampler.activePointerId !== null) this.interrupt("invalid-pointer-event");
+      if (this.activePointerId !== null) this.interrupt("invalid-pointer-event");
+      return;
+    }
+    if (this.deferredPointer?.pointerId === pointerId) {
+      this.deferredPointer = null;
+      this.release(pointerId);
+      this.notify({ type: "deferred-pointerup", pointerId });
       return;
     }
     if (!this.isInputAllowed() && this.sampler.activePointerId === pointerId) {
@@ -278,7 +337,14 @@ export class PointerController {
     if (event.cancelable) event.preventDefault();
     const pointerId = pointerIdOf(event);
     if (pointerId === null) {
-      if (this.sampler.activePointerId !== null) this.interrupt("invalid-pointer-event");
+      if (this.activePointerId !== null) this.interrupt("invalid-pointer-event");
+      return;
+    }
+    if (this.deferredPointer?.pointerId === pointerId) {
+      this.deferredPointer = null;
+      this.release(pointerId);
+      this.notify({ type: "deferred-pointercancel", pointerId });
+      if (this.onInterrupt) this.onInterrupt("pointercancel");
       return;
     }
     const normalized = this.normalizeEvent(event, "pointercancel");
@@ -303,7 +369,15 @@ export class PointerController {
       if (this.sampler.activePointerId !== null) this.interrupt("invalid-pointer-event");
       return;
     }
-    if (this.sampler.activePointerId === pointerId) this.interrupt("lostpointercapture");
+    if (this.activePointerId === pointerId) this.handleLifecycle("lostpointercapture");
+  }
+
+  /** Notify lifecycle owners even when no pointer is currently held. */
+  handleLifecycle(reason) {
+    if (this.destroyed) return false;
+    const interrupted = this.interrupt(reason);
+    if (this.onLifecycle) this.onLifecycle(reason, { interrupted, position: this.position });
+    return interrupted;
   }
 
   /** Force-release an owned pointer without inventing a browser event. */
@@ -316,7 +390,9 @@ export class PointerController {
       "lostpointercapture",
       "frame-backlog",
     ].includes(reason);
-    const hadPointer = this.sampler.activePointerId !== null || this.sampler.pressed || this.pendingRelease;
+    const deferredPointerId = this.deferredPointer?.pointerId ?? null;
+    const hadPointer = this.sampler.activePointerId !== null || this.sampler.pressed ||
+      this.pendingRelease || deferredPointerId !== null;
     const hadMarker = this.sampler.marker !== null;
     const pointerId = this.sampler.activePointerId;
     let accepted = updatePointerSampler(this.sampler, { type: "interrupt" });
@@ -329,6 +405,10 @@ export class PointerController {
     }
     if (accepted) this.pendingRelease = false;
     if (accepted) this.release(pointerId);
+    if (deferredPointerId !== null) {
+      this.deferredPointer = null;
+      this.release(deferredPointerId);
+    }
     if ((hadPointer || accepted) && !hadMarker) {
       this.notify({ type: "interrupt", reason });
       if (this.onInterrupt) this.onInterrupt(reason);
@@ -339,28 +419,43 @@ export class PointerController {
   sampleFrame(tick, actionId) {
     const frame = readPointerFrame(this.sampler, tick, actionId);
     this.pendingRelease = false;
+    const deferred = this.deferredPointer;
+    if (deferred) {
+      this.deferredPointer = null;
+      const accepted = updatePointerSampler(this.sampler, deferred.normalized);
+      if (accepted) {
+        this.fingerX = deferred.fingerX;
+        this.fingerY = deferred.fingerY;
+        this.notify({ type: "pointerdown-activated", pointerId: deferred.pointerId });
+      } else {
+        this.release(deferred.pointerId);
+      }
+    }
     return frame;
   }
 
   get position() {
+    const deferred = this.deferredPointer;
+    const aimX = deferred?.normalized.x ?? this.sampler.x;
+    const aimY = deferred?.normalized.y ?? this.sampler.y;
     return {
-      x: clamp(this.sampler.x, 0, this.boardWidth),
-      y: clamp(this.sampler.y, 0, this.boardHeight),
-      aimX: clamp(this.sampler.x, 0, this.boardWidth),
-      aimY: clamp(this.sampler.y, 0, this.boardHeight),
-      fingerX: clamp(this.fingerX ?? this.sampler.x, 0, this.boardWidth),
-      fingerY: clamp(this.fingerY ?? this.sampler.y, 0, this.boardHeight),
-      pressed: this.sampler.pressed === true,
-      pointerId: this.sampler.activePointerId,
+      x: clamp(aimX, 0, this.boardWidth),
+      y: clamp(aimY, 0, this.boardHeight),
+      aimX: clamp(aimX, 0, this.boardWidth),
+      aimY: clamp(aimY, 0, this.boardHeight),
+      fingerX: clamp(deferred?.fingerX ?? this.fingerX ?? aimX, 0, this.boardWidth),
+      fingerY: clamp(deferred?.fingerY ?? this.fingerY ?? aimY, 0, this.boardHeight),
+      pressed: deferred !== null || this.sampler.pressed === true,
+      pointerId: deferred?.pointerId ?? this.sampler.activePointerId,
     };
   }
 
   get activePointerId() {
-    return this.sampler.activePointerId;
+    return this.deferredPointer?.pointerId ?? this.sampler.activePointerId;
   }
 
   get pressed() {
-    return this.sampler.pressed === true;
+    return this.deferredPointer !== null || this.sampler.pressed === true;
   }
 
   clear() {
@@ -371,6 +466,7 @@ export class PointerController {
     this.fingerX = 0;
     this.fingerY = 0;
     this.pendingRelease = false;
+    this.deferredPointer = null;
   }
 
   destroy() {
@@ -379,9 +475,12 @@ export class PointerController {
     // cannot survive teardown.  Avoid invoking the session callback during
     // destruction because there will be no next fixed tick to consume it.
     const onInterrupt = this.onInterrupt;
+    const onLifecycle = this.onLifecycle;
     this.onInterrupt = null;
+    this.onLifecycle = null;
     this.clear();
     this.onInterrupt = onInterrupt;
+    this.onLifecycle = onLifecycle;
     this.destroyed = true;
     for (const type of ["pointerdown", "pointermove", "pointerup", "pointercancel"]) {
       this.element.removeEventListener(type, this.handlers[type]);

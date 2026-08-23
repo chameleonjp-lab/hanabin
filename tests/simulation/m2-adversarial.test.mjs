@@ -37,10 +37,11 @@ const firework = (id, x, color = 0) => ({
   scored: false,
 });
 
-test("the seven comparison strategies keep the planned public identities", () => {
+test("the eight comparison strategies keep the planned public identities", () => {
   assert.deepEqual(STRATEGY_NAMES, [
     "random",
     "shortest-three",
+    "shortest-five",
     "wait-six",
     "full-sweep",
     "idle-first-half",
@@ -141,7 +142,7 @@ test("engine collision uses each selected firework center and the full direct ra
   for (let index = 0; index < 3; index += 1) {
     advanceGame(shifted, index, DEFAULT_RULES);
     assert.ok(selectEntity(shifted, index + 1, DEFAULT_RULES, {
-      x: 2_420 + index * 2_000,
+      x: 2_520 + index * 2_000,
       y: 4_500,
     }));
   }
@@ -151,7 +152,7 @@ test("engine collision uses each selected firework center and the full direct ra
   assert.equal(
     shifted.scoreEvents.some((event) => event.targetId === 4),
     false,
-    "touching the edge of a hit area cannot shift the explosion center by 420 units",
+    "touching the edge of a hit area cannot shift the explosion center by 520 units",
   );
 });
 

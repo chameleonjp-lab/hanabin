@@ -6,6 +6,12 @@ import {
   PointerController,
 } from "../../src/input/pointer-controller.js";
 import { getEdgeAwareReticlePosition } from "../../src/render/competitive-layer.js";
+import {
+  findPracticeCandidate,
+  PRACTICE_TARGETS,
+  practiceTargetBoardPoint,
+  TutorialController,
+} from "../../src/ui/tutorial.js";
 
 const BOARD_WIDTH = 16_000;
 const BOARD_HEIGHT = 9_000;
@@ -22,6 +28,7 @@ const makeEventTarget = ({
   const captures = new Set();
   const target = {
     style: {},
+    dataset: {},
     getBoundingClientRect: () => ({ left, top, width, height }),
     addEventListener(type, handler) {
       if (!listeners.has(type)) listeners.set(type, new Set());
@@ -100,6 +107,47 @@ const withBrowserGlobals = (callback) => {
     if (previousWindow === undefined) delete globalThis.window;
     else globalThis.window = previousWindow;
   }
+};
+
+const makeTutorialFixture = () => {
+  const canvas = makeEventTarget({ width: 160, height: 90 });
+  const gradient = { addColorStop() {} };
+  const transforms = [];
+  const context = new Proxy({
+    setTransform(...values) { transforms.push(values); },
+  }, {
+    get(target, property) {
+      if (property in target) return target[property];
+      if (property === "createLinearGradient") return () => gradient;
+      return () => {};
+    },
+    set(target, property, value) {
+      target[property] = value;
+      return true;
+    },
+  });
+  Object.assign(canvas, {
+    width: 1_600,
+    height: 900,
+    getContext: () => context,
+  });
+  const elements = new Map([
+    ["#practice-board", makeEventTarget()],
+    ["#practice-canvas", canvas],
+    ["#practice-value", makeEventTarget()],
+    ["#practice-message", makeEventTarget()],
+    ["#practice-progress", makeEventTarget()],
+    ["#practice-feedback", makeEventTarget()],
+    ["#practice-start", makeEventTarget()],
+    ["#practice-skip", makeEventTarget()],
+    ["#practice-continue", makeEventTarget()],
+  ]);
+  return {
+    canvas,
+    context,
+    transforms,
+    element: { querySelector: (selector) => elements.get(selector) ?? null },
+  };
 };
 
 test("clientToBoard is based on CSS geometry, not backing-store DPR", () => {
@@ -210,6 +258,21 @@ test("clientToBoard and the renderer keep edge-aware aims inside the board", () 
   }
 });
 
+test("the input surface blocks Safari scrolling, selection, callout, and context menus", () => {
+  withBrowserGlobals(() => {
+    const element = makeEventTarget();
+    const controller = new PointerController(element);
+
+    assert.equal(element.style.touchAction, "none");
+    assert.equal(element.style.userSelect, "none");
+    assert.equal(element.style.webkitUserSelect, "none");
+    assert.equal(element.style.webkitTouchCallout, "none");
+    assert.equal(element.style.webkitTapHighlightColor, "transparent");
+    assert.equal(element.dispatch("contextmenu").defaultPrevented, true);
+    controller.destroy();
+  });
+});
+
 test("the first pointer owns the sampler and a second pointer cannot move or release it", () => {
   withBrowserGlobals(() => {
     const element = makeEventTarget();
@@ -226,6 +289,8 @@ test("the first pointer owns the sampler and a second pointer cannot move or rel
     assert.deepEqual(controller.position, beforeSecond);
     assert.equal(controller.activePointerId, 11);
     assert.equal(controller.pressed, true);
+    assert.equal(element.dataset.secondaryPointerIgnored, "1");
+    assert.equal(element.dataset.lastPointerChange, "secondary-pointer-ignored");
 
     element.dispatch("pointerup", { pointerId: 11, clientX: 50, clientY: 50 });
     const frame = controller.sampleFrame(0, 0);
@@ -324,6 +389,288 @@ test("a lifecycle interrupt emits one interrupted marker and can be sampled once
     assert.equal(controller.activePointerId, null);
     assert.equal(element.captured(8), false);
     controller.destroy();
+  });
+});
+
+test("lifecycle owners are notified even when no pointer is active", () => {
+  withBrowserGlobals(({ windowStub }) => {
+    const element = makeEventTarget();
+    const lifecycle = [];
+    const controller = new PointerController(element, {
+      onLifecycle: (reason, detail) => lifecycle.push({ reason, interrupted: detail.interrupted }),
+    });
+
+    windowStub.dispatch("orientationchange");
+
+    assert.deepEqual(lifecycle, [{ reason: "orientationchange", interrupted: true }]);
+    assert.equal(controller.sampleFrame(0, 0).interrupted, true);
+    assert.equal(controller.sampleFrame(1, 1).interrupted, undefined);
+    controller.destroy();
+  });
+});
+
+test("lostpointercapture safely interrupts only the owned pointer", () => {
+  withBrowserGlobals(() => {
+    const element = makeEventTarget();
+    const lifecycle = [];
+    const controller = new PointerController(element, {
+      onLifecycle: (reason) => lifecycle.push(reason),
+    });
+
+    element.dispatch("pointerdown", { pointerId: 61, clientX: 50, clientY: 50 });
+    element.dispatch("lostpointercapture", { pointerId: 99 });
+    assert.equal(controller.activePointerId, 61);
+    element.dispatch("lostpointercapture", { pointerId: 61 });
+
+    assert.deepEqual(lifecycle, ["lostpointercapture"]);
+    assert.equal(controller.activePointerId, null);
+    assert.equal(controller.sampleFrame(0, 0).interrupted, true);
+    assert.equal(controller.sampleFrame(1, 1).interrupted, undefined);
+    controller.destroy();
+  });
+});
+
+test("a rapid second hold is queued behind the unsampled release boundary", () => {
+  withBrowserGlobals(() => {
+    const element = makeEventTarget();
+    const controller = new PointerController(element);
+
+    element.dispatch("pointerdown", { pointerId: 71, clientX: 25, clientY: 25 });
+    element.dispatch("pointerup", { pointerId: 71, clientX: 25, clientY: 25 });
+    element.dispatch("pointerdown", { pointerId: 72, clientX: 75, clientY: 75 });
+
+    assert.equal(controller.activePointerId, 72);
+    assert.equal(element.dataset.lastPointerChange, "pointerdown-queued-after-boundary");
+    const boundary = controller.sampleFrame(0, 0);
+    assert.equal(boundary.pressed, false);
+    assert.equal(controller.activePointerId, 72);
+    assert.equal(controller.sampleFrame(1, 1).pressed, true);
+    controller.destroy();
+  });
+});
+
+test("a second tap released before its queued tick cannot become a ghost hold", () => {
+  withBrowserGlobals(() => {
+    const element = makeEventTarget();
+    const controller = new PointerController(element);
+
+    element.dispatch("pointerdown", { pointerId: 73, clientX: 25, clientY: 25 });
+    element.dispatch("pointerup", { pointerId: 73, clientX: 25, clientY: 25 });
+    element.dispatch("pointerdown", { pointerId: 74, clientX: 75, clientY: 75 });
+    element.dispatch("pointerup", { pointerId: 74, clientX: 75, clientY: 75 });
+
+    assert.equal(controller.activePointerId, null);
+    assert.equal(controller.sampleFrame(0, 0).pressed, false);
+    assert.equal(controller.sampleFrame(1, 1).pressed, false);
+    assert.equal(element.captured(74), false);
+    controller.destroy();
+  });
+});
+
+test("practice candidates use the real 16,000 x 9,000 circular hit radius", () => {
+  const target = practiceTargetBoardPoint(PRACTICE_TARGETS[0]);
+  const rules = { selectionHitRadius: 520 };
+
+  assert.equal(findPracticeCandidate(target, [], rules)?.id, PRACTICE_TARGETS[0].id);
+  assert.equal(findPracticeCandidate({ x: target.x + 520, y: target.y }, [], rules)?.id,
+    PRACTICE_TARGETS[0].id);
+  assert.equal(findPracticeCandidate({ x: target.x + 521, y: target.y }, [], rules), null);
+  assert.equal(findPracticeCandidate({ x: target.x + 400, y: target.y + 400 }, [], rules), null);
+});
+
+test("practice canvas uses CSS dimensions and preserves its DPR transform", () => {
+  withBrowserGlobals(({ windowStub }) => {
+    windowStub.devicePixelRatio = 2;
+    const { canvas, element, transforms } = makeTutorialFixture();
+    const tutorial = new TutorialController(element);
+    assert.equal(canvas.width, 320);
+    assert.equal(canvas.height, 180);
+    assert.equal(canvas.dataset.practiceCssWidth, "160");
+    assert.equal(canvas.dataset.practiceDevicePixelRatio, "2");
+    assert.ok(transforms.length >= 2);
+    assert.ok(transforms.every((transform) => transform[0] === 2 && transform[3] === 2));
+    tutorial.destroy();
+  });
+});
+
+test("each 60 Hz practice timer callback consumes exactly one input tick", () => {
+  withBrowserGlobals(() => {
+    const { element } = makeTutorialFixture();
+    const tutorial = new TutorialController(element);
+    tutorial.state = "running";
+    tutorial.startedAtMs = 1_000;
+
+    tutorial.tick(1_000 + 1_000 / tutorial.rules.tickRate);
+
+    assert.equal(tutorial.snapshot().inputTick, 1);
+    tutorial.destroy();
+  });
+});
+
+test("practice requires three sampled ticks per target and succeeds only on release", () => {
+  withBrowserGlobals(() => {
+    const { canvas, element } = makeTutorialFixture();
+    const tutorial = new TutorialController(element);
+    tutorial.state = "running";
+    const clientPoint = (target) => ({
+      pointerId: 81,
+      pointerType: "touch",
+      clientX: target.x * 160,
+      clientY: target.y * 90,
+    });
+
+    canvas.dispatch("pointerdown", clientPoint(PRACTICE_TARGETS[0]));
+    tutorial.advanceInputTicks(2);
+    assert.equal(tutorial.snapshot().selectedCount, 0);
+    tutorial.advanceInputTicks(1);
+    assert.equal(tutorial.snapshot().selectedCount, 1);
+    for (const target of PRACTICE_TARGETS.slice(1)) {
+      canvas.dispatch("pointermove", clientPoint(target));
+      tutorial.advanceInputTicks(3);
+    }
+    assert.equal(tutorial.snapshot().selectedCount, 3);
+    assert.equal(tutorial.snapshot().state, "running");
+    canvas.dispatch("pointerup", clientPoint(PRACTICE_TARGETS.at(-1)));
+    tutorial.advanceInputTicks(1);
+
+    assert.equal(tutorial.snapshot().state, "success");
+    assert.equal(tutorial.snapshot().selectedCount, 3);
+    tutorial.destroy();
+  });
+});
+
+test("practice applies the real 2.5-second selection timeout", () => {
+  withBrowserGlobals(() => {
+    const { canvas, element } = makeTutorialFixture();
+    const cancellations = [];
+    const tutorial = new TutorialController(element, {
+      sound: { cancel: (event) => cancellations.push(event.reason) },
+    });
+    tutorial.state = "running";
+    const target = PRACTICE_TARGETS[0];
+    const event = {
+      pointerId: 84,
+      pointerType: "touch",
+      clientX: target.x * 160,
+      clientY: target.y * 90,
+    };
+    canvas.dispatch("pointerdown", event);
+    tutorial.advanceInputTicks(3);
+    assert.equal(tutorial.snapshot().selectedCount, 1);
+    tutorial.advanceInputTicks(tutorial.rules.selectionTimeoutTicks);
+    assert.equal(tutorial.snapshot().selectedCount, 0);
+    assert.equal(tutorial.snapshot().state, "running");
+    assert.equal(tutorial.snapshot().lastFailureReason, "selection-timeout");
+    assert.deepEqual(cancellations, ["selection-timeout"]);
+    tutorial.destroy();
+  });
+});
+
+test("practice auto-detonates three selected targets at the 2.5-second boundary", () => {
+  withBrowserGlobals(() => {
+    const { canvas, element } = makeTutorialFixture();
+    const tutorial = new TutorialController(element);
+    tutorial.state = "running";
+    const point = (target) => ({
+      pointerId: 85,
+      pointerType: "touch",
+      clientX: target.x * 160,
+      clientY: target.y * 90,
+    });
+
+    canvas.dispatch("pointerdown", point(PRACTICE_TARGETS[0]));
+    tutorial.advanceInputTicks(3);
+    for (const target of PRACTICE_TARGETS.slice(1)) {
+      canvas.dispatch("pointermove", point(target));
+      tutorial.advanceInputTicks(3);
+    }
+    assert.equal(tutorial.snapshot().selectedCount, 3);
+
+    tutorial.advanceInputTicks(tutorial.rules.selectionTimeoutTicks);
+
+    assert.equal(tutorial.snapshot().state, "success");
+    assert.equal(tutorial.snapshot().selectedCount, 3);
+    tutorial.destroy();
+  });
+});
+
+test("practice ignores a complete press and sweep between two sampled ticks", () => {
+  withBrowserGlobals(() => {
+    const { canvas, element } = makeTutorialFixture();
+    const tutorial = new TutorialController(element);
+    tutorial.state = "running";
+    const clientPoint = (target) => ({
+      pointerId: 82,
+      pointerType: "touch",
+      clientX: target.x * 160,
+      clientY: target.y * 90,
+    });
+
+    canvas.dispatch("pointerdown", clientPoint(PRACTICE_TARGETS[0]));
+    for (const target of PRACTICE_TARGETS.slice(1)) {
+      canvas.dispatch("pointermove", clientPoint(target));
+    }
+    canvas.dispatch("pointerup", clientPoint(PRACTICE_TARGETS.at(-1)));
+    tutorial.advanceInputTicks(1);
+
+    assert.equal(tutorial.snapshot().state, "running");
+    assert.equal(tutorial.snapshot().selectedCount, 0);
+    tutorial.destroy();
+  });
+});
+
+test("practice tap and trace cues use the same 240-board-unit movement contract as play", () => {
+  withBrowserGlobals(() => {
+    const { canvas, element } = makeTutorialFixture();
+    const cues = { taps: 0, traces: [] };
+    const tutorial = new TutorialController(element, {
+      sound: {
+        unlock() {},
+        tap() { cues.taps += 1; },
+        trace(event) { cues.traces.push(event.distance); },
+      },
+    });
+    tutorial.state = "running";
+    const pointer = (clientX) => ({
+      pointerId: 83,
+      pointerType: "touch",
+      clientX,
+      clientY: 45,
+    });
+
+    canvas.dispatch("pointerdown", pointer(10));
+    canvas.dispatch("pointermove", pointer(11));
+    canvas.dispatch("pointermove", pointer(12));
+    assert.equal(cues.taps, 1);
+    assert.deepEqual(cues.traces, []);
+    canvas.dispatch("pointermove", pointer(13));
+    assert.deepEqual(cues.traces, [300]);
+    canvas.dispatch("pointerup", pointer(13));
+    canvas.dispatch("pointermove", pointer(20));
+    assert.deepEqual(cues.traces, [300]);
+    tutorial.destroy();
+  });
+});
+
+test("practice cannot start, skip, or continue while portrait interaction is blocked", () => {
+  withBrowserGlobals(() => {
+    const { element } = makeTutorialFixture();
+    let allowed = false;
+    const tutorial = new TutorialController(element, {
+      isInteractionAllowed: () => allowed,
+    });
+
+    assert.equal(tutorial.snapshot().interactionAllowed, false);
+    assert.equal(tutorial.startButton.disabled, true);
+    assert.equal(tutorial.begin().state, "ready");
+    assert.equal(tutorial.snapshot().lastFailureReason, "portrait-unsupported");
+    assert.equal(tutorial.skip().state, "ready");
+
+    allowed = true;
+    tutorial.render();
+    assert.equal(tutorial.startButton.disabled, false);
+    assert.equal(tutorial.begin().state, "running");
+    tutorial.destroy();
   });
 });
 

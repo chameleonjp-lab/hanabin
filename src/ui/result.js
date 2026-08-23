@@ -4,6 +4,30 @@ const formatScore = (value) => Math.max(0, Math.trunc(Number(value) || 0)).toLoc
 
 const safeText = (value, fallback = "") => typeof value === "string" ? value : fallback;
 
+export const scoreBreakdownFor = (state = {}) => {
+  const scoreEvents = Array.isArray(state.scoreEvents) ? state.scoreEvents : [];
+  const bonusEvents = Array.isArray(state.bonusEvents) ? state.bonusEvents : [];
+  const sum = (events, key, predicate = () => true) => events
+    .filter(predicate)
+    .reduce((total, event) => total + Math.max(0, Math.trunc(Number(event?.[key]) || 0)), 0);
+  const direct = sum(scoreEvents, "baseAmount", (event) => event?.kind === "direct");
+  const chain = sum(scoreEvents, "baseAmount", (event) => event?.kind === "chain");
+  const inclusion = sum(scoreEvents, "inclusionAmount");
+  const preparation = sum(bonusEvents, "preparationAmount");
+  const forecast = sum(scoreEvents, "forecastPlanAmount") + sum(bonusEvents, "forecastPlanAmount");
+  const other = sum(bonusEvents, "detonationAmount") + sum(bonusEvents, "comboAmount");
+  return {
+    direct,
+    chain,
+    inclusion,
+    preparation,
+    forecast,
+    other,
+    deductions: 0,
+    total: direct + chain + inclusion + preparation + forecast + other,
+  };
+};
+
 export const resultHintFor = (state = {}) => {
   const stats = state.stats ?? {};
   const maxChain = Math.max(0, Math.trunc(Number(stats.maxChain) || 0));
@@ -58,6 +82,14 @@ export const renderResult = (root, state, {
   setText("result-direct", Math.max(0, Math.trunc(stats.directTargets ?? 0)));
   setText("result-chain-targets", Math.max(0, Math.trunc(stats.chainTargets ?? 0)));
   setText("result-forecast-successes", forecastSuccessCountFor(state));
+  const breakdown = scoreBreakdownFor(state);
+  setText("result-score-direct", formatScore(breakdown.direct));
+  setText("result-score-chain", formatScore(breakdown.chain));
+  setText("result-score-inclusion", formatScore(breakdown.inclusion));
+  setText("result-score-preparation", formatScore(breakdown.preparation));
+  setText("result-score-forecast", formatScore(breakdown.forecast));
+  setText("result-score-other", formatScore(breakdown.other));
+  setText("result-score-deductions", "0");
   setText("result-player-name", safeText(profile.name) || "ゲストプレイヤー");
   setText("result-best-score", formatScore(profile.bestScore ?? 0));
   setText("result-best-chain", Math.max(0, Math.trunc(profile.bestChain ?? 0)));
@@ -75,7 +107,7 @@ export const renderResult = (root, state, {
   });
   const shareButton = root.querySelector("#share-button");
   if (shareButton) shareButton.dataset.shareText = shareText;
-  return { score, maxChain, hint: resultHintFor(state), shareText };
+  return { score, maxChain, breakdown, hint: resultHintFor(state), shareText };
 };
 
 const fallbackCopy = (text) => {

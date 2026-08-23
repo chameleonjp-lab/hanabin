@@ -6,10 +6,9 @@ import {
 import {
   boardToCanvas,
   drawCompetitiveLayer,
-  getEdgeAwareReticlePosition,
 } from "./competitive-layer.js";
 import { DecorativeLayer } from "./decorative-layer.js";
-import { QualityController } from "./quality-controller.js";
+import { QualityController, qualityProfileFor } from "./quality-controller.js";
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const nowMs = () => typeof performance !== "undefined" && Number.isFinite(performance.now())
@@ -25,6 +24,8 @@ export class CanvasRenderer {
     maxDevicePixelRatio = 2,
     quality = "high",
     autoQuality = true,
+    variant = "touch",
+    reducedMotion = false,
   } = {}) {
     if (!canvas || typeof canvas.getContext !== "function") {
       throw new TypeError("CanvasRenderer requires a 2D canvas");
@@ -35,14 +36,25 @@ export class CanvasRenderer {
     this.boardWidth = boardWidth;
     this.boardHeight = boardHeight;
     this.maxDevicePixelRatio = maxDevicePixelRatio;
-    this.qualityController = new QualityController({ initial: quality, auto: autoQuality });
+    this.qualityController = new QualityController({
+      initial: quality,
+      auto: autoQuality,
+      variant,
+      reducedMotion,
+    });
     this.decorativeLayer = new DecorativeLayer({
       qualityController: this.qualityController,
-      capacity: this.qualityController.profile.particleCapacity,
+      // Allocate the global ceiling once so quality changes and a later
+      // touch ↔ desktop capability change cannot strand a smaller pool.
+      capacity: Math.max(
+        qualityProfileFor("high", { variant: "touch" }).particleCapacity,
+        qualityProfileFor("high", { variant: "desktop" }).particleCapacity,
+      ),
     });
     this.width = 1600;
     this.height = 900;
     this.devicePixelRatio = 1;
+    this.lastAnimationFrameMs = null;
     this.resizeObserver = null;
     this.resize();
     if (typeof ResizeObserver === "function") {
@@ -74,6 +86,8 @@ export class CanvasRenderer {
     this.canvas.dataset.renderQuality = this.qualityController.level;
     this.canvas.dataset.renderResolutionScale = String(qualityScale);
     this.canvas.dataset.renderParticleBudget = String(this.qualityController.profile.particleCapacity);
+    this.canvas.dataset.presentationVariant = this.qualityController.variant;
+    this.canvas.dataset.reducedMotion = this.qualityController.reducedMotion ? "true" : "false";
     this.canvas.dataset.competitiveLayer = "protected";
     this.ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
     return { width, height, devicePixelRatio };
@@ -87,6 +101,37 @@ export class CanvasRenderer {
     const changed = this.qualityController.setQuality(level);
     if (changed) this.resize();
     return this.qualityController.snapshot();
+  }
+
+  setAutoQuality(enabled) {
+    const next = enabled === true;
+    const changed = this.qualityController.auto !== next;
+    this.qualityController.auto = next;
+    this.qualityController.resetSamples();
+    return changed;
+  }
+
+  setExperience(experience = {}) {
+    const changed = this.qualityController.setExperience(experience);
+    if (changed) this.resize();
+    return this.qualityController.snapshot();
+  }
+
+  /** Observe one requestAnimationFrame boundary, never an individual render call. */
+  observeAnimationFrame(timestampMs) {
+    const timestamp = Number(timestampMs);
+    if (!Number.isFinite(timestamp)) return false;
+    const previous = this.lastAnimationFrameMs;
+    this.lastAnimationFrameMs = timestamp;
+    if (previous === null || timestamp <= previous) return false;
+    const changed = this.qualityController.observeFrameInterval(timestamp - previous);
+    if (changed) this.resize();
+    return changed;
+  }
+
+  resetFrameObservation() {
+    this.lastAnimationFrameMs = null;
+    this.qualityController.resetSamples();
   }
 
   drawBackground(state) {
@@ -178,13 +223,9 @@ export class CanvasRenderer {
         pointer.fingerX ?? pointer.x,
         pointer.fingerY ?? pointer.y,
       );
-      const reticleOffset = Math.min(width, height) * 0.1;
-      const reticle = getEdgeAwareReticlePosition(
-        fingerPoint.x,
-        fingerPoint.y,
-        width,
-        height,
-        { offset: reticleOffset, margin: Math.max(1, reticleOffset * 0.45) },
+      const reticle = this.boardPoint(
+        pointer.aimX ?? pointer.x,
+        pointer.aimY ?? pointer.y,
       );
       this.canvas.dataset.reticleX = String(Math.round(reticle.x));
       this.canvas.dataset.reticleY = String(Math.round(reticle.y));
@@ -198,10 +239,11 @@ export class CanvasRenderer {
       ctx.fillRect(0, 0, width, height);
       ctx.restore();
     }
-    if (this.qualityController.observe(Math.max(0, nowMs() - startedAt))) this.resize();
     this.canvas.dataset.renderQuality = this.qualityController.level;
     this.canvas.dataset.renderResolutionScale = String(this.qualityController.profile.resolutionScale);
     this.canvas.dataset.renderParticleBudget = String(this.qualityController.profile.particleCapacity);
+    this.canvas.dataset.presentationVariant = this.qualityController.variant;
+    this.canvas.dataset.reducedMotion = this.qualityController.reducedMotion ? "true" : "false";
   }
 
   destroy() {

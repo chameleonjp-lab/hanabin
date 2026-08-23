@@ -165,6 +165,10 @@ test("replay metadata and fixed-tick pointer-only input cannot be weakened", () 
     frames,
   };
   assert.ok(validateReplayLog({ ...base, gameVersion: "wrong" }, DEFAULT_RULES).includes("GAME_VERSION"));
+  assert.ok(validateReplayLog({
+    ...base,
+    ruleVersion: "m4-gameplay-1",
+  }, DEFAULT_RULES).includes("RULE_VERSION"));
   assert.ok(validateReplayLog({ ...base, maxTicks: 1 }, DEFAULT_RULES).includes("MAX_TICKS"));
   const missingFrameSchema = structuredClone(base);
   delete missingFrameSchema.frames[100].schemaVersion;

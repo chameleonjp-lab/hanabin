@@ -8,7 +8,7 @@
  */
 
 export const GAME_VERSION = "M4";
-export const RULE_VERSION = "m4-gameplay-1";
+export const RULE_VERSION = "m4-gameplay-2";
 export const INPUT_SCHEMA_VERSION = "m2-input-1";
 
 export const COLORS = Object.freeze(["red", "blue", "green", "yellow"]);
@@ -28,7 +28,11 @@ export const INCLUSION_SCORE_PER_EXTRA_TARGET = 40;
 export const INCLUSION_SCORE_CAP = 800;
 export const FORECAST_PLAN_SELECTION_COUNT = 5;
 export const FORECAST_PLAN_BONUS = 1_000;
-export const FORECAST_PLAN_CHAIN_BONUS_PER_TARGET = 600;
+export const FORECAST_PLAN_LEAD_TICKS = 60;
+export const FORECAST_CHAIN_PER_TARGET = 150;
+export const SELECTION_HIT_RADIUS = 520;
+// Compatibility name retained for the existing score/event surface.
+export const FORECAST_PLAN_CHAIN_BONUS_PER_TARGET = FORECAST_CHAIN_PER_TARGET;
 
 export const WAVE_KINDS = Object.freeze([
   "intro",
@@ -100,7 +104,7 @@ const BASE_RULES = {
   // accidental or adversarial chain from surviving beyond its limit.
   chainDistance: 1_800,
   explosionDistance: 1_800,
-  selectionHitRadius: 420,
+  selectionHitRadius: SELECTION_HIT_RADIUS,
   selectionLinkDistance: 5_140,
   baseExplosionRadius: 1_800,
   // Rendering is attached in M3, but duration is already deterministic so
@@ -147,6 +151,8 @@ const BASE_RULES = {
   inclusionScoreCap: INCLUSION_SCORE_CAP,
   forecastPlanSelectionCount: FORECAST_PLAN_SELECTION_COUNT,
   forecastPlanBonus: FORECAST_PLAN_BONUS,
+  forecastPlanLeadTicks: FORECAST_PLAN_LEAD_TICKS,
+  forecastChainPerTarget: FORECAST_CHAIN_PER_TARGET,
   forecastPlanChainBonusPerTarget: FORECAST_PLAN_CHAIN_BONUS_PER_TARGET,
   score: {
     direct: DIRECT_SCORE,
@@ -159,6 +165,8 @@ const BASE_RULES = {
     inclusionCap: INCLUSION_SCORE_CAP,
     forecastPlanSelectionCount: FORECAST_PLAN_SELECTION_COUNT,
     forecastPlanBonus: FORECAST_PLAN_BONUS,
+    forecastPlanLeadTicks: FORECAST_PLAN_LEAD_TICKS,
+    forecastChainPerTarget: FORECAST_CHAIN_PER_TARGET,
     forecastPlanChainBonusPerTarget: FORECAST_PLAN_CHAIN_BONUS_PER_TARGET,
   },
   scoreSameColor: 100,
@@ -372,8 +380,18 @@ export const mergeRules = (overrides = {}) => {
       min: 0,
       max: 10_000,
     }),
+    forecastPlanLeadTicks: finiteInteger(
+      source.forecastPlanLeadTicks,
+      DEFAULT_RULES.forecastPlanLeadTicks,
+      { min: 1, max: 150 },
+    ),
+    forecastChainPerTarget: finiteInteger(
+      source.forecastChainPerTarget ?? source.forecastPlanChainBonusPerTarget,
+      DEFAULT_RULES.forecastChainPerTarget,
+      { min: 0, max: 10_000 },
+    ),
     forecastPlanChainBonusPerTarget: finiteInteger(
-      source.forecastPlanChainBonusPerTarget,
+      source.forecastPlanChainBonusPerTarget ?? source.forecastChainPerTarget,
       DEFAULT_RULES.forecastPlanChainBonusPerTarget,
       { min: 0, max: 10_000 },
     ),
@@ -382,6 +400,7 @@ export const mergeRules = (overrides = {}) => {
   result.pendingEntityLimit = result.maxPendingEntities;
   result.concurrentExplosionLimit = result.maxConcurrentExplosions;
   result.retryLimit = result.maxRetries;
+  result.forecastPlanChainBonusPerTarget = result.forecastChainPerTarget;
   result.score = Object.freeze({
     direct: result.directScore,
     preparationPerExtraSelection: result.preparationScorePerExtraSelection,
@@ -393,6 +412,8 @@ export const mergeRules = (overrides = {}) => {
     inclusionCap: result.inclusionScoreCap,
     forecastPlanSelectionCount: result.forecastPlanSelectionCount,
     forecastPlanBonus: result.forecastPlanBonus,
+    forecastPlanLeadTicks: result.forecastPlanLeadTicks,
+    forecastChainPerTarget: result.forecastChainPerTarget,
     forecastPlanChainBonusPerTarget: result.forecastPlanChainBonusPerTarget,
   });
   if (result.lifetimeMaxTicks < result.lifetimeMinTicks) {

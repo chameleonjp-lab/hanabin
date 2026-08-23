@@ -163,7 +163,7 @@ export const runSimulation = (seedOrOptions = 1, optionsArg = {}) => {
     0,
     rules.maxTicks,
   );
-  const context = createStrategyContext(seed, strategyName);
+  const context = createStrategyContext(seed, strategyName, rules);
   const decisions = [];
   let decisionCount = 0;
   let frontHalfActionCount = 0;
@@ -208,6 +208,12 @@ export const runSimulation = (seedOrOptions = 1, optionsArg = {}) => {
     .reduce((sum, event) => sum + (event.amount ?? 0), 0);
   const forecastPlanBonusSum = (state.bonusEvents ?? [])
     .reduce((sum, event) => sum + (event.forecastPlanAmount ?? 0), 0);
+  const forecastPlanCount = (state.bonusEvents ?? [])
+    .filter((event) => (event.forecastPlanAmount ?? 0) > 0).length;
+  const forecastChainBonusSum = (state.scoreEvents ?? [])
+    .reduce((sum, event) => sum + (event.forecastPlanAmount ?? 0), 0);
+  const forecastQualifiedTargets = (state.scoreEvents ?? [])
+    .filter((event) => (event.forecastPlanAmount ?? 0) > 0).length;
   const forecast = forecastEvidence(state);
   const replay = summaryOnly || state.simulationFault
     ? null
@@ -245,6 +251,10 @@ export const runSimulation = (seedOrOptions = 1, optionsArg = {}) => {
     directScoreSum,
     chainScoreSum,
     forecastPlanBonusSum,
+    forecastPlanCount,
+    forecastChainBonusSum,
+    forecastQualifiedTargets,
+    forecastScoreSum: forecastPlanBonusSum + forecastChainBonusSum,
   };
 };
 
@@ -272,6 +282,16 @@ const addSummary = (summary, result) => {
   summary.chainScoreSum = (summary.chainScoreSum ?? 0) + (result.chainScoreSum ?? 0);
   summary.forecastPlanBonusSum =
     (summary.forecastPlanBonusSum ?? 0) + (result.forecastPlanBonusSum ?? 0);
+  summary.forecastPlanCountSum =
+    (summary.forecastPlanCountSum ?? 0) + (result.forecastPlanCount ?? 0);
+  summary.forecastChainBonusSum =
+    (summary.forecastChainBonusSum ?? 0) + (result.forecastChainBonusSum ?? 0);
+  summary.forecastQualifiedTargetsSum =
+    (summary.forecastQualifiedTargetsSum ?? 0) + (result.forecastQualifiedTargets ?? 0);
+  summary.forecastScoreSum =
+    (summary.forecastScoreSum ?? 0) + (result.forecastScoreSum ?? 0);
+  summary.detonationCountSum =
+    (summary.detonationCountSum ?? 0) + (result.state.stats.detonationCount ?? 0);
   if (summary.scoreHistogram instanceof Map) {
     summary.scoreHistogram.set(result.score, (summary.scoreHistogram.get(result.score) ?? 0) + 1);
   }
@@ -314,6 +334,11 @@ export const runSafetySweep = (options = {}) => {
     directScoreSum: 0,
     chainScoreSum: 0,
     forecastPlanBonusSum: 0,
+    forecastPlanCountSum: 0,
+    forecastChainBonusSum: 0,
+    forecastQualifiedTargetsSum: 0,
+    forecastScoreSum: 0,
+    detonationCountSum: 0,
     frontHalfIdleRatioSum: 0,
     continuationRatioSum: 0,
     waveCounts: {},
@@ -373,7 +398,7 @@ export const runSafetySweep = (options = {}) => {
   return summary;
 };
 
-/** Compare all seven deterministic strategies without retaining 7,000 result objects. */
+/** Compare every deterministic strategy without retaining individual results. */
 export const compareStrategies = (options = {}) => {
   const rules = mergeRules(options.rules ?? DEFAULT_RULES);
   const seedCount = Number.isInteger(options.seedCount) ? options.seedCount : 1_000;
@@ -401,6 +426,11 @@ export const compareStrategies = (options = {}) => {
     directScoreSum: 0,
     chainScoreSum: 0,
     forecastPlanBonusSum: 0,
+    forecastPlanCountSum: 0,
+    forecastChainBonusSum: 0,
+    forecastQualifiedTargetsSum: 0,
+    forecastScoreSum: 0,
+    detonationCountSum: 0,
     frontHalfIdleRatioSum: 0,
     continuationRatioSum: 0,
     waveCounts: {},
@@ -450,6 +480,24 @@ export const compareStrategies = (options = {}) => {
       : 0;
     summary.averageForecastPlanBonus = summary.processedSeeds
       ? summary.forecastPlanBonusSum / summary.processedSeeds
+      : 0;
+    summary.averageForecastPlanCount = summary.processedSeeds
+      ? summary.forecastPlanCountSum / summary.processedSeeds
+      : 0;
+    summary.averageForecastChainBonus = summary.processedSeeds
+      ? summary.forecastChainBonusSum / summary.processedSeeds
+      : 0;
+    summary.averageForecastQualifiedTargets = summary.processedSeeds
+      ? summary.forecastQualifiedTargetsSum / summary.processedSeeds
+      : 0;
+    summary.averageForecastScore = summary.processedSeeds
+      ? summary.forecastScoreSum / summary.processedSeeds
+      : 0;
+    summary.forecastScoreRatio = summary.scoreSum
+      ? summary.forecastScoreSum / summary.scoreSum
+      : 0;
+    summary.averageDetonations = summary.processedSeeds
+      ? summary.detonationCountSum / summary.processedSeeds
       : 0;
     summary.chainScoreRatio = summary.scoreSum
       ? summary.chainScoreSum / summary.scoreSum

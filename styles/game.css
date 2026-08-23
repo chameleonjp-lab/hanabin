@@ -17,6 +17,11 @@
   padding: clamp(16px, 3vw, 32px);
 }
 
+.app-shell[data-screen="play"] {
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
 .game-header {
   display: flex;
   align-items: flex-end;
@@ -157,6 +162,54 @@
   font-size: 0.75rem;
 }
 
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.score-guide {
+  width: min(100%, 680px);
+  border: 1px solid rgba(146, 188, 255, 0.2);
+  border-radius: 14px;
+  background: rgba(8, 15, 36, 0.58);
+  color: #dbe5ff;
+  text-align: left;
+}
+
+.score-guide summary,
+.result-breakdown summary {
+  padding: 11px 14px;
+  color: var(--game-cyan);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 800;
+  touch-action: manipulation;
+}
+
+.score-guide__body {
+  padding: 0 16px 14px;
+  color: #b9c5e4;
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.score-guide__body h3 {
+  margin: 10px 0 4px;
+  color: #edf3ff;
+  font-size: 0.75rem;
+}
+
+.score-guide__body p,
+.score-guide__body ul {
+  margin: 4px 0;
+}
+
+.score-guide__body ul {
+  padding-left: 1.3em;
+}
+
 .profile-panel {
   display: grid;
   width: min(100%, 640px);
@@ -181,6 +234,13 @@
 .profile-best-label {
   color: #9da9c9;
   font-size: 0.68rem;
+}
+
+.quality-active-label {
+  margin: -4px 0 0;
+  color: #8fa2cf;
+  font-size: 0.66rem;
+  text-align: right;
 }
 
 .field-row,
@@ -445,6 +505,7 @@
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+  overscroll-behavior: contain;
 }
 
 #game-canvas {
@@ -455,6 +516,7 @@
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+  -webkit-user-drag: none;
 }
 
 .game-hud {
@@ -500,6 +562,7 @@
 .hud-pill--score strong { color: var(--game-cyan); }
 .hud-pill--time strong { color: var(--game-gold); }
 .hud-pill--combo strong { color: var(--game-pink); }
+.hud-pill--blast strong { color: var(--game-gold); font-size: 0.78rem; }
 
 .hud-pill--selection {
   margin-left: auto;
@@ -644,6 +707,44 @@
   font-variant-numeric: tabular-nums;
 }
 
+.result-breakdown {
+  width: min(100%, 600px);
+  border: 1px solid rgba(146, 188, 255, 0.17);
+  border-radius: 12px;
+  background: rgba(8, 15, 36, 0.5);
+  text-align: left;
+}
+
+.result-breakdown dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0 14px 13px;
+}
+
+.result-breakdown dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #b8c5e7;
+  font-size: 0.7rem;
+}
+
+.result-breakdown dt,
+.result-breakdown dd {
+  margin: 0;
+}
+
+.result-breakdown dd {
+  color: #edf3ff;
+  font-variant-numeric: tabular-nums;
+}
+
+.result-breakdown__deduction dd {
+  color: #ffb3b3;
+}
+
 .result-replay {
   min-height: 1.4em;
   margin: 0;
@@ -744,6 +845,10 @@
     margin-left: 0;
   }
 
+  .hud-pill--blast strong {
+    font-size: 0.68rem;
+  }
+
   .result-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -801,10 +906,126 @@
    board inside the visual viewport while the home/result cards retain their
    comfortable layout. */
 @media (orientation: landscape) and (max-height: 600px) {
-  .app-shell[data-screen="play"] {
-    min-height: 100dvh;
+  .app-shell[data-screen="practice"] {
+    min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
     place-items: center;
-    padding: max(4px, var(--safe-top)) max(8px, var(--safe-right)) max(4px, var(--safe-bottom)) max(8px, var(--safe-left));
+    padding: 4px 8px;
+  }
+
+  .app-shell[data-screen="practice"] .game-app {
+    display: grid;
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+    padding: 4px 8px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .app-shell[data-screen="practice"] .game-header,
+  .app-shell[data-screen="practice"] #orientation-guide,
+  .app-shell[data-screen="practice"] .notice {
+    display: none;
+  }
+
+  .app-shell[data-screen="practice"] .screen--practice {
+    grid-template-areas:
+      "board kicker"
+      "board title"
+      "board message"
+      "board value"
+      "board steps"
+      "board actions";
+    grid-template-columns: minmax(0, 1fr) minmax(210px, 0.38fr);
+    align-content: center;
+    align-items: center;
+    gap: 4px 10px;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 4px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    text-align: left;
+  }
+
+  .app-shell[data-screen="practice"] .home-kicker {
+    grid-area: kicker;
+    font-size: 0.58rem;
+  }
+
+  .app-shell[data-screen="practice"] .screen--practice h2 {
+    grid-area: title;
+    font-size: clamp(0.9rem, 2.6vw, 1.15rem);
+  }
+
+  .app-shell[data-screen="practice"] .practice-message {
+    grid-area: message;
+    font-size: 0.68rem;
+    line-height: 1.25;
+  }
+
+  .app-shell[data-screen="practice"] .practice-value {
+    grid-area: value;
+    width: 100%;
+    min-width: 0;
+    min-height: 32px;
+    border-radius: 9px;
+  }
+
+  .app-shell[data-screen="practice"] .practice-value strong {
+    font-size: 1.05rem;
+  }
+
+  .app-shell[data-screen="practice"] .practice-board {
+    grid-area: board;
+    width: 100%;
+    max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 16px);
+    justify-self: center;
+    border-radius: 12px;
+  }
+
+  .app-shell[data-screen="practice"] .practice-steps {
+    grid-area: steps;
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .app-shell[data-screen="practice"] .practice-steps > div {
+    display: grid;
+    grid-template-columns: 18px 52px 1fr;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 5px;
+    border-radius: 7px;
+  }
+
+  .app-shell[data-screen="practice"] .practice-steps small {
+    font-size: 0.57rem;
+    line-height: 1.2;
+  }
+
+  .app-shell[data-screen="practice"] .practice-actions {
+    display: grid;
+    grid-area: actions;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+    width: 100%;
+  }
+
+  .app-shell[data-screen="practice"] .practice-actions button {
+    min-height: 44px;
+    padding: 4px 7px;
+    font-size: 0.66rem;
+  }
+
+  .app-shell[data-screen="play"] {
+    min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+    place-items: center;
+    padding: 4px 8px;
   }
 
   .app-shell[data-screen="play"] .game-app {

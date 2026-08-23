@@ -1,4 +1,8 @@
-import { COLORS, DEFAULT_RULES } from "../config/rules.js";
+import {
+  COLORS,
+  DEFAULT_RULES,
+  directExplosionRadiusForSelection,
+} from "../config/rules.js";
 import { colorName, colorValue, colorSymbol } from "../render/competitive-layer.js";
 import { forecastSuccessForAction } from "./forecast-feedback.js";
 
@@ -8,6 +12,16 @@ const byId = (root, id) => root?.querySelector?.(`#${id}`) ?? null;
 const formatScore = (value) => Math.max(0, Math.trunc(Number(value) || 0)).toLocaleString("ja-JP");
 const formatSeconds = (value) => Math.max(0, Number(value) || 0).toFixed(1);
 const positionLabels = Object.freeze({ left: "左", center: "中央", right: "右" });
+
+export const blastRangeForSelection = (count = 0, rules = DEFAULT_RULES) => {
+  const selectedCount = Math.max(0, Math.trunc(Number(count) || 0));
+  const effectiveCount = Math.max(rules.minimumSelection, selectedCount);
+  const radius = directExplosionRadiusForSelection(effectiveCount, rules);
+  const label = selectedCount < rules.minimumSelection
+    ? `3個で ${radius.toLocaleString("ja-JP")}`
+    : `${radius.toLocaleString("ja-JP")}`;
+  return { count: selectedCount, radius, label };
+};
 
 export const forecastMarkup = (waves = [], currentTick = 0, rules = DEFAULT_RULES) => waves.slice(0, 2).map((wave, index) => {
   const color = colorName(wave.primaryColor);
@@ -40,6 +54,7 @@ export const updateHud = (root, state, {
   const selectionColor = byId(root, "hud-selection-color");
   const selectionCount = byId(root, "hud-selection-count");
   const selectionTime = byId(root, "hud-selection-time");
+  const blastRange = byId(root, "hud-blast-range");
   const forecast = byId(root, "hud-forecast-items");
   const safeState = state ?? {};
   const seconds = remainingSeconds === null
@@ -71,6 +86,11 @@ export const updateHud = (root, state, {
     selectionTime.textContent = age === null ? "—" : `${formatSeconds((limit - age) / rules.tickRate)}s`;
     selectionTime.dataset.selectionAgeTicks = age === null ? "" : String(age);
   }
+  if (blastRange) {
+    const blast = blastRangeForSelection(selectedCount, rules);
+    blastRange.textContent = blast.label;
+    blastRange.dataset.radius = String(blast.radius);
+  }
   if (forecast) {
     const forecastKey = (safeState.upcomingWaves ?? []).slice(0, 2)
       .map((wave) => {
@@ -94,7 +114,11 @@ export const updatePlayMessage = (element, state, phase = "playing") => {
   let message = "";
   if (phase === "finalizing") message = "最後の連鎖を確定中…";
   else if (state?.simulationFault) message = "判定エラー：このプレイは無効です";
-  else if (state?.lastAction?.type === "detonate") {
+  else if (["selection-cleared", "selection-cancelled"].includes(state?.lastAction?.type)) {
+    message = state.lastAction.reason === "release-below-minimum"
+      ? "3個未満のため取消。外輪が一周するまで押してなぞりましょう"
+      : "操作を中断しました。1本指でもう一度なぞりましょう";
+  } else if (state?.lastAction?.type === "detonate") {
     const forecastSuccess = forecastSuccessForAction(state, state.lastAction.actionId);
     if (forecastSuccess) {
       message = "予告成功！次の波を先回りしました";
@@ -103,7 +127,13 @@ export const updatePlayMessage = (element, state, phase = "playing") => {
       message = count > 0 ? `${count}個の連鎖` : "連鎖を探しましょう";
     }
   } else if (state?.selectedIds?.length >= 3) {
-    message = "指を離して起爆";
+    message = "指を離すか2.5秒で自動起爆";
+  } else if (state?.selectedIds?.length === 2) {
+    message = "あと1個つないで起爆";
+  } else if (state?.selectedIds?.length === 1) {
+    message = "あと2個。同じ色をそのままなぞる";
+  } else if (state?.pointerPressed) {
+    message = "外輪が一周して選択数が増えるまで短く押してください";
   }
   if (element.textContent !== message) element.textContent = message;
 };

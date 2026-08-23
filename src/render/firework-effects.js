@@ -20,6 +20,9 @@ const unit = (value) => hashText(value) / 4_294_967_296;
 export const explosionVisualKey = (explosion) =>
   `${explosion?.actionId ?? "0"}:${explosion?.eventId ?? "0"}`;
 
+export const scoreFeedbackKey = (event) =>
+  `${event?.kind ?? "score"}:${event?.actionId ?? "0"}:${event?.eventId ?? "0"}`;
+
 export const chainMilestoneFor = (chain) => {
   const value = Math.max(0, Math.trunc(finite(chain)));
   let result = 0;
@@ -40,6 +43,7 @@ export const spawnExplosionParticles = (pool, explosion, {
   const count = Math.max(0, Math.min(requested, Math.trunc(maxNew)));
   const color = colorValue(explosion.sourceColor ?? explosion.targetColor);
   const baseSpeed = direct ? 2_800 : 2_100;
+  const motionScale = clamp(finite(profile.motionScale, 1), 0, 1);
   let spawned = 0;
   for (let index = 0; index < count; index += 1) {
     const angle = (unit(`${explosionVisualKey(explosion)}:angle:${index}`) * Math.PI * 2) +
@@ -48,9 +52,9 @@ export const spawnExplosionParticles = (pool, explosion, {
     pool.spawn({
       x: explosion.originX,
       y: explosion.originY,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      gravity: direct ? 480 : 350,
+      vx: Math.cos(angle) * speed * motionScale,
+      vy: Math.sin(angle) * speed * motionScale,
+      gravity: (direct ? 480 : 350) * motionScale,
       size: direct ? 28 : 21,
       alpha: direct ? 0.92 : 0.72,
       color,
@@ -67,19 +71,48 @@ const boardToCanvas = (x, y, width, height, boardWidth, boardHeight) => ({
   y: finite(y) * height / boardHeight,
 });
 
-const drawStarfield = (ctx, { width, height, count, seed = 1, tick = 0 } = {}) => {
+const drawStarfield = (ctx, {
+  width,
+  height,
+  count,
+  seed = 1,
+  tick = 0,
+  animateTwinkle = true,
+} = {}) => {
   if (!ctx || !count) return;
   ctx.save();
   ctx.fillStyle = "rgba(210, 231, 255, 0.52)";
   for (let index = 0; index < count; index += 1) {
     const x = unit(`${seed}:star:x:${index}`) * width;
     const y = unit(`${seed}:star:y:${index}`) * height;
-    const twinkle = 0.45 + unit(`${seed}:star:t:${index}`) * 0.55;
+    const baseAlpha = 0.45 + unit(`${seed}:star:t:${index}`) * 0.55;
     const size = 0.45 + unit(`${seed}:star:s:${index}`) * 1.3;
-    ctx.globalAlpha = twinkle * (0.82 + Math.sin((tick + index * 19) * 0.035) * 0.18);
+    ctx.globalAlpha = baseAlpha * (animateTwinkle === false
+      ? 0.82
+      : 0.82 + Math.sin((tick + index * 19) * 0.035) * 0.18);
     ctx.beginPath();
     ctx.arc(x, y, size, 0, Math.PI * 2);
     ctx.fill();
+  }
+  ctx.restore();
+};
+
+const drawAurora = (ctx, { width, height, tick = 0, alpha = 0 } = {}) => {
+  if (!ctx || alpha <= 0 || typeof ctx.createRadialGradient !== "function") return;
+  const phase = (finite(tick) % 720) / 720 * Math.PI * 2;
+  const centers = [
+    { x: width * (0.28 + Math.sin(phase) * 0.04), y: height * 0.28, color: "121, 230, 255" },
+    { x: width * (0.72 + Math.cos(phase * 0.8) * 0.05), y: height * 0.46, color: "255, 113, 143" },
+  ];
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (const center of centers) {
+    const radius = Math.max(width, height) * 0.48;
+    const gradient = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, radius);
+    gradient.addColorStop(0, `rgba(${center.color}, ${alpha})`);
+    gradient.addColorStop(1, `rgba(${center.color}, 0)`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
   }
   ctx.restore();
 };
@@ -113,6 +146,7 @@ const drawExplosionRings = (ctx, explosions, {
   boardHeight,
   tick,
   glowMultiplier = 1,
+  secondaryRings = 0,
 } = {}) => {
   const scale = Math.min(width / boardWidth, height / boardHeight);
   for (const explosion of explosions) {
@@ -144,6 +178,13 @@ const drawExplosionRings = (ctx, explosions, {
     ctx.beginPath();
     ctx.arc(point.x, point.y, radius * (0.58 + generation * 0.018), 0, Math.PI * 2);
     ctx.stroke();
+    for (let ring = 0; ring < Math.max(0, Math.trunc(secondaryRings)); ring += 1) {
+      ctx.globalAlpha = ringAlpha * (0.24 / (ring + 1));
+      ctx.lineWidth = Math.max(0.8, width / 1_400);
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, radius * (0.72 + ring * 0.14), 0, Math.PI * 2);
+      ctx.stroke();
+    }
   }
   ctx.shadowBlur = 0;
 };
@@ -224,6 +265,31 @@ const drawMilestonePulses = (ctx, pulses, {
   }
 };
 
+const drawScoreFeedback = (ctx, feedback, {
+  width,
+  height,
+  boardWidth,
+  boardHeight,
+  nowMs = 0,
+  motionScale = 1,
+} = {}) => {
+  for (const item of feedback ?? []) {
+    const age = clamp((finite(nowMs) - finite(item.startedAtMs)) / 850, 0, 1);
+    const point = boardToCanvas(item.x, item.y, width, height, boardWidth, boardHeight);
+    const lift = 34 * age * Math.max(0, finite(motionScale, 1));
+    ctx.save();
+    ctx.globalAlpha = (1 - age) * 0.96;
+    ctx.fillStyle = item.forecast ? "#ffd166" : "#f7fbff";
+    ctx.shadowColor = item.forecast ? "rgba(255, 209, 102, 0.9)" : "rgba(121, 230, 255, 0.9)";
+    ctx.shadowBlur = 10;
+    ctx.font = `800 ${Math.max(12, width / 72)}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`+${Math.max(0, Math.trunc(finite(item.amount))).toLocaleString("ja-JP")}`, point.x, point.y - lift);
+    ctx.restore();
+  }
+};
+
 export const drawFireworkEffects = (ctx, {
   state,
   pool,
@@ -234,18 +300,26 @@ export const drawFireworkEffects = (ctx, {
   profile,
   nowMs = 0,
   pulses = [],
+  scoreFeedback = [],
 } = {}) => {
   if (!ctx || !state || !profile) return;
   const activeExplosions = [...(state.activeExplosions ?? [])]
     .filter((explosion) => finite(explosion.endTick, 0) > finite(state.tick, 0));
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
+  drawAurora(ctx, {
+    width,
+    height,
+    tick: state.tick,
+    alpha: profile.reducedMotion ? 0 : finite(profile.auroraAlpha),
+  });
   drawStarfield(ctx, {
     width,
     height,
     count: profile.backgroundStars,
     seed: state.seed,
     tick: state.tick,
+    animateTwinkle: profile.starTwinkle !== false,
   });
   drawParticles(ctx, pool, { width, height, boardWidth, boardHeight });
   drawDirectConstellation(ctx, activeExplosions, {
@@ -262,15 +336,28 @@ export const drawFireworkEffects = (ctx, {
     boardHeight,
     tick: state.tick,
     glowMultiplier: profile.glowMultiplier,
+    secondaryRings: profile.reducedMotion ? 0 : profile.secondaryRings,
   });
-  drawMilestonePulses(ctx, pulses, {
-    width,
-    height,
-    boardWidth,
-    boardHeight,
-    nowMs,
-  });
+  if (profile.milestonePulses !== false) {
+    drawMilestonePulses(ctx, pulses, {
+      width,
+      height,
+      boardWidth,
+      boardHeight,
+      nowMs,
+    });
+  }
   ctx.restore();
+  if (profile.scoreLabels !== false) {
+    drawScoreFeedback(ctx, scoreFeedback, {
+      width,
+      height,
+      boardWidth,
+      boardHeight,
+      nowMs,
+      motionScale: profile.motionScale ?? 1,
+    });
+  }
 };
 
 export default drawFireworkEffects;
