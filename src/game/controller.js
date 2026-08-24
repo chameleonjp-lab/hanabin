@@ -423,6 +423,10 @@ export class GameController {
   handlePhaseChange(phase, previous) {
     const screenPhase = toScreenPhase(phase);
     this.screens.show(screenPhase, toScreenPhase(previous));
+    // The play canvas is hidden during home, practice, and countdown. Resize
+    // it after the play screen becomes visible so the first rendered frame
+    // uses the real CSS geometry instead of the 1600x900 fallback.
+    if (screenPhase === "play") this.renderer.resize();
     this.root.dataset.phase = phase;
     this.transitions = this.screens.history();
     if (phase === "home") {
