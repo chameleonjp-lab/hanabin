@@ -9,6 +9,18 @@ export default defineConfig({
     ["line"],
     ["html", { open: "never", outputFolder: "playwright-report" }],
   ],
+  projects: [
+    { name: "chromium", use: { browserName: "chromium" } },
+    {
+      name: "webkit-touch",
+      use: {
+        browserName: "webkit",
+        hasTouch: true,
+        isMobile: true,
+        viewport: { width: 844, height: 390 },
+      },
+    },
+  ],
   use: {
     baseURL: "http://127.0.0.1:4173",
     headless: true,

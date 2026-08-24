@@ -4,6 +4,8 @@
 
 M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未完了で、公開URL専用の実時間終端検査とGitHub Pagesの公開元修正は完了していますが、iPhone 17 Pro（横画面のみ）の実機確認と初見5人の試遊が残っています。ランキングはまだ実装していません。
 
+2026年8月23日の操作感度、PC/touch演出、効果音、得点表示、予告バランスの後続修正は作業ブランチ上にあり、まだ`main`・公開Pagesへは反映していません。実装済み範囲と実機未確認項目は[`docs/EXPERIENCE_BALANCE_AUDIT.md`](./docs/EXPERIENCE_BALANCE_AUDIT.md)を正本とします。
+
 ## 実装を進める文書
 
 - [`IMPLEMENTATION_EXECUTION_PLAN.md`](./IMPLEMENTATION_EXECUTION_PLAN.md)  
@@ -28,6 +30,8 @@ M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未�
   M7の自動検査、公開版固定情報、GitHub Pages、実機検査、初見試遊の結果を記録します。
 - [`docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md`](./docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md)
   iPhone 17 Pro（横画面のみ）、初見5人、Pages設定の確認結果を、未確認と実測値を分けて記録します。
+- [`docs/EXPERIENCE_BALANCE_AUDIT.md`](./docs/EXPERIENCE_BALANCE_AUDIT.md)
+  PC/touchの品質差、スマホ操作、全効果音、得点・爆発範囲、予告バランス、iPhone 17 Proの未確認項目を一つの監査表にまとめます。
 
 ## ゲームの挙動を決める文書
 

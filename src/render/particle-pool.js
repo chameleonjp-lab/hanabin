@@ -92,6 +92,20 @@ export class ParticlePool {
     return this.activeCount;
   }
 
+  /** Immediately enforce a lowered presentation budget. */
+  trim(maxActive = this.capacity) {
+    const limit = Math.max(0, Math.min(this.capacity, Math.trunc(finite(maxActive, this.capacity))));
+    if (this.activeCount <= limit) return this.activeCount;
+    const oldest = this.particles
+      .filter((particle) => particle.active)
+      .sort((left, right) => left.bornAtMs - right.bornAtMs || left.slot - right.slot);
+    for (const particle of oldest.slice(0, this.activeCount - limit)) {
+      particle.active = false;
+      this.activeCount -= 1;
+    }
+    return this.activeCount;
+  }
+
   forEachActive(callback) {
     if (typeof callback !== "function") return;
     for (const particle of this.particles) {

@@ -495,8 +495,14 @@ const scoreTarget = (state, target, sourceColor, event, rules) => {
       Math.max(0, rules.inclusionScoreCap - inclusionAlready),
     )
     : 0;
-  const forecastPlanAmount = event.kind === "chain" && event.forecastPlan === true
-    ? rules.forecastPlanChainBonusPerTarget
+  const forecastWaveIndex = Number.isInteger(event.forecastWaveIndex)
+    ? event.forecastWaveIndex
+    : null;
+  const forecastPlanAmount = event.kind === "chain" &&
+      event.forecastPlan === true &&
+      forecastWaveIndex !== null &&
+      target.waveIndex === forecastWaveIndex
+    ? rules.forecastChainPerTarget
     : 0;
   const amount = baseAmount + inclusionAmount + forecastPlanAmount;
   target.status = "exploded";
@@ -515,6 +521,7 @@ const scoreTarget = (state, target, sourceColor, event, rules) => {
     baseAmount,
     inclusionAmount,
     forecastPlanAmount,
+    forecastWaveIndex,
     amount,
     sourceColor,
     targetColor: target.color,
@@ -536,6 +543,7 @@ const scoreTarget = (state, target, sourceColor, event, rules) => {
     depth: event.depth,
     chainStartTick: event.chainStartTick,
     forecastPlan: event.forecastPlan === true,
+    forecastWaveIndex,
     radiusMultiplierPercent: event.radiusMultiplierPercent,
     durationMultiplierPercent: event.durationMultiplierPercent,
     kind: event.kind,
@@ -650,6 +658,7 @@ const collectActiveExplosionHits = (state, tick, rules) => {
       explosionDurationTicks: proposal.explosion.durationTicks,
       chainStartTick: proposal.explosion.chainStartTick,
       forecastPlan: proposal.explosion.forecastPlan === true,
+      forecastWaveIndex: proposal.explosion.forecastWaveIndex,
     }, rules);
     if (state.simulationFault) return;
   }
@@ -784,7 +793,10 @@ const finalizeTerminalInput = (state, rules) => {
   }
 };
 
-const triggerChain = (state, selectedRecords, actionId, rules, forecastPlan = false) => {
+const triggerChain = (state, selectedRecords, actionId, rules, {
+  forecastPlan = false,
+  forecastWaveIndex = null,
+} = {}) => {
   let eventId = state.eventCount;
   const selected = [...selectedRecords].sort((left, right) => compareIds(left.id, right.id));
   const radiusMultiplierPercent = selectionRadiusMultiplierPercent(selected.length);
@@ -816,6 +828,7 @@ const triggerChain = (state, selectedRecords, actionId, rules, forecastPlan = fa
       explosionDurationTicks,
       chainStartTick: state.tick,
       forecastPlan,
+      forecastWaveIndex,
     }, rules);
   }
   state.eventCount = eventId;
@@ -836,15 +849,23 @@ export const detonate = (state, rulesArg = DEFAULT_RULES, actionId = state.actio
     Number.isInteger(entity.forecastForWaveIndex) &&
     nextWave && entity.forecastForWaveIndex === nextWave.waveIndex,
   ).length;
+  const forecastLeadTicks = nextWave ? nextWave.fireTick - state.tick : null;
   const isForecastPlan = Boolean(nextWave &&
+    Number.isInteger(forecastLeadTicks) &&
+    forecastLeadTicks >= 1 &&
+    forecastLeadTicks <= rules.forecastPlanLeadTicks &&
     selectedRecords.length === rules.forecastPlanSelectionCount &&
     selectedEntities.length === selectedRecords.length &&
     selectedEntities[0]?.color === nextWave.primaryColor &&
     forecastBridgeCount >= rules.minimumSelection);
+  const forecastWaveIndex = isForecastPlan ? nextWave.waveIndex : null;
   state.combo += 1;
   state.maxCombo = Math.max(state.maxCombo, state.combo);
   state.stats.detonationCount += 1;
-  const exploded = triggerChain(state, selectedRecords, actionId, rules, isForecastPlan);
+  const exploded = triggerChain(state, selectedRecords, actionId, rules, {
+    forecastPlan: isForecastPlan,
+    forecastWaveIndex,
+  });
   const preparationAmount = scoreForPreparation(selectedRecords.length, rules);
   const detonationAmount = rules.detonationBonus;
   const comboAmount = Math.max(0, state.combo - 1) * rules.comboBonus;
@@ -867,6 +888,8 @@ export const detonate = (state, rulesArg = DEFAULT_RULES, actionId = state.actio
       comboAmount,
       forecastPlanAmount,
       forecastWaveId: forecastPlanAmount > 0 ? nextWave.waveId : null,
+      forecastWaveIndex,
+      forecastLeadTicks,
       forecastBridgeCount,
       amount: bonusAmount,
     });

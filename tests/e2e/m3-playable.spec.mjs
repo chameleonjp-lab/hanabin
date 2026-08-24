@@ -226,6 +226,19 @@ test("M3 mouse input selects and detonates through the browser adapter", async (
   assertClean(diagnostics);
 });
 
+test("M3 batches fixed ticks into one canvas render per controller advance", async ({ page }) => {
+  const diagnostics = await openPage(page, viewports[0]);
+  await beginPlaying(page);
+  const before = await callApi(page, "renderModel");
+
+  await callApi(page, "advanceTicks", 10);
+
+  const after = await callApi(page, "renderModel");
+  expect(Number(after.canvas.dataset.renderCount) - Number(before.canvas.dataset.renderCount)).toBe(1);
+  expect(after.presentation.updateCount - before.presentation.updateCount).toBe(10);
+  assertClean(diagnostics);
+});
+
 test("M5 decoration quality changes do not change the deterministic game result", async ({ page }) => {
   const diagnostics = await openPage(page, viewports[0]);
 
@@ -288,6 +301,8 @@ test("M3 ignores a second pointer without changing the first pointer state", asy
   expect(after.pointer.y).toBe(before.pointer.y);
   expect(after.state.actionCount).toBe(before.state.actionCount);
   expect(after.state.inputFrames.length).toBe(before.state.inputFrames.length);
+  expect(after.canvas.dataset.secondaryPointerIgnored).toBe("1");
+  expect(after.canvas.dataset.lastPointerChange).toBe("secondary-pointer-ignored");
 
   await page.mouse.up();
   assertClean(diagnostics);
@@ -360,6 +375,47 @@ test("M3 rotation interrupts once, pauses fixed ticks, and resumes without catch
   assertClean(diagnostics);
 });
 
+test("M3 landscape browser-chrome resize does not interrupt play or open a resume gate", async ({ page }) => {
+  const diagnostics = await openPage(page, viewports[1]);
+  await beginPlaying(page);
+  const box = await canvasBox(page);
+  const target = (await firstThreeTargets(page))[0];
+  const point = pointForAim(target, box);
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.down();
+  await callApi(page, "advanceTicks", 3);
+  const before = await callApi(page, "snapshot");
+  expect(before.selectedIds).toHaveLength(1);
+
+  await page.setViewportSize({ width: 820, height: 390 });
+  await expect(page.locator("#orientation-guide")).toBeHidden();
+  await expect(page.locator("#resume-overlay")).toBeHidden();
+  await callApi(page, "advanceTicks", 1);
+  const after = await callApi(page, "snapshot");
+  expect(after.actionCount).toBe(before.actionCount + 1);
+  expect(after.selectedIds).toEqual(before.selectedIds);
+  expect(after.inputFrames.filter((frame) => frame.interrupted === true)).toHaveLength(0);
+  await page.mouse.up();
+  assertClean(diagnostics);
+});
+
+test("M3 landscape-to-landscape orientationchange interrupts once and resumes", async ({ page }) => {
+  const diagnostics = await openPage(page, viewports[1]);
+  await beginPlaying(page);
+  const before = await callApi(page, "snapshot");
+  await page.evaluate(() => window.dispatchEvent(new Event("orientationchange")));
+  await expect(page.locator("#orientation-guide")).toBeHidden();
+  await callApi(page, "advanceTicks", 1);
+  const after = await callApi(page, "snapshot");
+  expect(after.actionCount).toBe(before.actionCount + 1);
+  expect(after.inputFrames.filter((frame) => frame.interrupted === true)).toHaveLength(1);
+  await callApi(page, "advanceTicks", 1);
+  const following = await callApi(page, "snapshot");
+  expect(following.actionCount).toBe(before.actionCount + 2);
+  expect(following.inputFrames.filter((frame) => frame.interrupted === true)).toHaveLength(1);
+  assertClean(diagnostics);
+});
+
 test("M3 edge-aware reticle stays on-canvas and changes direction at edges", async ({ page }) => {
   const diagnostics = await openPage(page, viewports[1]);
   await beginPlaying(page);
@@ -428,6 +484,36 @@ test("M3 edge-aware reticle stays on-canvas and changes direction at edges", asy
   expect(rightTop.reticleX).toBeLessThan(rightTop.pointerX);
   expect(leftBottom.reticleY).toBeLessThan(leftBottom.pointerY);
   expect(rightBottom.reticleY).toBeLessThan(rightBottom.pointerY);
+  assertClean(diagnostics);
+});
+
+test("M3 touch reticle renders the exact touch aim sampled by the game", async ({ page }) => {
+  const diagnostics = await openPage(page, viewports[1]);
+  await beginPlaying(page);
+  const box = await canvasBox(page);
+  const center = {
+    x: (box.left + box.right) / 2,
+    y: (box.top + box.bottom) / 2,
+  };
+
+  // Start with a native pointer so Pointer Capture is genuine, then feed the
+  // owned id a touch move. The adapter must keep touch aim under the finger.
+  await page.mouse.move(center.x, center.y);
+  await page.mouse.down();
+  const pointerId = (await callApi(page, "renderModel")).pointer.pointerId;
+  expect(pointerId).not.toBeNull();
+  await dispatchPointer(page, "pointermove", {
+    pointerId,
+    clientX: center.x + 37,
+    clientY: center.y + 19,
+    pointerType: "touch",
+  });
+  await callApi(page, "advanceTicks", 1);
+
+  const touch = await readReticle(page);
+  expect(touch.reticleX).toBe(touch.pointerX);
+  expect(touch.reticleY).toBe(touch.pointerY);
+  await page.mouse.up();
   assertClean(diagnostics);
 });
 

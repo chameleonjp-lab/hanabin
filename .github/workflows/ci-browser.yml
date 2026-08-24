@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   browser:
-    name: Playwright Chromium
+    name: Playwright Chromium + WebKit Touch
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -24,7 +24,7 @@ jobs:
       - name: Install development dependencies
         run: npm ci
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
       - name: Run browser tests
         run: npm run test:browser
       - name: Upload Playwright report on failure

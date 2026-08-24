@@ -50,8 +50,11 @@ test("M1 entry files exist without a build step", async () => {
     "src/render/firework-effects.js",
     "src/render/particle-pool.js",
     "src/render/quality-controller.js",
+    "src/presentation/experience.js",
+    "src/game/presentation-events.js",
     "src/ui/tutorial.js",
     "src/ui/forecast-feedback.js",
+    "src/ui/rules-guide.js",
     "src/ui/result.js",
     "src/audio/sound.js",
     "src/storage/local-storage.js",
@@ -77,6 +80,20 @@ test("the fixed-tick browser bridge is limited to an explicit local test URL", a
   assert.match(app, /127\.0\.0\.1/);
   assert.match(app, /URLSearchParams\(window\.location\.search\)/);
   assert.match(app, /isLocalTestHost\s*&&/);
+});
+
+test("the controller consumes per-tick presentation events without per-tick rendering", async () => {
+  const controller = await readProjectFile("src/game/controller.js");
+  const tutorial = await readProjectFile("src/ui/tutorial.js");
+
+  assert.match(controller, /onUpdate:\s*\(session\)\s*=>\s*this\.handleSessionUpdate\(session\)/);
+  assert.doesNotMatch(controller, /onUpdate:\s*\([^)]*\)\s*=>\s*this\.render\(\)/);
+  assert.match(
+    controller,
+    /handleSessionUpdate\(session\)[\s\S]*?this\.playPresentationEvents\(session\?\.state\)/,
+  );
+  assert.match(controller, /if \(this\.deterministicTestMode\) this\.render\(\);\s*else this\.ensureLoop\(\);/);
+  assert.match(tutorial, /if \(this\.timerId === null\) this\.render\(\);/);
 });
 
 test("the public Pages artifact contains only the static game entry files", async () => {

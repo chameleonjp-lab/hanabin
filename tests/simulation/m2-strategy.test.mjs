@@ -8,9 +8,9 @@ import {
   getStrategy,
 } from "../../src/core/strategies.js";
 
-test("exactly seven deterministic strategies are publicly available", () => {
-  assert.equal(STRATEGY_NAMES.length, 7);
-  assert.equal(new Set(STRATEGY_NAMES).size, 7);
+test("exactly eight deterministic strategies are publicly available", () => {
+  assert.equal(STRATEGY_NAMES.length, 8);
+  assert.equal(new Set(STRATEGY_NAMES).size, 8);
   assert.deepEqual(Object.keys(STRATEGIES).sort(), [...STRATEGY_NAMES].sort());
   for (const name of STRATEGY_NAMES) {
     assert.equal(typeof getStrategy(name), "function");
@@ -27,8 +27,8 @@ test("exactly seven deterministic strategies are publicly available", () => {
 const assertComparisonShape = (comparison, seedCount) => {
   assert.equal(comparison.requestedSeeds, seedCount);
   assert.equal(comparison.processedSeeds, seedCount);
-  assert.equal(comparison.strategies.length, 7);
-  assert.equal(Object.keys(comparison.byStrategy).length, 7);
+  assert.equal(comparison.strategies.length, 8);
+  assert.equal(Object.keys(comparison.byStrategy).length, 8);
   for (const summary of Object.values(comparison.byStrategy)) {
     assert.equal(summary.processedSeeds, seedCount);
   }
@@ -57,7 +57,7 @@ test("small comparison and safety inspection expose bounded public results", asy
   assertSafetyShape(simulation.runSafetySweep({ seedCount: 3 }), 3);
 });
 
-test("full 1000x7 comparison and 10000-case safety inspection", {
+test("full 1000x8 comparison and 10000-case safety inspection", {
   skip: process.env.HANABIN_FULL_SIMULATION !== "1",
 }, async () => {
   const simulation = await import("../../src/core/simulation.js");

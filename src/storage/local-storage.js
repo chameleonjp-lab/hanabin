@@ -10,6 +10,7 @@ export const DEFAULT_PROFILE = Object.freeze({
   name: "",
   bestScore: 0,
   bestChain: 0,
+  bestRuleVersion: "",
   quality: "high",
   qualityManual: false,
   soundEnabled: false,
@@ -45,6 +46,9 @@ export const normalizeProfile = (value = {}) => {
     name,
     bestScore: finiteInteger(source.bestScore),
     bestChain: finiteInteger(source.bestChain),
+    bestRuleVersion: typeof source.bestRuleVersion === "string"
+      ? source.bestRuleVersion.slice(0, 64)
+      : DEFAULT_PROFILE.bestRuleVersion,
     quality: QUALITY_LEVELS.includes(source.quality) ? source.quality : DEFAULT_PROFILE.quality,
     qualityManual: source.qualityManual === true,
     soundEnabled: source.soundEnabled === true,
@@ -69,16 +73,24 @@ const readGlobalStorage = () => {
 export const createProfileStore = (storage = readGlobalStorage(), key = DEFAULT_KEY) => {
   const backend = storageLike(storage);
   let memory = { ...DEFAULT_PROFILE };
+  // Once a backend operation fails, the in-memory copy is authoritative for
+  // this store instance. In particular, a failed Safari/private-browsing
+  // write must not let the next update reload stale persisted data and undo
+  // settings that were already accepted in the current tab.
+  let preferMemory = false;
 
   const load = () => {
-    if (!backend) return { ...memory };
+    if (!backend || preferMemory) return { ...memory };
     try {
       const raw = backend.getItem(key);
       if (!raw) return { ...memory };
       const parsed = JSON.parse(raw);
       memory = normalizeProfile(parsed);
     } catch {
-      memory = { ...DEFAULT_PROFILE };
+      // Keep the last profile already accepted in this tab. On first load it
+      // is the safe default; after a successful save it prevents a transient
+      // Safari read failure from rolling current settings back.
+      preferMemory = true;
     }
     return { ...memory };
   };
@@ -88,8 +100,10 @@ export const createProfileStore = (storage = readGlobalStorage(), key = DEFAULT_
     if (backend) {
       try {
         backend.setItem(key, JSON.stringify(memory));
+        preferMemory = false;
       } catch {
         // Private browsing and quota errors must not block a new run.
+        preferMemory = true;
       }
     }
     return { ...memory };
@@ -106,8 +120,10 @@ export const createProfileStore = (storage = readGlobalStorage(), key = DEFAULT_
       memory = { ...DEFAULT_PROFILE };
       try {
         backend?.removeItem(key);
+        preferMemory = false;
       } catch {
         // Best effort only.
+        preferMemory = true;
       }
       return { ...memory };
     },

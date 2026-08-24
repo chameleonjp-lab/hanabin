@@ -58,14 +58,14 @@
             <p class="home-kicker">60秒 SCORE ATTACK</p>
             <h2 id="home-title">同じ色を3つ以上、線でつないで起爆</h2>
             <p>
-              花火を押し続けて選び、指を離すと連鎖が始まります。次の2波の色を見て、
-              どこで起爆するかを決めてください。
+              花火を押し続けて3つ以上選び、指を離すか、選択開始から2.5秒で連鎖が始まります。
+              次の2波の色を見て、どこで起爆するかを決めてください。
             </p>
           </div>
           <div class="profile-panel" aria-label="プレイヤー設定">
             <div class="profile-panel__heading">
               <span class="hud-label">PLAYER SETTINGS</span>
-              <span id="profile-best-label" class="profile-best-label">端末内ベスト</span>
+              <span id="profile-best-label" class="profile-best-label">現ルールの端末内ベスト</span>
             </div>
             <label class="field-row" for="player-name">
               <span>名前（任意・12文字まで）</span>
@@ -76,6 +76,7 @@
               <label class="field-row" for="quality-select">
                 <span>演出品質</span>
                 <select id="quality-select" name="quality">
+                  <option value="auto">自動</option>
                   <option value="high">高</option>
                   <option value="medium">中</option>
                   <option value="low">低</option>
@@ -86,6 +87,7 @@
                 <span>音を有効にする</span>
               </label>
             </div>
+            <p id="quality-active-label" class="quality-active-label">自動調整：高</p>
             <div class="profile-best" aria-label="端末内ベスト記録">
               <span>SCORE <strong id="home-best-score">0</strong></span>
               <span>CHAIN <strong id="home-best-chain">0</strong></span>
@@ -93,24 +95,45 @@
           </div>
           <div class="home-rules" aria-label="操作の要点">
             <span><i class="rule-dot rule-dot--cyan" aria-hidden="true"></i>最初の1本だけ有効</span>
-            <span><i class="rule-dot rule-dot--gold" aria-hidden="true"></i>3つ以上で起爆</span>
-            <span><i class="rule-dot rule-dot--pink" aria-hidden="true"></i>制限時間 2.5秒</span>
+            <span><i class="rule-dot rule-dot--gold" aria-hidden="true"></i>3つ以上で離すと起爆</span>
+            <span><i class="rule-dot rule-dot--pink" aria-hidden="true"></i>2.5秒で自動判定</span>
           </div>
-          <button id="start-button" class="primary-button" type="button">ゲームを開始</button>
-          <p class="home-hint">画面を押して花火を選び、指を離して起爆します。</p>
+          <details id="score-guide" class="score-guide">
+            <summary>得点・爆発範囲を確認</summary>
+            <div class="score-guide__body">
+              <h3>加点</h3>
+              <ul>
+                <li id="rule-direct"></li>
+                <li id="rule-preparation"></li>
+                <li id="rule-chain"></li>
+                <li id="rule-inclusion"></li>
+                <li id="rule-forecast"></li>
+              </ul>
+              <h3>減点</h3>
+              <p id="rule-penalty"></p>
+              <h3>操作と爆発範囲</h3>
+              <p id="rule-selection"></p>
+              <p id="rule-explosion-ranges"></p>
+            </div>
+          </details>
+          <div class="home-actions">
+            <button id="start-button" class="primary-button" type="button">ゲームを開始</button>
+            <button id="practice-button" class="secondary-button" type="button">操作練習</button>
+          </div>
+          <p class="home-hint">1本指で外輪が一周して選択数が増えるまで短く押し、そのままなぞります。3つ以上なら離すか2.5秒で起爆し、2つ以下のまま2.5秒になると取消です。</p>
         </section>
 
         <section id="practice-screen" class="screen screen--practice" data-screen="practice" hidden aria-labelledby="practice-title">
-          <p class="home-kicker">FIRST PRACTICE</p>
-          <h2 id="practice-title">最初の12秒だけ、操作を練習</h2>
-          <p id="practice-message" class="practice-message">3つ以上を同じ色でなぞり、指を離して起爆します。</p>
+          <p class="home-kicker">OPERATION PRACTICE</p>
+          <h2 id="practice-title">12秒の操作練習を何度でも</h2>
+          <p id="practice-message" class="practice-message">1本指で外輪が一周して選択数が増えるまで押し、同じ色を3つなぞって離します。選択開始から2.5秒でも自動起爆します。</p>
           <div class="practice-value" aria-live="polite"><strong id="practice-value">12秒</strong></div>
           <div id="practice-board" class="practice-board" data-practice-state="ready">
             <canvas
               id="practice-canvas"
               width="960"
               height="540"
-              aria-label="練習用の花火盤。同じ色の花火を3つなぞって指を離します"
+              aria-label="練習用の花火盤。同じ色の花火を3つなぞって指を離すか2.5秒待ちます"
             ></canvas>
             <div class="practice-board-status" aria-live="polite">
               <span id="practice-progress">0 / 3</span>
@@ -118,14 +141,15 @@
             </div>
           </div>
           <div class="practice-steps" aria-label="練習の手順">
-            <div><span>1</span><strong>押す</strong><small>同じ色の花火を選ぶ</small></div>
+            <div><span>1</span><strong>押す</strong><small>外輪が一周するまで待つ</small></div>
             <div><span>2</span><strong>つなぐ</strong><small>3つ以上を線で結ぶ</small></div>
-            <div><span>3</span><strong>離す</strong><small>連鎖を起爆する</small></div>
+            <div><span>3</span><strong>離す／待つ</strong><small>3つ以上は2.5秒でも自動起爆</small></div>
           </div>
           <div class="practice-actions">
             <button id="practice-start" class="primary-button" type="button">練習を始める</button>
             <button id="practice-continue" class="primary-button" type="button" hidden>本番へ進む</button>
             <button id="practice-skip" class="secondary-button" type="button">練習をスキップ</button>
+            <button id="practice-home" class="secondary-button" type="button">ホームへ戻る</button>
           </div>
         </section>
 
@@ -164,6 +188,10 @@
                 <strong id="hud-selection-count">0</strong>
                 <span id="hud-selection-time" class="hud-subvalue">—</span>
               </div>
+              <div class="hud-pill hud-pill--blast" aria-label="現在の爆発範囲">
+                <span class="hud-label">RANGE</span>
+                <strong id="hud-blast-range">3個で 1,800</strong>
+              </div>
               <div class="hud-forecast" id="hud-forecast" aria-label="次の2波の予告">
                 <span class="hud-label">NEXT WAVES</span>
                 <span id="hud-forecast-items">—</span>
@@ -176,7 +204,7 @@
             </div>
             <div id="play-message" class="play-message" aria-live="polite"></div>
           </div>
-          <p class="play-instruction">同じ色を3つ以上つないで、指を離す</p>
+          <p class="play-instruction">同じ色を3つ以上つないで離す（2.5秒で自動起爆）／ 予告は金色の二重リングが目印</p>
         </section>
 
         <section id="finalizing-screen" class="screen screen--finalizing" data-screen="finalizing" hidden aria-live="polite">
@@ -200,6 +228,18 @@
             <div><span>連鎖捕捉</span><strong id="result-chain-targets">0</strong></div>
             <div><span>予告成功</span><strong id="result-forecast-successes">0</strong></div>
           </div>
+          <details class="result-breakdown" open>
+            <summary>得点内訳</summary>
+            <dl>
+              <div><dt>直接起爆</dt><dd>+<span id="result-score-direct">0</span></dd></div>
+              <div><dt>連鎖</dt><dd>+<span id="result-score-chain">0</span></dd></div>
+              <div><dt>巻き込み</dt><dd>+<span id="result-score-inclusion">0</span></dd></div>
+              <div><dt>多く選択</dt><dd>+<span id="result-score-preparation">0</span></dd></div>
+              <div><dt>予告ボーナス</dt><dd>+<span id="result-score-forecast">0</span></dd></div>
+              <div><dt>その他</dt><dd>+<span id="result-score-other">0</span></dd></div>
+              <div class="result-breakdown__deduction"><dt>減点</dt><dd>−<span id="result-score-deductions">0</span></dd></div>
+            </dl>
+          </details>
           <p id="result-best-mark" class="result-best-mark" hidden>自己ベスト更新</p>
           <div class="result-record"><span>端末内ベスト</span><strong><span id="result-best-score">0</span> / 連鎖 <span id="result-best-chain">0</span></strong></div>
           <p id="result-replay" class="result-replay" role="status">入力記録を検証しています…</p>
@@ -215,7 +255,7 @@
         </section>
 
         <p class="notice" id="m7-notice">
-          公開候補版：初回練習・端末内記録・結果共有を搭載。音は初期状態で無効です。
+          iPhoneは横画面専用です。PCは自動でリッチ演出、スマホは負荷を抑えた演出になります。音は初期状態で無効です。
         </p>
       </section>
     </main>

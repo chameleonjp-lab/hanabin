@@ -10,9 +10,19 @@ import {
 import { ParticlePool } from "../../src/render/particle-pool.js";
 import { DecorativeLayer } from "../../src/render/decorative-layer.js";
 import {
+  PRESENTATION_MEDIA_QUERIES,
+  detectPresentationExperience,
+} from "../../src/presentation/experience.js";
+import {
+  displayEntityRadius,
+  isForecastBridgeForNextWave,
+} from "../../src/render/competitive-layer.js";
+import {
+  DESKTOP_QUALITY_PROFILES,
   QUALITY_LEVELS,
   QUALITY_PROFILES,
   QualityController,
+  qualityProfileFor,
 } from "../../src/render/quality-controller.js";
 
 test("M5 keeps three decoration profiles while preserving competitive information", () => {
@@ -24,6 +34,72 @@ test("M5 keeps three decoration profiles while preserving competitive informatio
     assert.ok(profile.resolutionScale > 0 && profile.resolutionScale <= 1);
   }
   assert.ok(QUALITY_PROFILES.low.particleCapacity < QUALITY_PROFILES.high.particleCapacity);
+});
+
+test("presentation capability detection chooses rich desktop only for a fine hover pointer", () => {
+  const matcher = (matching) => (query) => ({ matches: matching.includes(query) });
+  const desktop = detectPresentationExperience({
+    matchMedia: matcher([PRESENTATION_MEDIA_QUERIES.desktop]),
+    maxTouchPoints: 0,
+  });
+  assert.equal(desktop.variant, "desktop");
+  assert.equal(desktop.desktopCapable, true);
+  assert.equal(desktop.reducedMotion, false);
+
+  const touch = detectPresentationExperience({
+    matchMedia: matcher([
+      PRESENTATION_MEDIA_QUERIES.coarsePointer,
+      PRESENTATION_MEDIA_QUERIES.reducedMotion,
+    ]),
+    maxTouchPoints: 5,
+  });
+  assert.equal(touch.variant, "touch");
+  assert.equal(touch.coarsePointer, true);
+  assert.equal(touch.reducedMotion, true);
+});
+
+test("desktop quality is richer while reduced motion keeps competitive geometry intact", () => {
+  for (const level of QUALITY_LEVELS) {
+    const touch = QUALITY_PROFILES[level];
+    const desktop = DESKTOP_QUALITY_PROFILES[level];
+    assert.ok(desktop.backgroundStars > touch.backgroundStars);
+    assert.ok(desktop.particlesPerDirect > touch.particlesPerDirect);
+    assert.ok(desktop.particleCapacity > touch.particleCapacity);
+    assert.ok(desktop.secondaryRings >= touch.secondaryRings);
+    assert.ok(desktop.auroraAlpha > touch.auroraAlpha);
+  }
+
+  const full = qualityProfileFor("high", { variant: "desktop" });
+  const reduced = qualityProfileFor("high", { variant: "desktop", reducedMotion: true });
+  assert.equal(reduced.level, full.level);
+  assert.equal(reduced.variant, full.variant);
+  assert.equal(reduced.reducedMotion, true);
+  assert.equal(reduced.starTwinkle, false);
+  assert.equal(reduced.milestonePulses, false);
+  assert.equal(reduced.scoreLabels, false);
+  assert.ok(reduced.particleCapacity < full.particleCapacity);
+  assert.ok(reduced.motionScale < full.motionScale);
+});
+
+test("practice-sized targets and forecast bridge markings remain competitive information", () => {
+  assert.equal(displayEntityRadius(0.02), 10);
+  assert.ok(displayEntityRadius(0.1) > 10);
+  const state = { upcomingWaves: [{ waveIndex: 8 }] };
+  assert.equal(isForecastBridgeForNextWave({ forecastForWaveIndex: 8 }, state), true);
+  assert.equal(isForecastBridgeForNextWave({ forecastForWaveIndex: 7 }, state), false);
+  assert.equal(isForecastBridgeForNextWave({ forecastForWaveIndex: 8 }, { upcomingWaves: [] }), false);
+});
+
+test("quality controller can change presentation experience without changing quality level", () => {
+  const controller = new QualityController({ initial: "medium", variant: "touch" });
+  const touchCapacity = controller.profile.particleCapacity;
+  assert.equal(controller.setExperience({ variant: "desktop", reducedMotion: false }), true);
+  assert.equal(controller.level, "medium");
+  assert.equal(controller.profile.variant, "desktop");
+  assert.ok(controller.profile.particleCapacity > touchCapacity);
+  assert.equal(controller.setReducedMotion(true), true);
+  assert.equal(controller.profile.reducedMotion, true);
+  assert.equal(controller.snapshot().profile.scoreLabels, false);
 });
 
 test("quality controller lowers and raises decoration without changing its contract", () => {
@@ -44,6 +120,14 @@ test("quality controller lowers and raises decoration without changing its contr
   assert.equal(controller.level, "high");
 });
 
+test("stable 60 Hz frame intervals can recover automatic quality", () => {
+  const controller = new QualityController({ initial: "low", sampleWindow: 5 });
+  for (let window = 0; window < 3; window += 1) {
+    for (let frame = 0; frame < 5; frame += 1) controller.observeFrameInterval(16.7);
+  }
+  assert.equal(controller.level, "medium");
+});
+
 test("particle pool reuses fixed slots and never exceeds capacity", () => {
   const pool = new ParticlePool(2);
   const first = pool.spawn({ x: 1, lifeMs: 10 }, 0);
@@ -56,6 +140,16 @@ test("particle pool reuses fixed slots and never exceeds capacity", () => {
   const reused = pool.spawn({ x: 4, lifeMs: 10 }, 12);
   assert.ok(reused === first || reused === second);
   assert.equal(pool.snapshot().length, 1);
+});
+
+test("particle pool immediately trims live decoration to a lowered quality budget", () => {
+  const pool = new ParticlePool(6);
+  for (let index = 0; index < 6; index += 1) {
+    pool.spawn({ x: index, lifeMs: 1_000 }, index);
+  }
+  assert.equal(pool.trim(2), 2);
+  assert.deepEqual(pool.snapshot().map((particle) => particle.x), [4, 5]);
+  assert.equal(pool.trim(0), 0);
 });
 
 test("firework particle directions are deterministic and generation-aware", () => {
