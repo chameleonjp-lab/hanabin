@@ -4,7 +4,7 @@
 
 M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未完了で、公開URL専用の実時間終端検査とGitHub Pagesの公開元修正は完了していますが、iPhone 17 Pro（横画面のみ）の実機確認と初見5人の試遊が残っています。ランキングはまだ実装していません。
 
-2026年8月23日の操作感度、PC/touch演出、効果音、得点表示、予告バランスの後続修正は作業ブランチ上にあり、まだ`main`・公開Pagesへは反映していません。実装済み範囲と実機未確認項目は[`docs/EXPERIENCE_BALANCE_AUDIT.md`](./docs/EXPERIENCE_BALANCE_AUDIT.md)を正本とします。
+2026年8月23日の操作感度、PC/touch演出、効果音、得点表示、予告バランスの後続修正はPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、公開Pagesへ反映済みです。マージ後の自動検査と公開検査は成功していますが、iPhone 17 Pro / Safari実機と初見5人の試遊は未確認です。実装済み範囲と実機未確認項目は[`docs/EXPERIENCE_BALANCE_AUDIT.md`](./docs/EXPERIENCE_BALANCE_AUDIT.md)を正本とします。
 
 ## 実装を進める文書
 
@@ -77,7 +77,7 @@ M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未�
 - M4実装: Pull Request [#8](https://github.com/chameleonjp-lab/hanabin/pull/8)を`main`へマージ済み
 - M5実装: Pull Request [#9](https://github.com/chameleonjp-lab/hanabin/pull/9)を`main`へマージ済み。選択線を保護した独自花火表現、光粒プール、品質別描画を確認済み
 - M6実装: Pull Request [#10](https://github.com/chameleonjp-lab/hanabin/pull/10)を`main`へマージ済み。初回練習、端末内プロフィール、結果ヒント・共有、音設定を確認済み
-- M7実装: Pull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11)で公開版固定情報と最終自動検証を、[#17](https://github.com/chameleonjp-lab/hanabin/pull/17)で公開URL専用検査を、[#19](https://github.com/chameleonjp-lab/hanabin/pull/19)で手動受入チェックリストを`main`へ反映済み
+- M7実装: Pull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11)で公開版固定情報と最終自動検証を、[#17](https://github.com/chameleonjp-lab/hanabin/pull/17)で公開URL専用検査を、[#19](https://github.com/chameleonjp-lab/hanabin/pull/19)で手動受入チェックリストを、[#34](https://github.com/chameleonjp-lab/hanabin/pull/34)でスマホ操作・演出・音・バランスの後続修正を`main`へ反映済み
 - MVP受入: 6/7。GitHub PagesはGitHub Actionsの限定artifact公開へ切り替え済み。iPhone 17 Pro（横画面のみ）の実機確認と初見5人の試遊は未確認
 - 実機受入対象: iPhone 17 Proのみ。縦画面は非対応で、横画面で指を押したまま色を選び、指を離して起爆する
 - 文書だけを変更したPull Requestのマージ履歴はGitHubを正本とし、進捗判定が変わらない限り各文書へ追記しない
