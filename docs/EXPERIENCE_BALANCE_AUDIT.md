@@ -180,8 +180,8 @@ DPR係数は、端末DPRを先に1〜2へ制限した値へ掛け、その結果
 | 確認手段 | 対象 | 2026年8月23日時点 |
 |---|---|---|
 | 関連Node単体試験 | pointer所有・中断・練習、orientation、touch/PC/reduced-motion、自動品質、粒上限、得点案内と内訳、WebKit型resume、保存読書き失敗時のmemory継続、全10 cue、同時発音上限、真の連鎖イベント | **54件成功（ローカル）** |
-| Node全体 | ブランチ全体の単体・シミュレーション等 | **124件中123件成功、失敗0、opt-in 1件スキップ**。ブラウザ・実機の合格を意味しない |
-| CIブラウザ | Chromium / WebKitでの導線、gesture契約、公開候補 | Pull Request上の結果待ち。未確認 |
+| Node全体 | 単体・シミュレーション等 | [CI Core #78](https://github.com/chameleonjp-lab/hanabin/actions/runs/32682500837)が成功。実機の合格を意味しない |
+| CIブラウザ | Chromium / WebKit Touchでの導線、gesture契約、公開候補 | [CI Browser #78](https://github.com/chameleonjp-lab/hanabin/actions/runs/32682500846)が成功。iPhone実機の合格を意味しない |
 | iPhone 17 Pro / Safari | 横画面、タップ位置、長押し、2本指、ダブルタップ、スワイプ、練習、全SE、Auto品質、10回連続プレイ | **未確認** |
 | 公開Pages | 現行公開版の成果物 | **反映済み**。[Deploy GitHub Pages #23](https://github.com/chameleonjp-lab/hanabin/actions/runs/32682500867)と[Public Release Smoke #18](https://github.com/chameleonjp-lab/hanabin/actions/runs/32682529443)が成功 |
 
