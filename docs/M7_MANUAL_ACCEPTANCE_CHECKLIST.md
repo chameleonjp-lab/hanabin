@@ -6,7 +6,7 @@
 - 公開URL: [HANABIN](https://chameleonjp-lab.github.io/hanabin/)
 - この文書の役割: 自動検査で確認できないiPhone 17 Pro（横画面のみ）の実機、初見試遊、GitHub Pages設定を、実際の証跡で記録する
 
-> 2026年8月23日の操作・演出・音・バランス変更は作業ブランチ `agent/mobile-desktop-experience-20260823` にあり、**未マージ・未公開**である。以下の新項目はブランチをマージしてPagesへ再配備した後に確認する。既存の公開URL確認やNode単体試験を、iPhone 17 Pro / Safariの合格証跡へ流用しない。
+> 2026年8月23日の操作・演出・音・バランス変更はPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、Pagesへ再配備済みである。マージ後の自動検査と公開検査は成功した。以下の実機項目は公開URLをiPhone 17 Pro / Safariで確認し、自動検査を実機合格の証跡へ流用しない。
 
 ## 1. 記録のルール
 
