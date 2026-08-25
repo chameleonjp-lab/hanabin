@@ -1,11 +1,11 @@
 # HANABIN 実装進捗
 
-- 更新日: 2026年8月23日
+- 更新日: 2026年8月26日
 - 実装状態: **7/7**（M1〜M7のコードは`main`へマージ済み）
 - MVP受入: **6/7**（M7は不合格のまま）
 - 公開URL: [HANABIN](https://chameleonjp-lab.github.io/hanabin/)
 
-> 2026年8月23日のスマホ操作、PC/touch演出、SE、得点表示、予告バランスの後続修正は作業ブランチ `agent/mobile-desktop-experience-20260823` に実装済みで、**未マージ・未公開**である。ローカルNode試験と全量シミュレーションは合格したが、Draft PRのChromium / WebKit Touch CIとiPhone 17 Pro / Safari実機は未確認である。この状態はM7受入6/7を変更しない。
+> 2026年8月23日のスマホ操作、PC/touch演出、SE、得点表示、予告バランスの後続修正はPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、GitHub Pagesへ公開済みである。マージ後のCI Core #78、CI Browser #78、Deploy GitHub Pages #23、Public Release Smoke #18はすべて成功した。iPhone 17 Pro / Safari実機と初見5人の試遊は未確認であり、M7受入は6/7のままとする。
 
 ## 現在地
 
@@ -28,7 +28,7 @@
 | M4 | 抜け道対策とゲーム設計審査 | マージ済み | 合格 | [#8](https://github.com/chameleonjp-lab/hanabin/pull/8) |
 | M5 | 花火表現と性能対策 | マージ済み | 合格 | [#9](https://github.com/chameleonjp-lab/hanabin/pull/9) |
 | M6 | 練習、保存、結果、共有、音 | マージ済み | 合格 | [#10](https://github.com/chameleonjp-lab/hanabin/pull/10) |
-| M7 | 総合検証とMVP公開 | マージ済み | 不合格 | [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) / [#17](https://github.com/chameleonjp-lab/hanabin/pull/17) / [#19](https://github.com/chameleonjp-lab/hanabin/pull/19) |
+| M7 | 総合検証とMVP公開 | マージ済み | 不合格 | [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) / [#17](https://github.com/chameleonjp-lab/hanabin/pull/17) / [#19](https://github.com/chameleonjp-lab/hanabin/pull/19) / [#34](https://github.com/chameleonjp-lab/hanabin/pull/34) |
 
 ## 進捗の数え方
 
@@ -58,10 +58,10 @@
 ### M7: 公開候補
 
 - 公開版、ルール版、入力記録版、保存形式版を固定した。
-- [CI Core #70](https://github.com/chameleonjp-lab/hanabin/actions/runs/31758858560)でNode 22/24、全量シミュレーション、再生監査が成功した。
-- [CI Browser #70](https://github.com/chameleonjp-lab/hanabin/actions/runs/31758858505)でChromiumのブラウザ試験が成功した。
-- [Deploy GitHub Pages #21](https://github.com/chameleonjp-lab/hanabin/actions/runs/31915623844)で限定artifactの公開に成功した。
-- [Public Release Smoke #16](https://github.com/chameleonjp-lab/hanabin/actions/runs/31915642023)で、公開URLの終端経路と公開対象外URLの404検査が2テスト成功した。
+- [CI Core #78](https://github.com/chameleonjp-lab/hanabin/actions/runs/32682500837)でNode 22/24、全量シミュレーション、再生監査が成功した。
+- [CI Browser #78](https://github.com/chameleonjp-lab/hanabin/actions/runs/32682500846)でChromiumとWebKit Touchのブラウザ試験が成功した。
+- [Deploy GitHub Pages #23](https://github.com/chameleonjp-lab/hanabin/actions/runs/32682500867)で限定artifactの公開に成功した。
+- [Public Release Smoke #18](https://github.com/chameleonjp-lab/hanabin/actions/runs/32682529443)で、公開URLの終端経路と公開対象外URLの404検査が成功した。
 - 実機・初見試遊の正本は、[M7手動受入チェックリスト](./docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md)とする。
 
 ## GitHub Pagesの判定

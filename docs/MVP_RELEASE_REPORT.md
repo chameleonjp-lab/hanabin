@@ -1,16 +1,15 @@
 # HANABIN MVP公開候補レポート
 
 - 作成日: 2026年8月12日
-- 最終更新日: 2026年8月23日
+- 最終更新日: 2026年8月26日
 - 対象リポジトリ: `chameleonjp-lab/hanabin`
-- 対象: 公開中の`main`と、未マージのMVPリリース候補`0.1.0`
+- 対象: 公開中の`main`（MVPリリース候補`0.1.0`）
 - 実装状態: M1〜M7をマージ済み
 - MVP受入: **6/7・未完了**
 
-> 2026年8月23日注記: §1、§3.1、§3.2以外の「公開済み」証跡は、
-> `m4-gameplay-1`を公開した2026年8月16日時点の履歴である。操作・演出・
-> 得点バランスを更新した`m4-gameplay-2`は作業ブランチ上にあり、まだ
-> `main`にもGitHub Pagesにも反映されていない。
+> 2026年8月26日注記: 操作・演出・得点バランスを更新した`m4-gameplay-2`は、
+> Pull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、GitHub Pagesへ公開済みである。
+> マージ後の自動検査と公開検査は成功したが、iPhone 17 Pro / Safari実機と初見5人の試遊は未確認である。
 
 ## 1. 現在の判定
 
@@ -25,14 +24,14 @@
 
 Pages公開設定と自動検査は合格したが、実機確認と初見試遊が残っているため、M7とMVPは完了扱いにしない。
 
-## 2. 公開版と作業候補の固定情報
+## 2. 公開版の固定情報
 
 | 項目 | 固定値 |
 |---|---|
 | MVPリリース版 | `0.1.0` |
 | ゲーム版 | `M4` |
-| 公開中のルール版 | `m4-gameplay-1` |
-| 作業候補のルール版 | `m4-gameplay-2`（未マージ・未公開） |
+| 公開中のルール版 | `m4-gameplay-2` |
+| 直前のルール版 | `m4-gameplay-1` |
 | 入力記録版 | `m2-input-1` |
 | 端末内保存形式 | `v1` |
 | 端末内プロフィールキー | `hanabin:profile:v1` |
@@ -42,7 +41,7 @@ Pages公開設定と自動検査は合格したが、実機確認と初見試遊
 
 ## 3. 自動検査の証跡
 
-### 3.1 公開中の`m4-gameplay-1`履歴
+### 3.1 直前版`m4-gameplay-1`の履歴
 
 | 検査 | 証跡 | 結果 |
 |---|---|---|
@@ -57,17 +56,17 @@ Pages公開設定と自動検査は合格したが、実機確認と初見試遊
 
 7戦略の平均得点は、予告利用が39,862.35点で首位だった。3個即起爆は28,929.642点、6個待ちは28,277.244点、密集起爆は27,091.7点、全面往復は19,365.098点、前半放置は11,659.062点、無作為は7,394.408点だった。
 
-### 3.2 作業候補`m4-gameplay-2`の再検証
+### 3.2 公開中の`m4-gameplay-2`の再検証
 
 2026年8月23日にローカルで10,000 seed・36,000,000 tick・200,000波を省略せず検査し、fault、不変条件違反、非決定性、選択不能波、完全重複、予告不一致、生成規則違反、攻略用乱数漏れはすべて0だった。1,000 seed×8戦略と8件の保存入力再生も完走し、再生差分は0だった。
 
 予告利用の平均は57,903.830点、中央値58,104点、予告固有点の比率は35.02%。最短5個は36,634.952点、最短3個は28,929.642点、密集起爆は27,098.398点、6個待ちは23,646.010点、全面往復は14,138.004点、前半放置は11,659.062点、無作為は7,436.210点だった。
 
-この結果は内部状態を正確に利用する自動戦略の再現可能な上限確認であり、人間の操作性や理解度の合格証拠ではない。作業候補では次波へつながる対象を金色の二重リングで表示するが、iPhone 17 Pro / Safariと初見5人の試遊は引き続き未確認である。Pull RequestのCI結果は作成後に確定する。
+この結果は内部状態を正確に利用する自動戦略の再現可能な上限確認であり、人間の操作性や理解度の合格証拠ではない。現行公開版では次波へつながる対象を金色の二重リングで表示する。マージ後の[CI Core #78](https://github.com/chameleonjp-lab/hanabin/actions/runs/32682500837)と[CI Browser #78](https://github.com/chameleonjp-lab/hanabin/actions/runs/32682500846)は成功したが、iPhone 17 Pro / Safariと初見5人の試遊は引き続き未確認である。
 
 ### 3.3 公開URL終端検査
 
-設定変更後の[Public Release Smoke #16](https://github.com/chameleonjp-lab/hanabin/actions/runs/31915642023)で、次の2テストが成功した。
+設定変更後の[Public Release Smoke #18](https://github.com/chameleonjp-lab/hanabin/actions/runs/32682529443)で、次の2テストが成功した。
 
 1. 公開Pagesのホーム → 初回練習 → スキップ → カウントダウン → 本編 → 実時間60秒 → 結果画面
 2. 公開対象外の `package.json`、README、docs、workflow設定がすべて404
@@ -96,8 +95,8 @@ Pages公開設定と自動検査は合格したが、実機確認と初見試遊
 | `build_type` | `workflow` | 合格 |
 | `source.branch` | `main` | 確認済み |
 | `source.path` | `/` | 確認済み |
-| Deploy GitHub Pages | 成功 | [run #21](https://github.com/chameleonjp-lab/hanabin/actions/runs/31915623844) |
-| Public Release Smoke | 2テスト成功 | [run #16](https://github.com/chameleonjp-lab/hanabin/actions/runs/31915642023) |
+| Deploy GitHub Pages | 成功 | [run #23](https://github.com/chameleonjp-lab/hanabin/actions/runs/32682500867) |
+| Public Release Smoke | 2テスト成功 | [run #18](https://github.com/chameleonjp-lab/hanabin/actions/runs/32682529443) |
 
 現在はGitHub Actionsの限定artifactを公開している。公開対象外URLの404とホームから結果画面までの経路も、上記Smokeで確認した。
 
