@@ -8,7 +8,10 @@
  */
 
 export const GAME_VERSION = "M4";
-export const RULE_VERSION = "m4-gameplay-2";
+// Choice guarantees are part of the deterministic gameplay contract. Keep a
+// new rule fingerprint so old replays and cached best scores cannot be mixed
+// with runs that can receive a runtime choice reserve.
+export const RULE_VERSION = "m4-gameplay-3";
 export const INPUT_SCHEMA_VERSION = "m2-input-1";
 
 export const COLORS = Object.freeze(["red", "blue", "green", "yellow"]);
@@ -31,6 +34,10 @@ export const FORECAST_PLAN_BONUS = 1_000;
 export const FORECAST_PLAN_LEAD_TICKS = 60;
 export const FORECAST_CHAIN_PER_TARGET = 150;
 export const SELECTION_HIT_RADIUS = 520;
+// A run must always expose at least one complete extra choice beyond the
+// three targets required for a detonation. The generator and runtime reserve
+// use the same value so a disappearing wave cannot make the session stall.
+export const MINIMUM_PLAYABLE_CHOICES = 4;
 // Compatibility name retained for the existing score/event surface.
 export const FORECAST_PLAN_CHAIN_BONUS_PER_TARGET = FORECAST_CHAIN_PER_TARGET;
 
@@ -92,6 +99,7 @@ const BASE_RULES = {
   // before a detonation is accepted.
   minimumSelection: 3,
   minSelection: 3,
+  minimumPlayableChoices: MINIMUM_PLAYABLE_CHOICES,
   maximumSelection: 12,
   maxSelection: 12,
   selectionHoldTicks: 3,
@@ -216,6 +224,21 @@ export const mergeRules = (overrides = {}) => {
       max: 64,
     }),
   );
+  const maxPerWave = Math.max(
+    minSelection,
+    finiteInteger(source.maxPerWave, DEFAULT_RULES.maxPerWave, { min: 1, max: 16 }),
+  );
+  const minimumPlayableChoices = Math.max(
+    minSelection,
+    Math.min(
+      maxPerWave,
+      finiteInteger(
+        source.minimumPlayableChoices,
+        DEFAULT_RULES.minimumPlayableChoices,
+        { min: 1, max: 16 },
+      ),
+    ),
+  );
   const result = {
     ...DEFAULT_RULES,
     ...source,
@@ -238,6 +261,7 @@ export const mergeRules = (overrides = {}) => {
     colorCount: COLOR_COUNT,
     minimumSelection: minSelection,
     minSelection,
+    minimumPlayableChoices,
     maximumSelection: maxSelection,
     maxSelection,
     tickRate: 60,
@@ -329,7 +353,7 @@ export const mergeRules = (overrides = {}) => {
       { min: 1, max: 256 },
     ),
     maxWaves: finiteInteger(source.maxWaves, DEFAULT_RULES.maxWaves, { min: 1, max: 32 }),
-    maxPerWave: finiteInteger(source.maxPerWave, DEFAULT_RULES.maxPerWave, { min: 1, max: 16 }),
+    maxPerWave,
     maxRetries: finiteInteger(source.maxRetries, DEFAULT_RULES.maxRetries, { min: 1, max: 32 }),
     maxInputFrames: finiteInteger(source.maxInputFrames, DEFAULT_RULES.maxInputFrames, {
       min: 1,

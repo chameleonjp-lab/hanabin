@@ -26,6 +26,7 @@ export class CanvasRenderer {
     autoQuality = true,
     variant = "touch",
     reducedMotion = false,
+    orientation = "landscape",
   } = {}) {
     if (!canvas || typeof canvas.getContext !== "function") {
       throw new TypeError("CanvasRenderer requires a 2D canvas");
@@ -35,6 +36,7 @@ export class CanvasRenderer {
     if (!this.ctx) throw new Error("Canvas 2D context is unavailable");
     this.boardWidth = boardWidth;
     this.boardHeight = boardHeight;
+    this.orientation = orientation === "portrait" ? "portrait" : "landscape";
     this.maxDevicePixelRatio = maxDevicePixelRatio;
     this.qualityController = new QualityController({
       initial: quality,
@@ -88,13 +90,42 @@ export class CanvasRenderer {
     this.canvas.dataset.renderParticleBudget = String(this.qualityController.profile.particleCapacity);
     this.canvas.dataset.presentationVariant = this.qualityController.variant;
     this.canvas.dataset.reducedMotion = this.qualityController.reducedMotion ? "true" : "false";
+    this.canvas.dataset.orientation = this.orientation;
     this.canvas.dataset.competitiveLayer = "protected";
     this.ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
     return { width, height, devicePixelRatio };
   }
 
+  setOrientation(orientation = "landscape") {
+    const next = orientation === "portrait" ? "portrait" : "landscape";
+    const changed = this.orientation !== next;
+    this.orientation = next;
+    this.canvas.dataset.orientation = next;
+    return changed;
+  }
+
+  logicalDimensions() {
+    return this.orientation === "portrait"
+      ? { width: this.height, height: this.width }
+      : { width: this.width, height: this.height };
+  }
+
+  applyDisplayTransform() {
+    const { ctx } = this;
+    ctx.setTransform(this.devicePixelRatio, 0, 0, this.devicePixelRatio, 0, 0);
+    if (this.orientation === "portrait") {
+      // Logical top -> screen right; logical bottom -> screen left.
+      ctx.translate(this.width, 0);
+      ctx.rotate(Math.PI / 2);
+    }
+  }
+
   boardPoint(x, y) {
-    return boardToCanvas(x, y, this.width, this.height, this.boardWidth, this.boardHeight);
+    const { width, height } = this.logicalDimensions();
+    const point = boardToCanvas(x, y, width, height, this.boardWidth, this.boardHeight);
+    return this.orientation === "portrait"
+      ? { x: this.width - point.y, y: point.x }
+      : point;
   }
 
   setQuality(level) {
@@ -134,8 +165,8 @@ export class CanvasRenderer {
     this.qualityController.resetSamples();
   }
 
-  drawBackground(state) {
-    const { ctx, width, height } = this;
+  drawBackground(state, width = this.width, height = this.height) {
+    const { ctx } = this;
     const gradient = ctx.createLinearGradient(0, 0, width, height);
     gradient.addColorStop(0, "#07132c");
     gradient.addColorStop(0.48, "#080b1c");
@@ -181,23 +212,25 @@ export class CanvasRenderer {
     rules = DEFAULT_RULES,
   } = {}) {
     const startedAt = nowMs();
+    const { width, height } = this;
+    const logical = this.logicalDimensions();
+    this.applyDisplayTransform();
     if (!state) {
-      this.drawBackground(null);
+      this.drawBackground(null, logical.width, logical.height);
       this.decorativeLayer.render(null);
       this.canvas.dataset.renderQuality = this.qualityController.level;
       return;
     }
-    const { ctx, width, height } = this;
-    ctx.setTransform(this.devicePixelRatio, 0, 0, this.devicePixelRatio, 0, 0);
-    this.drawBackground(state);
+    const { ctx } = this;
+    this.drawBackground(state, logical.width, logical.height);
 
     // Decorative visuals are intentionally rendered before the competitive
     // layer. Targets, selection count, forecast, reticle and exact geometry
     // remain readable at every quality level.
     this.decorativeLayer.render(ctx, {
       state,
-      width,
-      height,
+      width: logical.width,
+      height: logical.height,
       boardWidth: this.boardWidth,
       boardHeight: this.boardHeight,
       nowMs: startedAt,
@@ -207,8 +240,8 @@ export class CanvasRenderer {
     // decorative quality layer.
     drawCompetitiveLayer(ctx, {
       state,
-      width,
-      height,
+      width: logical.width,
+      height: logical.height,
       boardWidth: this.boardWidth,
       boardHeight: this.boardHeight,
       pointer,
@@ -236,7 +269,7 @@ export class CanvasRenderer {
     if (phase === "finalizing") {
       ctx.save();
       ctx.fillStyle = "rgba(3, 7, 19, 0.22)";
-      ctx.fillRect(0, 0, width, height);
+      ctx.fillRect(0, 0, logical.width, logical.height);
       ctx.restore();
     }
     this.canvas.dataset.renderQuality = this.qualityController.level;
@@ -244,6 +277,7 @@ export class CanvasRenderer {
     this.canvas.dataset.renderParticleBudget = String(this.qualityController.profile.particleCapacity);
     this.canvas.dataset.presentationVariant = this.qualityController.variant;
     this.canvas.dataset.reducedMotion = this.qualityController.reducedMotion ? "true" : "false";
+    this.canvas.dataset.orientation = this.orientation;
   }
 
   destroy() {

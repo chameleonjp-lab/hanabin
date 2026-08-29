@@ -478,6 +478,30 @@ test("practice candidates use the real 16,000 x 9,000 circular hit radius", () =
   assert.equal(findPracticeCandidate({ x: target.x + 400, y: target.y + 400 }, [], rules), null);
 });
 
+test("portrait client coordinates rotate the logical board clockwise", () => {
+  const rect = { left: 10, top: 20, width: 200, height: 400 };
+  assert.deepEqual(clientToBoard(110, 220, rect, {
+    orientation: "landscape",
+    aimOffsetRatio: 0,
+  }), { x: 8_000, y: 4_500, aimX: 8_000, aimY: 4_500, fingerX: 8_000, fingerY: 4_500 });
+  assert.deepEqual(clientToBoard(210, 20, rect, {
+    orientation: "portrait",
+    aimOffsetRatio: 0,
+  }), { x: 0, y: 0, aimX: 0, aimY: 0, fingerX: 0, fingerY: 0 });
+  assert.deepEqual(clientToBoard(10, 20, rect, {
+    orientation: "portrait",
+    aimOffsetRatio: 0,
+  }), { x: 0, y: 9_000, aimX: 0, aimY: 9_000, fingerX: 0, fingerY: 9_000 });
+  assert.deepEqual(clientToBoard(210, 420, rect, {
+    orientation: "portrait",
+    aimOffsetRatio: 0,
+  }), { x: 16_000, y: 0, aimX: 16_000, aimY: 0, fingerX: 16_000, fingerY: 0 });
+  assert.deepEqual(clientToBoard(10, 420, rect, {
+    orientation: "portrait",
+    aimOffsetRatio: 0,
+  }), { x: 16_000, y: 9_000, aimX: 16_000, aimY: 9_000, fingerX: 16_000, fingerY: 9_000 });
+});
+
 test("practice canvas uses CSS dimensions and preserves its DPR transform", () => {
   withBrowserGlobals(({ windowStub }) => {
     windowStub.devicePixelRatio = 2;

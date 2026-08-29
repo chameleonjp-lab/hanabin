@@ -50,7 +50,7 @@
         </header>
 
         <p id="orientation-guide" class="orientation-guide" hidden>
-          縦画面ではプレイできません。iPhoneを横向きにしてから開始してください。
+          縦画面にも対応しています。画面上側を右、下側を左へ回した配置で花火を選びます。
         </p>
 
         <section id="home-screen" class="screen screen--home" data-screen="home" aria-labelledby="home-title">
@@ -68,8 +68,8 @@
               <span id="profile-best-label" class="profile-best-label">現ルールの端末内ベスト</span>
             </div>
             <label class="field-row" for="player-name">
-              <span>名前（任意・12文字まで）</span>
-              <input id="player-name" name="player-name" type="text" maxlength="12" autocomplete="nickname" inputmode="text" placeholder="ゲストプレイヤー" />
+              <span>名前（必須・12文字まで）</span>
+              <input id="player-name" name="player-name" type="text" maxlength="12" autocomplete="nickname" inputmode="text" placeholder="プレイヤー名" required aria-required="true" />
             </label>
             <p id="profile-error" class="field-error" role="alert" hidden>名前は1〜12文字で入力してください。</p>
             <div class="profile-settings-grid">
@@ -108,6 +108,7 @@
                 <li id="rule-chain"></li>
                 <li id="rule-inclusion"></li>
                 <li id="rule-forecast"></li>
+                <li id="rule-choices"></li>
               </ul>
               <h3>減点</h3>
               <p id="rule-penalty"></p>
@@ -192,9 +193,30 @@
                 <span class="hud-label">RANGE</span>
                 <strong id="hud-blast-range">3個で 1,800</strong>
               </div>
+              <div class="hud-pill hud-pill--choices" aria-label="現在選べる同色グループ">
+                <span class="hud-label">CHOICES</span>
+                <strong id="hud-choice-count" data-minimum="4">4</strong>
+              </div>
               <div class="hud-forecast" id="hud-forecast" aria-label="次の2波の予告">
                 <span class="hud-label">NEXT WAVES</span>
                 <span id="hud-forecast-items">—</span>
+              </div>
+            </div>
+            <button id="pause-button" class="pause-button secondary-button" type="button">一時停止</button>
+            <div id="pause-menu" class="pause-menu" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
+              <div class="pause-menu__card">
+                <p class="home-kicker">GAME PAUSED</p>
+                <h2 id="pause-title">一時停止</h2>
+                <p id="pause-message">プレイを一時停止しています。</p>
+                <div class="pause-menu__actions">
+                  <button id="pause-resume-button" class="primary-button" type="button">再開</button>
+                  <button id="pause-retire-button" class="secondary-button" type="button">リタイア</button>
+                  <button id="pause-rules-button" class="secondary-button" type="button" aria-expanded="false" aria-controls="pause-rules-panel">ルール説明</button>
+                </div>
+                <div id="pause-rules-panel" class="pause-rules" hidden>
+                  <p>同じ色を3つ以上、1本指で押したままつなぎます。外輪が一周するまで待ってから離すと起爆し、2.5秒で自動判定されます。</p>
+                  <p>CHOICESは現在つなげる同色グループの最大数です。常に4個以上を目標に補充します。</p>
+                </div>
               </div>
             </div>
             <div id="resume-overlay" class="resume-overlay" hidden aria-live="assertive">
@@ -217,6 +239,7 @@
           <p class="home-kicker">RUN COMPLETE</p>
           <h2 id="result-title">今回の結果</h2>
           <p id="result-player-name" class="result-player-name">ゲストプレイヤー</p>
+          <p id="result-status" class="result-status">プレイ完了</p>
           <div class="result-score">
             <span class="hud-label">SCORE</span>
             <strong id="result-score">0</strong>
@@ -244,6 +267,14 @@
           <div class="result-record"><span>端末内ベスト</span><strong><span id="result-best-score">0</span> / 連鎖 <span id="result-best-chain">0</span></strong></div>
           <p id="result-replay" class="result-replay" role="status">入力記録を検証しています…</p>
           <p id="result-hint" class="result-hint">次の波の予告を使ってみましょう。</p>
+          <section class="result-ranking" aria-labelledby="result-ranking-title">
+            <div class="result-ranking__heading">
+              <h3 id="result-ranking-title">この端末のランキング TOP10</h3>
+              <span>スコア / 最大連鎖</span>
+            </div>
+            <ol id="result-ranking-list" class="result-ranking__list"></ol>
+            <p id="result-ranking-note" class="result-ranking__note">オンラインランキングは準備中です。ここではこの端末の記録だけを表示します。</p>
+          </section>
           <div class="share-panel">
             <button id="share-button" class="secondary-button" type="button">結果を共有</button>
             <p id="share-status" class="share-status" role="status" aria-live="polite"></p>
@@ -251,11 +282,12 @@
           <div class="result-actions">
             <button id="retry-button" class="primary-button" type="button">もう一度遊ぶ</button>
             <button id="home-button" class="secondary-button" type="button">ホームへ戻る</button>
+            <a id="result-experiment-link" class="secondary-button result-experiment-link" href="#" target="_blank" rel="noopener noreferrer">実験場へ</a>
           </div>
         </section>
 
         <p class="notice" id="m7-notice">
-          iPhoneは横画面専用です。PCは自動でリッチ演出、スマホは負荷を抑えた演出になります。音は初期状態で無効です。
+          スマホは縦・横画面に対応しています。PCはマウスで押しながらつなぎます。PCはリッチ演出、スマホは負荷を抑えた演出です。音は初期状態で無効です。
         </p>
       </section>
     </main>

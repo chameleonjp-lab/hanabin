@@ -2,7 +2,7 @@
 
 同色の花火を選び、起爆位置と時刻を考えて連鎖を伸ばす、スマートフォン向け60秒スコアアタックゲームです。
 
-M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未完了で、公開URL専用の実時間終端検査とGitHub Pagesの公開元修正は完了していますが、iPhone 17 Pro（横画面のみ）の実機確認と初見5人の試遊が残っています。ランキングはまだ実装していません。
+M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未完了で、公開URL専用の実時間終端検査とGitHub Pagesの公開元修正は完了していますが、iPhone 17 Proの実機確認と初見5人の試遊が残っています。追加要件（選択肢保証、一時停止、名前必須、結果導線、PC操作、縦画面、端末内TOP10）はDraft PR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)へ実装し、CI Core／Browser #87も成功しています。Core全量ゲートは15分制限でキャンセルされたため30分へ延長し、全量・再生fixture・artifactまで成功させています。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)へ整理しています。
 
 2026年8月23日の操作感度、PC/touch演出、効果音、得点表示、予告バランスの後続修正はPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、公開Pagesへ反映済みです。マージ後の自動検査と公開検査は成功していますが、iPhone 17 Pro / Safari実機と初見5人の試遊は未確認です。実装済み範囲と実機未確認項目は[`docs/EXPERIENCE_BALANCE_AUDIT.md`](./docs/EXPERIENCE_BALANCE_AUDIT.md)を正本とします。
 
@@ -29,7 +29,9 @@ M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未�
 - [`docs/MVP_RELEASE_REPORT.md`](./docs/MVP_RELEASE_REPORT.md)
   M7の自動検査、公開版固定情報、GitHub Pages、実機検査、初見試遊の結果を記録します。
 - [`docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md`](./docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md)
-  iPhone 17 Pro（横画面のみ）、初見5人、Pages設定の確認結果を、未確認と実測値を分けて記録します。
+  iPhone 17 Pro（横・縦画面）、初見5人、Pages設定の確認結果を、未確認と実測値を分けて記録します。
+- [`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)
+  敵対的検証と今回の追加要件を統合したタスク、受入条件、未確認境界を記録します。
 - [`docs/EXPERIENCE_BALANCE_AUDIT.md`](./docs/EXPERIENCE_BALANCE_AUDIT.md)
   PC/touchの品質差、スマホ操作、全効果音、得点・爆発範囲、予告バランス、iPhone 17 Proの未確認項目を一つの監査表にまとめます。
 
@@ -37,11 +39,13 @@ M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未�
 
 ゲームルールや挙動は次の順で参照します。
 
-1. [`ADVERSARIAL_REVIEW.md`](./ADVERSARIAL_REVIEW.md)  
+1. [`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)
+   今回の追加要件と直近の敵対的検証を統合した、現在の追補タスクと受入条件です。
+2. [`ADVERSARIAL_REVIEW.md`](./ADVERSARIAL_REVIEW.md)
    抜け道、単純な最適行動、端末差、不正送信、処理異常を防ぐための必須修正です。
-2. [`GAME_CREATOR_REVIEW.md`](./GAME_CREATOR_REVIEW.md)  
+3. [`GAME_CREATOR_REVIEW.md`](./GAME_CREATOR_REVIEW.md)
    60秒の体験、上達、連鎖の狙いやすさ、成功時の反応を補強します。
-3. [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)  
+4. [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
    基本ルール、技術構成、試験、MVP完成条件を定めます。
 
 ゲームの挙動が競合する場合は上の文書を優先し、実装順序は`IMPLEMENTATION_EXECUTION_PLAN.md`を基準にします。
@@ -62,7 +66,7 @@ M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未�
 - 作業用ブランチとDraft Pull Requestを使います。
 - 一つのPull Requestは、ブラウザまたは試験結果で確認できるまとまりにします。
 - ゲーム設計審査を通過するまで、豪華な花火演出を優先しません。
-- ランキングは、MVPの得点式と競技条件を固定した後に追加します。
+- オンライン公式ランキングは、サーバー再計算と不正対策を実装した後に追加します。現在の結果画面には端末内TOP10だけを表示します。
 
 ## 現在の状態
 
@@ -78,6 +82,6 @@ M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未�
 - M5実装: Pull Request [#9](https://github.com/chameleonjp-lab/hanabin/pull/9)を`main`へマージ済み。選択線を保護した独自花火表現、光粒プール、品質別描画を確認済み
 - M6実装: Pull Request [#10](https://github.com/chameleonjp-lab/hanabin/pull/10)を`main`へマージ済み。初回練習、端末内プロフィール、結果ヒント・共有、音設定を確認済み
 - M7実装: Pull Request [#11](https://github.com/chameleonjp-lab/hanabin/pull/11)で公開版固定情報と最終自動検証を、[#17](https://github.com/chameleonjp-lab/hanabin/pull/17)で公開URL専用検査を、[#19](https://github.com/chameleonjp-lab/hanabin/pull/19)で手動受入チェックリストを、[#34](https://github.com/chameleonjp-lab/hanabin/pull/34)でスマホ操作・演出・音・バランスの後続修正を`main`へ反映済み
-- MVP受入: 6/7。GitHub PagesはGitHub Actionsの限定artifact公開へ切り替え済み。iPhone 17 Pro（横画面のみ）の実機確認と初見5人の試遊は未確認
-- 実機受入対象: iPhone 17 Proのみ。縦画面は非対応で、横画面で指を押したまま色を選び、指を離して起爆する
+- MVP受入: 6/7。GitHub PagesはGitHub Actionsの限定artifact公開へ切り替え済み。iPhone 17 Pro（横・縦画面）の実機確認と初見5人の試遊は未確認
+- 実機受入対象: iPhone 17 Proのみ。横画面と、時計回りの論理16:9表示にした縦画面で、指を押したまま色を選び、指を離して起爆する。実機確認は未完了
 - 文書だけを変更したPull Requestのマージ履歴はGitHubを正本とし、進捗判定が変わらない限り各文書へ追記しない

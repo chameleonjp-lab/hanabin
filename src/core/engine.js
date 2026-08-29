@@ -22,6 +22,7 @@ import {
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const finiteInteger = (value) => Number.isInteger(value) && Number.isFinite(value);
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const idKey = (value) => String(value);
 const numericId = (value) => (Number.isFinite(Number(value)) ? Number(value) : Number.MAX_SAFE_INTEGER);
 const distanceSquared = (leftX, leftY, rightX, rightY) => {
@@ -46,6 +47,150 @@ const compareCollisionEvents = (left, right) =>
   left.eventId - right.eventId;
 
 const activeEntities = (state) => state.fireworks.filter((entity) => entity.status === "active");
+const queuedGameplayEntityCount = (state) =>
+  state.fireworks.filter((entity) => entity.layout !== "choice-reserve").length +
+  state.pendingEntities.length;
+
+const playableGroup = (state, rules, { stopAt = 0 } = {}) => {
+  const candidates = activeEntities(state).filter((entity) =>
+    !rules.selectionMustBeVisible || entity.visible,
+  );
+  const linkRadiusSquared = rules.selectionLinkDistance * rules.selectionLinkDistance;
+  const byColor = new Map();
+  for (const candidate of candidates) {
+    const group = byColor.get(candidate.color) ?? [];
+    group.push(candidate);
+    byColor.set(candidate.color, group);
+  }
+  const groups = [];
+  for (const [color, colorCandidates] of [...byColor.entries()].sort((left, right) => left[0] - right[0])) {
+    colorCandidates.sort((left, right) => compareIds(left.id, right.id));
+    const visited = new Set();
+    for (const start of colorCandidates) {
+      const startKey = idKey(start.id);
+      if (visited.has(startKey)) continue;
+      const queue = [start];
+      let queueIndex = 0;
+      visited.add(startKey);
+      const members = [];
+      while (queueIndex < queue.length) {
+        const current = queue[queueIndex++];
+        members.push(current);
+        for (const candidate of colorCandidates) {
+          const candidateKey = idKey(candidate.id);
+          if (visited.has(candidateKey)) continue;
+          if (distanceSquared(current.x, current.y, candidate.x, candidate.y) > linkRadiusSquared) continue;
+          visited.add(candidateKey);
+          queue.push(candidate);
+        }
+      }
+      const group = { color, members };
+      if (stopAt > 0 && members.length >= stopAt) return group;
+      groups.push(group);
+    }
+  }
+  return groups.sort((left, right) =>
+    right.members.length - left.members.length ||
+    left.color - right.color ||
+    compareIds(left.members[0]?.id, right.members[0]?.id),
+  )[0] ?? null;
+};
+
+/** Return the largest currently visible same-colour selection group. */
+export const playableChoiceCount = (state, rulesArg = DEFAULT_RULES) => {
+  const rules = mergeRules(rulesArg);
+  return playableGroup(state, rules)?.members.length ?? 0;
+};
+
+const choiceReservePosition = (state, group, index, count, rules) => {
+  const first = group?.members?.[0];
+  const sequence = state.choiceGuaranteeSequence + 1;
+  const defaultX = rules.boardWidth * (0.25 + (sequence % 3) * 0.25);
+  const defaultY = rules.boardHeight * (0.28 + (sequence % 2) * 0.32);
+  const anchorX = first?.x ?? Math.round(defaultX);
+  const anchorY = first?.y ?? Math.round(defaultY);
+  const stepX = Math.max(1, Math.min(
+    Math.round(rules.selectionLinkDistance * 0.24),
+    Math.round(rules.boardWidth * 0.06),
+  ));
+  const stepY = Math.max(1, Math.min(
+    Math.round(rules.selectionLinkDistance * 0.12),
+    Math.round(rules.boardHeight * 0.05),
+  ));
+  const centeredIndex = index - (count - 1) / 2;
+  const x = clamp(
+    Math.round(anchorX + (centeredIndex + 1.1) * stepX),
+    0,
+    rules.boardWidth,
+  );
+  const y = clamp(
+    Math.round(anchorY + (index % 2 === 0 ? -stepY : stepY)),
+    0,
+    rules.boardHeight,
+  );
+  return { x, y };
+};
+
+// Runtime fail-safe for expiry, visibility changes, and a chain that clears
+// the only group. It adds only non-forecast targets, so it never manufactures
+// forecast score bonuses or changes the wave schedule.
+const ensurePlayableChoices = (state, rules) => {
+  if (!state || state.simulationFault || state.status !== "running" || state.tick >= rules.maxTicks) return;
+  // Let an active chain finish before adding a reserve. Otherwise the newly
+  // created targets could be pulled into the same explosion and turn a
+  // recovery mechanism into an unintended chain multiplier.
+  if (state.activeExplosions.length || state.chainQueue.length) return;
+  // Pending entities are future choices, not choices visible right now. They
+  // do not exempt the current board from the guarantee; the active-capacity
+  // calculation below still prevents the reserve from exceeding the bound.
+  const current = playableGroup(state, rules, { stopAt: rules.minimumPlayableChoices });
+  if ((current?.members.length ?? 0) >= rules.minimumPlayableChoices) return;
+  if (state.choiceGuaranteeTick === state.tick) return;
+  const capacity = Math.max(0, rules.maxActiveEntities - activeEntities(state).length);
+  const needed = Math.min(
+    rules.minimumPlayableChoices - (current?.members.length ?? 0),
+    capacity,
+  );
+  if (needed <= 0) return;
+  const color = current?.color ?? state.upcomingWaves?.[0]?.primaryColor ?? state.waves.at(-1)?.primaryColor ?? 0;
+  const waveIndex = Number.isInteger(state.nextWaveIndex) ? state.nextWaveIndex : 0;
+  const reserveSequence = state.choiceGuaranteeSequence + 1;
+  const anchor = current?.members?.[0] ?? null;
+  for (let index = 0; index < needed; index += 1) {
+    const position = choiceReservePosition(state, current, index, needed, rules);
+    const entity = {
+      id: 1_000_000 + reserveSequence * 100 + index,
+      waveId: `choice-reserve-${reserveSequence}`,
+      waveIndex,
+      localIndex: index,
+      color,
+      x: position.x,
+      y: position.y,
+      baseX: position.x,
+      baseY: position.y,
+      vx: 0,
+      vy: 0,
+      depth: 1_050 + index,
+      radius: rules.entityRadius,
+      spawnTick: state.tick,
+      lifetimeTicks: rules.lifetimeMaxTicks,
+      expiresTick: state.tick + rules.lifetimeMaxTicks,
+      layout: "choice-reserve",
+      forecastForWaveIndex: null,
+      visible: true,
+      status: "active",
+      scored: false,
+    };
+    state.fireworks.push(entity);
+    state.stats.entitiesSpawned += 1;
+    state.stats.choiceGuaranteeEntities += 1;
+  }
+  state.choiceGuaranteeSequence = reserveSequence;
+  state.choiceGuaranteeTick = state.tick;
+  state.stats.choiceGuaranteeGroups += 1;
+  state.lastAction = { type: "choice-guarantee", count: needed, color };
+  if (anchor) state.lastAction.anchorId = anchor.id;
+};
 
 const setFault = (state, code, message, details = {}) => {
   if (!state.simulationFault) {
@@ -155,6 +300,8 @@ const refreshAt = (state, tick, rules) => {
     }
   }
   state.stats.maxActiveEntities = Math.max(state.stats.maxActiveEntities, activeEntities(state).length);
+  ensurePlayableChoices(state, rules);
+  state.stats.maxActiveEntities = Math.max(state.stats.maxActiveEntities, activeEntities(state).length);
 };
 
 const appendWave = (state, wave, rules) => {
@@ -174,7 +321,10 @@ const appendWave = (state, wave, rules) => {
   };
   state.waves.push(metadata);
   for (const candidate of wave.entities) {
-    if (state.fireworks.length + state.pendingEntities.length >= rules.maxPendingEntities + rules.maxActiveEntities) {
+    // Choice reserves are a recovery surface, not part of the bounded wave
+    // queue. They must not make an otherwise valid no-input run fault merely
+    // because the player allowed several waves to accumulate.
+    if (queuedGameplayEntityCount(state) >= rules.maxPendingEntities + rules.maxActiveEntities) {
       setFault(state, "ENTITY_QUEUE_LIMIT", "entity queue limit exceeded", {
         waveId: wave.waveId,
       });
@@ -220,10 +370,13 @@ export const createGame = (seedOrOptions = 1, rulesArg = DEFAULT_RULES) => {
   return state;
 };
 
-export const startGame = (state) => {
+export const startGame = (state, rulesArg = DEFAULT_RULES) => {
   if (!state || typeof state !== "object") return state;
   if (state.simulationFault) return state;
-  if (state.status === "ready") state.status = "running";
+  if (state.status === "ready") {
+    state.status = "running";
+    ensurePlayableChoices(state, mergeRules(rulesArg));
+  }
   return state;
 };
 
@@ -239,7 +392,7 @@ export const advanceGame = (state, targetTick, rulesArg = DEFAULT_RULES) => {
       maxTicks: rules.maxTicks,
     });
   }
-  startGame(state);
+  startGame(state, rules);
   while (!state.simulationFault) {
     const waveFireTick = state.nextWaveIndex < rules.maxWaves
       ? waveTickAt(state.nextWaveIndex, rules)
@@ -332,7 +485,7 @@ export const selectAt = (state, x, y, options = {}, rulesArg = DEFAULT_RULES) =>
 export const selectEntity = (state, id, rulesArg = DEFAULT_RULES, acquisition = {}) => {
   const rules = mergeRules(rulesArg);
   if (state.simulationFault) return null;
-  startGame(state);
+  startGame(state, rules);
   if (state.tick < state.cooldownUntilTick) {
     ignore(state, "cooldown", { id });
     return null;
@@ -547,6 +700,7 @@ const scoreTarget = (state, target, sourceColor, event, rules) => {
     radiusMultiplierPercent: event.radiusMultiplierPercent,
     durationMultiplierPercent: event.durationMultiplierPercent,
     kind: event.kind,
+    chainable: target.layout !== "choice-reserve",
   });
   state.score += amount;
   state.stats.entitiesExploded += 1;
@@ -589,6 +743,7 @@ const collectActiveExplosionHits = (state, tick, rules) => {
       x: entity.x,
       y: entity.y,
       depth: entity.depth,
+      layout: entity.layout,
     }))
     .sort((left, right) => compareIds(left.id, right.id));
   const unavailable = new Set([
@@ -603,8 +758,13 @@ const collectActiveExplosionHits = (state, tick, rules) => {
     left.eventId - right.eventId,
   );
   for (const explosion of explosions) {
+    // Emergency choice reserves are selectable recovery targets, but their
+    // direct points must not become a farmable chain source while a board is
+    // waiting for the next normal wave.
+    if (explosion.chainable === false) continue;
     for (const candidate of snapshot) {
       const candidateKey = idKey(candidate.id);
+      if (candidate.layout === "choice-reserve") continue;
       if (candidateKey === idKey(explosion.targetId) || unavailable.has(candidateKey)) continue;
       const ratio = candidate.color === explosion.sourceColor
         ? rules.sameColorRadius / 100
@@ -733,6 +893,7 @@ const processChainQueue = (state, tick, rules) => {
   dropInvisibleSelections(state, rules);
   state.activeExplosions = state.activeExplosions.filter((explosion) => explosion.endTick > tick);
   collectActiveExplosionHits(state, tick, rules);
+  ensurePlayableChoices(state, rules);
 };
 
 /**

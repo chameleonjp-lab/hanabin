@@ -108,6 +108,7 @@ export class TutorialController {
     rules = DEFAULT_RULES,
     sound = null,
     isInteractionAllowed = null,
+    orientation = "landscape",
   } = {}) {
     if (!element) throw new TypeError("TutorialController requires a practice screen");
     this.element = element;
@@ -120,6 +121,7 @@ export class TutorialController {
     this.onComplete = typeof onComplete === "function" ? onComplete : null;
     this.onSkip = typeof onSkip === "function" ? onSkip : null;
     this.sound = sound;
+    this.orientation = orientation === "portrait" ? "portrait" : "landscape";
     this.isInteractionAllowed = typeof isInteractionAllowed === "function"
       ? isInteractionAllowed
       : () => true;
@@ -159,6 +161,7 @@ export class TutorialController {
     this.pointer = new PointerController(this.canvas, {
       boardWidth: this.rules.boardWidth,
       boardHeight: this.rules.boardHeight,
+      orientation: this.orientation,
       isInputAllowed: () => this.state === "running" && this.isInteractionAllowed(),
       onChange: (change) => this.handlePointerChange(change),
       onInterrupt: (reason) => this.handlePointerInterrupt(reason),
@@ -170,6 +173,7 @@ export class TutorialController {
     this.canvas.dataset.practiceBoardHeight = String(this.rules.boardHeight);
     this.canvas.dataset.practiceHitRadius = String(this.rules.selectionHitRadius);
     this.canvas.dataset.practiceMinHoldTicks = String(this.rules.minHoldTicks);
+    this.canvas.dataset.orientation = this.orientation;
     this.width = Math.max(1, Number(this.canvas.width) || 960);
     this.height = Math.max(1, Number(this.canvas.height) || 540);
     this.devicePixelRatio = 1;
@@ -206,6 +210,15 @@ export class TutorialController {
     this.canvas.dataset.practiceDevicePixelRatio = String(devicePixelRatio);
     this.context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
     return { width, height, devicePixelRatio };
+  }
+
+  setOrientation(orientation = "landscape") {
+    const next = orientation === "portrait" ? "portrait" : "landscape";
+    const changed = this.orientation !== next;
+    this.orientation = next;
+    this.pointer.setOrientation(next);
+    this.canvas.dataset.orientation = next;
+    return changed;
   }
 
   resetGesture({ clearSelection = true } = {}) {
@@ -391,13 +404,19 @@ export class TutorialController {
 
   handlePointerLifecycle(reason) {
     if (this.state !== "running") return;
-    this.stopTimer();
     this.resetGesture();
     this.remainingSeconds = Math.max(0, this.remainingSeconds);
     this.lastInterruptReason = reason;
     this.lastFailureReason = reason;
-    this.state = "expired";
     this.sound?.cancel?.({ reason });
+    if (reason === "orientationchange") {
+      // Rotation changes the screen-to-board transform, not the practice
+      // session. Keep the timer running while discarding the in-flight path.
+      this.render();
+      return;
+    }
+    this.stopTimer();
+    this.state = "expired";
     this.render();
   }
 
@@ -461,33 +480,39 @@ export class TutorialController {
     const { context: ctx, canvas } = this;
     const width = this.width;
     const height = this.height;
+    const logicalWidth = this.orientation === "portrait" ? height : width;
+    const logicalHeight = this.orientation === "portrait" ? width : height;
     ctx.setTransform(this.devicePixelRatio, 0, 0, this.devicePixelRatio, 0, 0);
-    const toCanvas = (target) => ({ x: target.x * width, y: target.y * height });
+    if (this.orientation === "portrait") {
+      ctx.translate(width, 0);
+      ctx.rotate(Math.PI / 2);
+    }
+    const toCanvas = (target) => ({ x: target.x * logicalWidth, y: target.y * logicalHeight });
     const boardToCanvas = (point) => ({
-      x: point.x / this.rules.boardWidth * width,
-      y: point.y / this.rules.boardHeight * height,
+      x: point.x / this.rules.boardWidth * logicalWidth,
+      y: point.y / this.rules.boardHeight * logicalHeight,
     });
     const selected = new Set(this.selectedIds);
-    const gradient = ctx.createLinearGradient(0, 0, width, height);
+    const gradient = ctx.createLinearGradient(0, 0, logicalWidth, logicalHeight);
     gradient.addColorStop(0, "#07132c");
     gradient.addColorStop(0.5, "#080b1c");
     gradient.addColorStop(1, "#120b28");
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
+    ctx.fillRect(0, 0, logicalWidth, logicalHeight);
     ctx.save();
     ctx.globalAlpha = 0.2;
     ctx.strokeStyle = "#8ca6e8";
     ctx.lineWidth = 1;
-    for (let x = width / 4; x < width; x += width / 4) {
+    for (let x = logicalWidth / 4; x < logicalWidth; x += logicalWidth / 4) {
       ctx.beginPath();
       ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
+      ctx.lineTo(x, logicalHeight);
       ctx.stroke();
     }
-    for (let y = height / 3; y < height; y += height / 3) {
+    for (let y = logicalHeight / 3; y < logicalHeight; y += logicalHeight / 3) {
       ctx.beginPath();
       ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
+      ctx.lineTo(logicalWidth, y);
       ctx.stroke();
     }
     ctx.restore();
@@ -497,7 +522,7 @@ export class TutorialController {
       ctx.strokeStyle = "rgba(255, 113, 143, 0.95)";
       ctx.shadowColor = "rgba(255, 113, 143, 0.8)";
       ctx.shadowBlur = 18;
-      ctx.lineWidth = Math.max(5, width / 150);
+      ctx.lineWidth = Math.max(5, logicalWidth / 150);
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       ctx.beginPath();
@@ -516,7 +541,7 @@ export class TutorialController {
       const isTarget = "id" in target;
       const isSelected = isTarget && selected.has(target.id);
       const isHovered = isTarget && target.id === this.hoverCandidateId;
-      const scale = Math.min(width / this.rules.boardWidth, height / this.rules.boardHeight);
+      const scale = Math.min(logicalWidth / this.rules.boardWidth, logicalHeight / this.rules.boardHeight);
       const radius = displayEntityRadius(scale, this.rules);
       ctx.save();
       ctx.globalAlpha = isTarget ? 1 : 0.46;
@@ -575,7 +600,7 @@ export class TutorialController {
       ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.arc(aim.x, aim.y, Math.max(8, width / 46), 0, Math.PI * 2);
+      ctx.arc(aim.x, aim.y, Math.max(8, logicalWidth / 46), 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     }
@@ -590,7 +615,7 @@ export class TutorialController {
     canvas.dataset.practiceHoverCandidate = this.hoverCandidateId ?? "";
     canvas.dataset.practiceHoverTicks = String(this.hoverTicks);
     canvas.dataset.practiceTargetRadius = String(displayEntityRadius(
-      Math.min(width / this.rules.boardWidth, height / this.rules.boardHeight),
+      Math.min(logicalWidth / this.rules.boardWidth, logicalHeight / this.rules.boardHeight),
       this.rules,
     ));
     canvas.dataset.practiceLastInterrupt = this.lastInterruptReason;
@@ -608,7 +633,7 @@ export class TutorialController {
     }
     if (this.messageElement) {
       this.messageElement.textContent = !interactionAllowed
-        ? "縦画面では練習できません。iPhoneを横向きにしてください。"
+        ? "現在の画面では練習できません。画面を確認してください。"
         : boardState === "ready"
         ? "まず練習を始め、光っている同じ色を3つなぞります。"
         : boardState === "running"
@@ -622,7 +647,7 @@ export class TutorialController {
     if (this.progressElement) this.progressElement.textContent = `${this.selectedIds.length} / ${PRACTICE_TARGET_COUNT}`;
     if (this.feedbackElement) {
       this.feedbackElement.textContent = !interactionAllowed
-        ? "横向きにすると練習を再開できます"
+        ? "画面を確認すると練習を再開できます"
         : boardState === "success"
         ? "巻き込み成功"
         : boardState === "expired"

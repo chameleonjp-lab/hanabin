@@ -25,6 +25,7 @@ export const clientToBoard = (clientX, clientY, rect, {
   boardWidth = BOARD_WIDTH,
   boardHeight = BOARD_HEIGHT,
   aimOffsetRatio = 0.1,
+  orientation = "landscape",
 } = {}) => {
   if (!rect || !Number.isFinite(rect.width) || !Number.isFinite(rect.height) ||
       !Number.isFinite(rect.left) || !Number.isFinite(rect.top) ||
@@ -52,15 +53,28 @@ export const clientToBoard = (clientX, clientY, rect, {
   aimPixelX = clamp(aimPixelX, margin, rect.width - margin);
   aimPixelY = clamp(aimPixelY, margin, rect.height - margin);
 
+  const toBoard = (pixelX, pixelY) => orientation === "portrait"
+    ? {
+      // In portrait the logical 16:9 board is rotated clockwise. The
+      // logical top is on screen-right and the logical bottom on screen-left.
+      x: Math.round(pixelY / rect.height * boardWidth),
+      y: Math.round((rect.width - pixelX) / rect.width * boardHeight),
+    }
+    : {
+      x: Math.round(pixelX / rect.width * boardWidth),
+      y: Math.round(pixelY / rect.height * boardHeight),
+    };
+  const aim = toBoard(aimPixelX, aimPixelY);
+  const finger = toBoard(fingerX * rect.width, fingerY * rect.height);
   return {
     // x/y are the aim location sent to M2.  fingerX/fingerY are display-only
     // values and never enter the replay schema.
-    x: Math.round(aimPixelX / rect.width * boardWidth),
-    y: Math.round(aimPixelY / rect.height * boardHeight),
-    aimX: Math.round(aimPixelX / rect.width * boardWidth),
-    aimY: Math.round(aimPixelY / rect.height * boardHeight),
-    fingerX: Math.round(fingerX * boardWidth),
-    fingerY: Math.round(fingerY * boardHeight),
+    x: aim.x,
+    y: aim.y,
+    aimX: aim.x,
+    aimY: aim.y,
+    fingerX: finger.x,
+    fingerY: finger.y,
   };
 };
 
@@ -83,6 +97,7 @@ export class PointerController {
     onInterrupt = null,
     onLifecycle = null,
     isInputAllowed = null,
+    orientation = "landscape",
   } = {}) {
     if (!element || typeof element.addEventListener !== "function") {
       throw new TypeError("PointerController requires an event target");
@@ -90,6 +105,7 @@ export class PointerController {
     this.element = element;
     this.boardWidth = boardWidth;
     this.boardHeight = boardHeight;
+    this.orientation = orientation === "portrait" ? "portrait" : "landscape";
     this.sampler = createPointerSampler();
     this.fingerX = 0;
     this.fingerY = 0;
@@ -131,6 +147,15 @@ export class PointerController {
     element.style.webkitUserSelect = "none";
     element.style.webkitTouchCallout = "none";
     element.style.webkitTapHighlightColor = "transparent";
+    element.dataset.orientation = this.orientation;
+  }
+
+  setOrientation(orientation = "landscape") {
+    const next = orientation === "portrait" ? "portrait" : "landscape";
+    const changed = this.orientation !== next;
+    this.orientation = next;
+    if (this.element.dataset) this.element.dataset.orientation = next;
+    return changed;
   }
 
   boardPoint(event) {
@@ -142,6 +167,7 @@ export class PointerController {
       {
         boardWidth: this.boardWidth,
         boardHeight: this.boardHeight,
+        orientation: this.orientation,
         aimOffsetRatio: event?.pointerType === "touch"
           ? TOUCH_AIM_OFFSET_RATIO
           : MOUSE_AIM_OFFSET_RATIO,

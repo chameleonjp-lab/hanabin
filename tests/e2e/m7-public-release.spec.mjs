@@ -39,6 +39,7 @@ test("published Pages reaches the result screen through the real terminal flow",
   await page.goto("./?public-smoke=1", { waitUntil: "networkidle", timeout: 30_000 });
   await expect(page.locator("#app")).not.toHaveAttribute("data-state", "loading");
   await expect(page.locator("#start-button")).toBeVisible();
+  await page.locator("#player-name").fill("公開テスト");
 
   await page.locator("#start-button").click();
   await expect(page.locator("#practice-screen")).toBeVisible();

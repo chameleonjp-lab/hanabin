@@ -16,9 +16,9 @@ try {
     root: app,
     canvas,
   });
-  createOrientationGuide(orientationGuide, ({ portrait }) => {
+  createOrientationGuide(orientationGuide, ({ portrait, previousPortrait }) => {
     orientationGuide.dataset.orientation = portrait ? "portrait" : "landscape";
-    controller.handleOrientation({ portrait });
+    controller.handleOrientation({ portrait, previousPortrait });
   });
 
   // Preserve M1's clean-load contract on the home screen. Gameplay phases

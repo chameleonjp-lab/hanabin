@@ -40,6 +40,8 @@ export const createInitialState = (seed = 1, rules = DEFAULT_RULES) => {
     nextWaveIndex: 0,
     upcomingWaves: [],
     upcomingWaveIndex: null,
+    choiceGuaranteeTick: null,
+    choiceGuaranteeSequence: 0,
     pendingEntities: [],
     activeExplosions: [],
     chainQueue: [],
@@ -66,6 +68,8 @@ export const createInitialState = (seed = 1, rules = DEFAULT_RULES) => {
       ignoredInputs: 0,
       selectionDrops: 0,
       maxActiveEntities: 0,
+      choiceGuaranteeGroups: 0,
+      choiceGuaranteeEntities: 0,
     },
     simulationFault: null,
     lastAction: null,
@@ -107,6 +111,14 @@ export const validateState = (state, rules = DEFAULT_RULES) => {
   if (!isInteger(state.resolutionTick) || state.resolutionTick < 0 ||
       state.resolutionTick > resolvedRules.maxTicks + resolvedRules.maxChainTicks) {
     errors.push("RESOLUTION_TICK_OUT_OF_RANGE");
+  }
+  if (state.choiceGuaranteeTick !== null &&
+      (!isInteger(state.choiceGuaranteeTick) || state.choiceGuaranteeTick < 0 ||
+       state.choiceGuaranteeTick > resolvedRules.maxTicks)) {
+    errors.push("CHOICE_GUARANTEE_TICK_INVALID");
+  }
+  if (!isInteger(state.choiceGuaranteeSequence) || state.choiceGuaranteeSequence < 0) {
+    errors.push("CHOICE_GUARANTEE_SEQUENCE_INVALID");
   }
   if (!Array.isArray(state.fireworks)) errors.push("FIREWORKS_NOT_ARRAY");
   else {
@@ -190,6 +202,8 @@ export const validateState = (state, rules = DEFAULT_RULES) => {
     "maxChainDurationTicks",
     "maxConcurrentExplosions",
     "maxActiveEntities",
+    "choiceGuaranteeGroups",
+    "choiceGuaranteeEntities",
   ]) {
     if (!isInteger(state.stats?.[key]) || state.stats[key] < 0) {
       errors.push(`STATS_${key.toUpperCase()}_INVALID`);
