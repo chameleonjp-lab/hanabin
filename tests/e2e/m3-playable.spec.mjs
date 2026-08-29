@@ -10,6 +10,10 @@ const REQUIRED_TEST_API = [
   "transitions",
   "renderModel",
   "setQuality",
+  "pause",
+  "resume",
+  "retire",
+  "togglePauseRules",
 ];
 
 const viewports = [
@@ -61,6 +65,7 @@ const openPage = async (page, viewport) => {
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
   await page.goto("/?e2e=1");
   await expect(page.locator("#app")).not.toHaveAttribute("data-state", "loading");
+  await page.locator("#player-name").fill("M3テスト");
 
   const apiKeys = await page.evaluate(() => Object.keys(window.__hanabinTest ?? {}));
   expect(
@@ -183,35 +188,21 @@ for (const viewport of viewports) {
   });
 }
 
-test("M3 portrait viewport shows guidance and blocks pointer input", async ({ page }) => {
+test("M3 portrait viewport keeps a playable board with clockwise logical mapping", async ({ page }) => {
   const viewport = { width: 375, height: 667 };
   const diagnostics = await openPage(page, viewport);
   await expect(page.locator("#orientation-guide")).toBeVisible();
-  // The controller must refuse to start while the orientation guide is
-  // active. Do not call beginPlaying here: that helper intentionally assumes
-  // a landscape input surface and would turn a correct refusal into a test
-  // setup failure.
-  await page.locator("#start-button").click();
-
-  const rawBox = await page.locator("#game-canvas").boundingBox();
-  const box = rawBox && {
-    ...rawBox,
-    left: rawBox.x,
-    top: rawBox.y,
-    right: rawBox.x + rawBox.width,
-    bottom: rawBox.y + rawBox.height,
-  };
-  if (box) {
-    await page.mouse.move(box.left + box.width / 2, box.top + box.height / 2);
-    await page.mouse.down();
-    const during = await callApi(page, "renderModel");
-    expect(during?.pointer?.pointerId ?? null).toBeNull();
-    await page.mouse.up();
-  }
-  const snapshot = await callApi(page, "snapshot");
-  expect(snapshot).toBeNull();
-  expect(snapshot?.pointerPressed ?? false).toBe(false);
-  expect(snapshot?.selectedIds ?? []).toEqual([]);
+  await beginPlaying(page);
+  await expect(page.locator("#play-screen")).toBeVisible();
+  await expect(page.locator("#game-canvas")).toHaveAttribute("data-orientation", "portrait");
+  const frame = await page.locator("#game-frame").boundingBox();
+  expect(frame).not.toBeNull();
+  expect(frame.width / frame.height).toBeCloseTo(9 / 16, 2);
+  const before = await callApi(page, "snapshot");
+  await callApi(page, "advanceTicks", 10);
+  const after = await callApi(page, "snapshot");
+  expect(after.actionCount).toBe(before.actionCount + 10);
+  expect(after.simulationFault).toBeNull();
   assertClean(diagnostics);
 });
 
@@ -222,6 +213,18 @@ test("M3 mouse input selects and detonates through the browser adapter", async (
 
   expect(snapshot.score).toBeGreaterThan(0);
   expect(snapshot.stats.detonationCount).toBeGreaterThanOrEqual(1);
+  expect(snapshot.simulationFault).toBeNull();
+  assertClean(diagnostics);
+});
+
+test("M3 PC presentation keeps mouse click-drag input on the deterministic path", async ({ page }) => {
+  const diagnostics = await openPage(page, viewports[2]);
+  await beginPlaying(page);
+  const model = await callApi(page, "renderModel");
+  expect(model.experience.variant).toBe("desktop");
+  const snapshot = await playFirstSelection(page);
+  expect(snapshot.inputFrames.some((frame) => frame.type === "pointer" && frame.pressed)).toBe(true);
+  expect(snapshot.score).toBeGreaterThan(0);
   expect(snapshot.simulationFault).toBeNull();
   assertClean(diagnostics);
 });
@@ -338,7 +341,7 @@ test("M3 pointercancel clears selection and records one cancellation marker", as
   assertClean(diagnostics);
 });
 
-test("M3 rotation interrupts once, pauses fixed ticks, and resumes without catch-up", async ({ page }) => {
+test("M3 rotation interrupts the gesture once and continues in portrait without catch-up", async ({ page }) => {
   const diagnostics = await openPage(page, viewports[0]);
   await beginPlaying(page);
   const box = await canvasBox(page);
@@ -356,20 +359,21 @@ test("M3 rotation interrupts once, pauses fixed ticks, and resumes without catch
   const portraitBeforeAdvance = await callApi(page, "snapshot");
   await callApi(page, "advanceTicks", 120);
   const portraitAfterAdvance = await callApi(page, "snapshot");
-  expect(portraitAfterAdvance.actionCount).toBe(portraitBeforeAdvance.actionCount);
-  expect(portraitAfterAdvance.selectedIds).toEqual(portraitBeforeAdvance.selectedIds);
+  expect(portraitAfterAdvance.actionCount).toBe(portraitBeforeAdvance.actionCount + 120);
+  expect(portraitAfterAdvance.selectedIds).toEqual([]);
+  expect(portraitAfterAdvance.inputFrames.filter((frame) => frame.interrupted === true)).toHaveLength(1);
 
   await page.setViewportSize({ width: 667, height: 375 });
   await expect(page.locator("#orientation-guide")).toBeHidden();
   await callApi(page, "advanceTicks", 1);
   const afterResume = await callApi(page, "snapshot");
-  expect(afterResume.actionCount).toBe(beforeRotation.actionCount + 1);
+  expect(afterResume.actionCount).toBe(beforeRotation.actionCount + 121);
   expect(afterResume.selectedIds).toEqual([]);
   expect(afterResume.inputFrames.filter((frame) => frame.interrupted === true)).toHaveLength(1);
 
   await callApi(page, "advanceTicks", 5);
   const afterVisibleTicks = await callApi(page, "snapshot");
-  expect(afterVisibleTicks.actionCount).toBe(beforeRotation.actionCount + 6);
+  expect(afterVisibleTicks.actionCount).toBe(beforeRotation.actionCount + 126);
   expect(afterVisibleTicks.inputFrames.filter((frame) => frame.interrupted === true)).toHaveLength(1);
   await page.mouse.up();
   assertClean(diagnostics);
@@ -604,7 +608,7 @@ test("M3 finalization resumes after rotating through portrait", async ({ page })
   await callApi(page, "advanceTicks", 3_600);
   await page.setViewportSize({ width: 375, height: 667 });
   await expect(page.locator("#orientation-guide")).toBeVisible();
-  expect((await callApi(page, "renderModel")).clock.paused).toBe(true);
+  expect((await callApi(page, "renderModel")).clock.paused).toBe(false);
 
   await page.setViewportSize({ width: 667, height: 375 });
   await expect(page.locator("#orientation-guide")).toBeHidden();

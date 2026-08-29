@@ -94,7 +94,7 @@ test("replay metadata is strict and a complete replay is deterministic", () => {
   assert.throws(() => createReplayLog({ seed: 1, rules: DEFAULT_RULES, frames: [] }), /Invalid replay/);
   assert.ok(validateReplayLog({ seed: 1, ruleVersion: DEFAULT_RULES.ruleVersion, inputSchemaVersion: DEFAULT_RULES.inputSchemaVersion, maxTicks: 3_600, frames: [] }).length);
   const simulation = runSimulation(44, { strategy: "shortest-three" });
-  assert.equal(simulation.replay.ruleVersion, "m4-gameplay-2");
+  assert.equal(simulation.replay.ruleVersion, "m4-gameplay-3");
   assert.equal(simulation.replay.frames.length, 3_600);
   const legacyReplay = replayGame({
     ...simulation.replay,

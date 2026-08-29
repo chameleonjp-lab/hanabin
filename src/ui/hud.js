@@ -5,6 +5,7 @@ import {
 } from "../config/rules.js";
 import { colorName, colorValue, colorSymbol } from "../render/competitive-layer.js";
 import { forecastSuccessForAction } from "./forecast-feedback.js";
+import { playableChoiceCount } from "../core/engine.js";
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const byId = (root, id) => root?.querySelector?.(`#${id}`) ?? null;
@@ -55,6 +56,7 @@ export const updateHud = (root, state, {
   const selectionCount = byId(root, "hud-selection-count");
   const selectionTime = byId(root, "hud-selection-time");
   const blastRange = byId(root, "hud-blast-range");
+  const choiceCount = byId(root, "hud-choice-count");
   const forecast = byId(root, "hud-forecast-items");
   const safeState = state ?? {};
   const seconds = remainingSeconds === null
@@ -90,6 +92,13 @@ export const updateHud = (root, state, {
     const blast = blastRangeForSelection(selectedCount, rules);
     blastRange.textContent = blast.label;
     blastRange.dataset.radius = String(blast.radius);
+  }
+  if (choiceCount) {
+    const available = playableChoiceCount(safeState, rules);
+    choiceCount.textContent = String(available);
+    choiceCount.dataset.minimum = String(rules.minimumPlayableChoices);
+    choiceCount.dataset.guaranteed = available >= rules.minimumPlayableChoices ? "true" : "false";
+    root.dataset.availableChoices = String(available);
   }
   if (forecast) {
     const forecastKey = (safeState.upcomingWaves ?? []).slice(0, 2)

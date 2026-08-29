@@ -67,6 +67,8 @@ export const renderResult = (root, state, {
   profile = {},
   publicUrl = publicUrlFor(),
   isBestScore = false,
+  isRetired = state.status === "retired",
+  ranking = [],
 } = {}) => {
   if (!root || !state) return null;
   const stats = state.stats ?? {};
@@ -91,6 +93,7 @@ export const renderResult = (root, state, {
   setText("result-score-other", formatScore(breakdown.other));
   setText("result-score-deductions", "0");
   setText("result-player-name", safeText(profile.name) || "ゲストプレイヤー");
+  setText("result-status", isRetired ? "リタイアしました" : state.simulationFault ? "このプレイは無効です" : "プレイ完了");
   setText("result-best-score", formatScore(profile.bestScore ?? 0));
   setText("result-best-chain", Math.max(0, Math.trunc(profile.bestChain ?? 0)));
   setText("result-hint", resultHintFor(state));
@@ -107,7 +110,35 @@ export const renderResult = (root, state, {
   });
   const shareButton = root.querySelector("#share-button");
   if (shareButton) shareButton.dataset.shareText = shareText;
-  return { score, maxChain, breakdown, hint: resultHintFor(state), shareText };
+  const rankingList = root.querySelector("#result-ranking-list");
+  const entries = Array.isArray(ranking) ? ranking.slice(0, 10) : [];
+  if (rankingList) {
+    rankingList.replaceChildren();
+    const ownerDocument = root.ownerDocument ?? (typeof document !== "undefined" ? document : null);
+    if (!entries.length) {
+      if (!ownerDocument) return { score, maxChain, breakdown, hint: resultHintFor(state), shareText, ranking: entries };
+      const empty = ownerDocument.createElement("li");
+      empty.className = "result-ranking__empty";
+      empty.textContent = "まだ記録がありません";
+      rankingList.append(empty);
+    } else {
+      entries.forEach((entry, index) => {
+        const item = ownerDocument.createElement("li");
+        const rank = ownerDocument.createElement("span");
+        rank.className = "result-ranking__rank";
+        rank.textContent = `${index + 1}`;
+        const name = ownerDocument.createElement("span");
+        name.className = "result-ranking__name";
+        name.textContent = safeText(entry?.name) || "名無し";
+        const value = ownerDocument.createElement("strong");
+        value.className = "result-ranking__score";
+        value.textContent = `${formatScore(entry?.score)} / ${Math.max(0, Math.trunc(Number(entry?.maxChain) || 0))}連鎖`;
+        item.append(rank, name, value);
+        rankingList.append(item);
+      });
+    }
+  }
+  return { score, maxChain, breakdown, hint: resultHintFor(state), shareText, ranking: entries };
 };
 
 const fallbackCopy = (text) => {

@@ -8,6 +8,8 @@ const openPage = async (page, viewport = null) => {
   if (viewport) await page.setViewportSize(viewport);
   await page.goto("/?e2e=1");
   await expect(page.locator("#app")).not.toHaveAttribute("data-state", "loading");
+  const nameInput = page.locator("#player-name");
+  if (!(await nameInput.inputValue())) await nameInput.fill("M6テスト");
 };
 
 const completePracticeGesture = async (page) => {
@@ -29,6 +31,13 @@ const callApi = (page, method, ...args) => page.evaluate(async ({ method: name, 
   if (!api || typeof api[name] !== "function") throw new Error(`Missing test API: ${name}`);
   return api[name](...args);
 }, { method, args });
+
+const beginPlaying = async (page) => {
+  await page.locator("#start-button").click();
+  await page.locator("#practice-skip").click();
+  await callApi(page, "advanceTicks", 1);
+  await expect(page.locator("#play-screen")).toBeVisible();
+};
 
 const pointForTarget = (target, box) => ({
   x: Math.min(box.x + box.width - 2, Math.max(box.x + 2, box.x + target.x / BOARD_WIDTH * box.width)),
@@ -126,7 +135,7 @@ test("M6 home practice can return home, repeat twice, and then enter the real ga
       name: "",
       bestScore: 0,
       bestChain: 0,
-      bestRuleVersion: "m4-gameplay-2",
+      bestRuleVersion: "m4-gameplay-3",
       quality: "high",
       qualityManual: false,
       soundEnabled: false,
@@ -154,7 +163,7 @@ test("M6 home practice can return home, repeat twice, and then enter the real ga
   await expect(page.locator("#play-screen")).toBeVisible();
 });
 
-test("M6 landscape practice fits the viewport and portrait retry stays blocked", async ({ page }) => {
+test("M6 practice fits landscape and remains playable after portrait rotation", async ({ page }) => {
   await openPage(page, { width: 844, height: 390 });
   await page.locator("#start-button").click();
   const canvas = page.locator("#practice-canvas");
@@ -177,17 +186,15 @@ test("M6 landscape practice fits the viewport and portrait retry stays blocked",
   await page.locator("#practice-start").click();
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator("#orientation-guide")).toBeVisible();
-  await expect(canvas).toHaveAttribute("data-practice-state", "expired");
-  await expect(page.locator("#practice-start")).toBeDisabled();
-  await expect(page.locator("#practice-skip")).toBeDisabled();
-  await page.locator("#practice-start").evaluate((element) => element.click());
-  await expect(canvas).toHaveAttribute("data-practice-state", "expired");
+  await expect(canvas).toHaveAttribute("data-practice-state", "running");
+  await expect(canvas).toHaveAttribute("data-orientation", "portrait");
+  const portraitBox = await canvas.boundingBox();
+  expect(portraitBox.width / portraitBox.height).toBeCloseTo(9 / 16, 1);
 
   await page.setViewportSize({ width: 844, height: 390 });
   await expect(page.locator("#orientation-guide")).toBeHidden();
-  await expect(page.locator("#practice-start")).toBeEnabled();
-  await page.locator("#practice-start").click();
   await expect(canvas).toHaveAttribute("data-practice-state", "running");
+  await expect(canvas).toHaveAttribute("data-orientation", "landscape");
 });
 
 test("M6 practice rejects an unsampled fast sweep and ignores a second pointer", async ({ page }) => {
@@ -215,6 +222,62 @@ test("M6 practice rejects an unsampled fast sweep and ignores a second pointer",
   await expect(canvas).toHaveAttribute("data-practice-state", "running");
   await expect(canvas).toHaveAttribute("data-practice-selected-count", "0");
   await expect(page.locator("#practice-progress")).toHaveText("0 / 3");
+});
+
+test("M6 requires a player name before opening practice", async ({ page }) => {
+  await openPage(page);
+  await page.locator("#player-name").fill("");
+  await page.locator("#start-button").click();
+  await expect(page.locator("#profile-error")).toBeVisible();
+  await expect(page.locator("#home-screen")).toBeVisible();
+
+  await page.locator("#player-name").fill("名前あり");
+  await page.locator("#start-button").click();
+  await expect(page.locator("#practice-screen")).toBeVisible();
+});
+
+test("M6 pause menu freezes ticks, explains rules, and supports retire", async ({ page }) => {
+  await openPage(page);
+  await beginPlaying(page);
+  const before = await callApi(page, "snapshot");
+
+  await page.locator("#pause-button").click();
+  await expect(page.locator("#pause-menu")).toBeVisible();
+  await expect(page.locator("#pause-resume-button")).toBeFocused();
+  await callApi(page, "advanceTicks", 30);
+  expect((await callApi(page, "snapshot")).actionCount).toBe(before.actionCount);
+
+  await page.locator("#pause-rules-button").click();
+  await expect(page.locator("#pause-rules-panel")).toBeVisible();
+  await expect(page.locator("#pause-rules-panel")).toContainText("同じ色");
+  await page.locator("#pause-resume-button").click();
+  await expect(page.locator("#pause-menu")).toBeHidden();
+  expect((await callApi(page, "renderModel")).clock.userPaused).toBe(false);
+
+  await callApi(page, "advanceTicks", 1);
+  expect((await callApi(page, "snapshot")).actionCount).toBe(before.actionCount + 1);
+  await page.locator("#pause-button").click();
+  await page.locator("#pause-retire-button").click();
+  await expect(page.locator("#result-screen")).toBeVisible();
+  await expect(page.locator("#result-status")).toHaveText("リタイアしました");
+  await expect(page.locator("#result-replay")).toContainText("ランキングには登録していません");
+});
+
+test("M6 result exposes home, experiment, and local top-ten ranking routes", async ({ page }) => {
+  await openPage(page);
+  await beginPlaying(page);
+  await expect(page.locator("#hud-choice-count")).toHaveText(/^[4-9][0-9]*$/);
+  await expect(page.locator("#hud-choice-count")).toHaveAttribute("data-guaranteed", "true");
+  await callApi(page, "settleTerminal");
+  await expect(page.locator("#result-screen")).toBeVisible();
+  await expect(page.locator("#result-home")).toHaveCount(0);
+  await expect(page.locator("#home-button")).toBeVisible();
+  await expect(page.locator("#result-experiment-link")).toHaveAttribute(
+    "href",
+    "https://chameleonjp-lab.github.io/chameleonjp_lab/",
+  );
+  await expect(page.locator("#result-ranking-list li")).toHaveCount(1);
+  await expect(page.locator("#result-ranking-list")).toContainText("M6テスト");
 });
 
 test("M6 practice safely stops and clears progress on page lifecycle interruption", async ({ page }) => {
@@ -383,7 +446,7 @@ test("M6 resets an old-rule best while preserving player preferences", async ({ 
     name: "花子",
     bestScore: 0,
     bestChain: 0,
-    bestRuleVersion: "m4-gameplay-2",
+    bestRuleVersion: "m4-gameplay-3",
     quality: "medium",
     qualityManual: true,
     soundEnabled: true,

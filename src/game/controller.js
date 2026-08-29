@@ -5,6 +5,8 @@ import { CanvasRenderer } from "../render/canvas-renderer.js";
 import { SoundController } from "../audio/sound.js";
 import { detectPresentationExperience } from "../presentation/experience.js";
 import { createProfileStore, sanitizePlayerName } from "../storage/local-storage.js";
+import { createRankingStore } from "../storage/local-ranking.js";
+import { EXPERIMENT_URL } from "../config/release.js";
 import { GameSession } from "./session.js";
 import { PresentationEventTracker } from "./presentation-events.js";
 import { updateHud, updatePlayMessage } from "../ui/hud.js";
@@ -64,6 +66,7 @@ export class GameController {
     this.defaultSeed = Number(seed) >>> 0 || 1;
     this.nextSeed = this.defaultSeed;
     this.profileStore = createProfileStore();
+    this.rankingStore = createRankingStore();
     this.profile = this.profileStore.load();
     if (this.profile.bestRuleVersion !== this.rules.ruleVersion) {
       this.profile = this.profileStore.update({
@@ -73,6 +76,7 @@ export class GameController {
       });
     }
     this.experience = detectPresentationExperience();
+    this.orientation = this.isPortrait() ? "portrait" : "landscape";
     this.screens = new ScreenController(root);
     this.renderer = new CanvasRenderer(canvas, {
       boardWidth: this.rules.boardWidth,
@@ -81,6 +85,7 @@ export class GameController {
       autoQuality: !this.profile.qualityManual,
       variant: this.experience.variant,
       reducedMotion: this.experience.reducedMotion,
+      orientation: this.orientation,
     });
     this.sound = new SoundController({
       enabled: this.profile.soundEnabled,
@@ -92,6 +97,7 @@ export class GameController {
     this.pointer = new PointerController(canvas, {
       boardWidth: this.rules.boardWidth,
       boardHeight: this.rules.boardHeight,
+      orientation: this.orientation,
       onChange: (change) => this.handlePointerChange(change),
       onInterrupt: (reason) => this.handlePointerInterrupt(reason),
       isInputAllowed: () => this.inputAllowed(),
@@ -126,8 +132,16 @@ export class GameController {
     this.soundToggle = root.querySelector("#sound-toggle");
     this.resumeOverlay = root.querySelector("#resume-overlay");
     this.resumeValue = root.querySelector("#resume-value");
+    this.pauseButton = root.querySelector("#pause-button");
+    this.pauseMenu = root.querySelector("#pause-menu");
+    this.pauseResumeButton = root.querySelector("#pause-resume-button");
+    this.pauseRetireButton = root.querySelector("#pause-retire-button");
+    this.pauseRulesButton = root.querySelector("#pause-rules-button");
+    this.pauseRulesPanel = root.querySelector("#pause-rules-panel");
     this.shareButton = root.querySelector("#share-button");
     this.shareStatus = root.querySelector("#share-status");
+    this.resultStatus = root.querySelector("#result-status");
+    this.resultExperimentLink = root.querySelector("#result-experiment-link");
     this.startButton = root.querySelector("#start-button");
     this.practiceButton = root.querySelector("#practice-button");
     this.practiceHomeButton = root.querySelector("#practice-home");
@@ -139,12 +153,15 @@ export class GameController {
     this.lastPersistedResultKey = "";
     this.lastBestScore = false;
     this.practiceReturnsHome = false;
+    this.userPaused = false;
+    this.pauseRulesOpen = false;
     this.pointerHintText = "";
     this.pointerHintUntilMs = 0;
     this.tutorial = new TutorialController(root.querySelector("#practice-screen"), {
       rules: this.rules,
       sound: this.sound,
-      isInteractionAllowed: () => !this.isPortrait(),
+      orientation: this.orientation,
+      isInteractionAllowed: () => true,
       onComplete: () => this.finishPractice(false),
       onSkip: () => this.finishPractice(true),
     });
@@ -189,15 +206,22 @@ export class GameController {
     this.practiceHomeButton?.addEventListener("click", () => this.goHome());
     this.retryButton?.addEventListener("click", () => {
       void this.sound.unlock();
-      this.start();
+      this.requestStart();
     });
     this.homeButton?.addEventListener("click", () => this.goHome());
     this.shareButton?.addEventListener("click", () => this.shareResult());
+    this.pauseButton?.addEventListener("click", () => this.pauseGame());
+    this.pauseResumeButton?.addEventListener("click", () => this.resumeGame());
+    this.pauseRetireButton?.addEventListener("click", () => this.retireGame());
+    this.pauseRulesButton?.addEventListener("click", () => this.togglePauseRules());
     // The pointer adapter owns the marker; this listener only resumes the
     // wall-clock accumulator and intentionally never catches up hidden time.
     document.addEventListener("visibilitychange", this.boundVisibility, { passive: true });
     window.addEventListener("pageshow", this.boundPageShow, { passive: true });
     window.addEventListener("resize", this.boundResize, { passive: true });
+    // The static HTML keeps the pause controls available to assistive
+    // technology, but they must not appear before a playable session exists.
+    this.setPauseMenu(false);
     renderRulesGuide(this.root, this.rules);
     this.applyProfileToControls();
     this.applyExperienceToRoot();
@@ -254,7 +278,7 @@ export class GameController {
 
   validateNameField() {
     const raw = this.playerNameInput?.value ?? "";
-    const valid = raw.trim() === "" || sanitizePlayerName(raw) !== "";
+    const valid = raw.trim() !== "" && sanitizePlayerName(raw) !== "";
     if (this.profileError) this.profileError.hidden = valid;
     return valid;
   }
@@ -274,7 +298,7 @@ export class GameController {
 
   setPlayerName(value) {
     const normalized = sanitizePlayerName(String(value ?? ""));
-    if (String(value ?? "").trim() && !normalized) {
+    if (!normalized) {
       if (this.profileError) this.profileError.hidden = false;
       return false;
     }
@@ -350,10 +374,7 @@ export class GameController {
   }
 
   openPractice({ returnHome = false, seed = null } = {}) {
-    if (this.destroyed || this.isPortrait()) {
-      if (this.status && this.isPortrait()) this.status.textContent = "横向きにしてから練習してください";
-      return null;
-    }
+    if (this.destroyed) return null;
     this.practiceReturnsHome = returnHome === true;
     this.pendingStartSeed = this.practiceReturnsHome ? null : seed;
     this.tutorial.show();
@@ -366,9 +387,9 @@ export class GameController {
   }
 
   requestStart(seed = null) {
-    if (!this.persistProfileControls()) return null;
-    if (this.isPortrait()) {
-      if (this.status) this.status.textContent = "横向きにしてから開始してください";
+    if (!this.persistProfileControls()) {
+      if (this.status) this.status.textContent = "名前を入力してから開始してください";
+      this.playerNameInput?.focus?.();
       return null;
     }
     if (!this.profile.practiceCompleted && !this.profile.practiceSkipped) {
@@ -391,6 +412,11 @@ export class GameController {
       this.practiceReturnsHome = false;
       this.pendingStartSeed = null;
       this.goHome();
+      return this.session.state;
+    }
+    if (!this.persistProfileControls()) {
+      if (this.status) this.status.textContent = "名前を入力してから本番を開始してください";
+      this.playerNameInput?.focus?.();
       return this.session.state;
     }
     const seed = this.pendingStartSeed;
@@ -416,6 +442,65 @@ export class GameController {
     return copied;
   }
 
+  setPauseMenu(open) {
+    const isOpen = open === true;
+    if (this.pauseMenu) this.pauseMenu.hidden = !isOpen;
+    if (this.pauseButton) this.pauseButton.hidden = isOpen || this.phase !== "playing";
+    if (!isOpen) this.setPauseRules(false);
+  }
+
+  setPauseRules(open) {
+    this.pauseRulesOpen = open === true;
+    if (this.pauseRulesPanel) this.pauseRulesPanel.hidden = !this.pauseRulesOpen;
+    if (this.pauseRulesButton) {
+      this.pauseRulesButton.setAttribute("aria-expanded", this.pauseRulesOpen ? "true" : "false");
+    }
+  }
+
+  togglePauseRules() {
+    if (!this.userPaused) return false;
+    this.setPauseRules(!this.pauseRulesOpen);
+    return this.pauseRulesOpen;
+  }
+
+  pauseGame() {
+    if (this.phase !== "playing" || this.userPaused) return false;
+    this.userPaused = true;
+    this.pointer.interrupt("user-pause");
+    this.pauseClock("user-pause");
+    this.setPauseMenu(true);
+    if (this.status) this.status.textContent = "一時停止中";
+    this.render();
+    this.pauseResumeButton?.focus?.();
+    return true;
+  }
+
+  resumeGame() {
+    if (!this.userPaused) return false;
+    this.userPaused = false;
+    this.setPauseMenu(false);
+    this.resumeClock();
+    if (this.status) this.status.textContent = "プレイ中 — 60秒";
+    this.render();
+    return true;
+  }
+
+  retireGame() {
+    if (this.phase !== "playing" || !this.userPaused) return false;
+    this.userPaused = false;
+    this.clockPaused = false;
+    this.resumePendingFrame = false;
+    this.resumeStartedMs = null;
+    this.interruptPending = false;
+    this.updateResumePresentation(null);
+    this.setPauseMenu(false);
+    this.stopLoop();
+    this.pointer.clear();
+    this.session.retire();
+    this.render();
+    return true;
+  }
+
   get phase() {
     return this.session.phase;
   }
@@ -423,6 +508,10 @@ export class GameController {
   handlePhaseChange(phase, previous) {
     const screenPhase = toScreenPhase(phase);
     this.screens.show(screenPhase, toScreenPhase(previous));
+    // Keep the pause button synchronized on every phase transition. In
+    // particular, start() runs before the countdown/play transitions and must
+    // not leave the button hidden after the play screen becomes visible.
+    this.setPauseMenu(false);
     // The play canvas is hidden during home, practice, and countdown. Resize
     // it after the play screen becomes visible so the first rendered frame
     // uses the real CSS geometry instead of the 1600x900 fallback.
@@ -471,29 +560,35 @@ export class GameController {
   }
 
   inputAllowed() {
-    return this.phase === "playing" && !this.clockPaused && !this.isPortrait() &&
+    return this.phase === "playing" && !this.clockPaused && !this.userPaused &&
       !this.isResumeGateActive() &&
       (typeof document === "undefined" || document.visibilityState === "visible");
   }
 
-  handleOrientation({ portrait } = {}) {
-    // The practice controller owns its own clock, but shares the same
-    // landscape-only product contract and must update its controls too.
-    if (portrait === true || this.isPortrait()) {
-      if (this.tutorial?.state === "running") {
-        this.tutorial.handlePointerLifecycle("orientationchange");
-      } else {
-        this.tutorial?.render();
-      }
-      this.pauseClock("orientationchange");
-      this.pointer.interrupt("orientationchange");
-      return;
-    }
+  handleOrientation({ portrait, previousPortrait = null } = {}) {
+    const nextOrientation = portrait === true || this.isPortrait() ? "portrait" : "landscape";
+    const changed = this.orientation !== nextOrientation ||
+      (previousPortrait !== null && previousPortrait !== (nextOrientation === "portrait"));
+    this.orientation = nextOrientation;
+    this.renderer.setOrientation(nextOrientation);
+    this.pointer.setOrientation(nextOrientation);
+    this.tutorial?.setOrientation(nextOrientation);
+    this.renderer.resize();
+    if (this.screens.phase === "practice") this.tutorial?.resizeCanvas();
     this.tutorial?.render();
-    if (["countdown", "playing", "finalizing"].includes(this.phase) &&
-        document.visibilityState === "visible") {
-      this.resumeClock();
+    if (changed && ["countdown", "playing", "finalizing"].includes(this.phase)) {
+      // Rotation invalidates the in-flight pointer geometry. The pointer
+      // adapter may already have placed this marker from orientationchange;
+      // repeating it is idempotent and keeps direct test calls safe.
+      this.pointer.interrupt("orientationchange");
+      if (!this.userPaused) {
+        this.pauseClock("orientationchange");
+        if (typeof document === "undefined" || document.visibilityState === "visible") {
+          this.resumeClock();
+        }
+      }
     }
+    this.render();
   }
 
   pauseClock() {
@@ -511,7 +606,7 @@ export class GameController {
   }
 
   resumeClock() {
-    if (this.isPortrait() || (document.visibilityState !== "visible" && !this.deterministicTestMode)) return;
+    if (this.userPaused || (document.visibilityState !== "visible" && !this.deterministicTestMode)) return;
     if (this.phase === "countdown") {
       if (this.countdownPausedAtMs !== null && this.countdownStartedMs !== null) {
         this.countdownStartedMs += nowMs() - this.countdownPausedAtMs;
@@ -557,22 +652,18 @@ export class GameController {
       this.pointer.interrupt("visibilitychange");
       return;
     }
-    if (!this.clockPaused) return;
+    if (!this.clockPaused || this.userPaused) return;
     // Start a new wall-clock interval. No elapsed hidden duration is added to
     // the accumulator and no catch-up burst is generated.
     this.resumeClock();
   }
 
   handlePageShow() {
-    if (document.visibilityState === "visible") this.resumeClock();
+    if (document.visibilityState === "visible" && !this.userPaused) this.resumeClock();
   }
 
   start(seed = null) {
     if (this.destroyed) return null;
-    if (this.isPortrait()) {
-      if (this.status) this.status.textContent = "横向きにしてから開始してください";
-      return null;
-    }
     if (seed !== null && Number.isFinite(Number(seed))) {
       this.nextSeed = Math.trunc(Number(seed)) >>> 0 || 1;
     }
@@ -580,6 +671,7 @@ export class GameController {
     this.nextSeed = (runSeed + 1) >>> 0 || 1;
     this.pointer.clear();
     this.clockPaused = false;
+    this.userPaused = false;
     this.resumePendingFrame = false;
     this.resumeStartedMs = null;
     this.updateResumePresentation(null);
@@ -597,6 +689,8 @@ export class GameController {
     this.lastPersistedResultKey = "";
     this.lastBestScore = false;
     this.shareStatus && (this.shareStatus.textContent = "");
+    this.setPauseRules(false);
+    this.setPauseMenu(false);
     this.countdownStartedMs = nowMs();
     this.countdownPausedAtMs = null;
     this.session.prepare(runSeed);
@@ -608,6 +702,7 @@ export class GameController {
     if (this.destroyed) return;
     this.pointer.clear();
     this.clockPaused = false;
+    this.userPaused = false;
     this.resumePendingFrame = false;
     this.resumeStartedMs = null;
     this.updateResumePresentation(null);
@@ -621,6 +716,8 @@ export class GameController {
     this.resultOnFrame = false;
     this.pendingStartSeed = null;
     this.practiceReturnsHome = false;
+    this.setPauseRules(false);
+    this.setPauseMenu(false);
     this.presentationEvents.reset();
     this.presentationUpdateCount = 0;
     this.presentationEventCounts = {};
@@ -753,10 +850,11 @@ export class GameController {
     const stats = state.stats ?? {};
     const score = Math.max(0, Math.trunc(state.finalScore ?? state.score ?? 0));
     const maxChain = Math.max(0, Math.trunc(stats.maxChain ?? 0));
-    const resultKey = `${state.seed}:${state.actionCount}:${score}:${maxChain}:${state.simulationFault?.code ?? "ok"}`;
+    const resultKey = `${state.seed}:${state.actionCount}:${score}:${maxChain}:${state.status}:${state.simulationFault?.code ?? "ok"}`;
     if (resultKey !== this.lastPersistedResultKey) {
       const previousBest = this.profile.bestScore;
-      if (!state.simulationFault) {
+      const recordable = !state.simulationFault && state.status === "finished";
+      if (recordable) {
         this.profile = this.profileStore.update({
           bestScore: Math.max(this.profile.bestScore, score),
           bestChain: Math.max(this.profile.bestChain, maxChain),
@@ -764,6 +862,11 @@ export class GameController {
         });
         this.lastBestScore = score > previousBest;
         this.updateHomeBest();
+        this.rankingStore.record({
+          name: this.profile.name,
+          score,
+          maxChain,
+        });
       }
       this.lastPersistedResultKey = resultKey;
     }
@@ -771,12 +874,18 @@ export class GameController {
       profile: this.profile,
       publicUrl: publicUrlFor(),
       isBestScore: this.lastBestScore,
+      isRetired: state.status === "retired",
+      ranking: this.rankingStore.list(),
     });
+    if (this.resultExperimentLink) this.resultExperimentLink.href = EXPERIMENT_URL;
+    if (this.resultStatus) this.resultStatus.dataset.retired = state.status === "retired" ? "true" : "false";
     const check = this.session.replayCheck;
     if (this.resultReplay) {
       this.resultReplay.dataset.fault = state.simulationFault ? "true" : "false";
       this.resultReplay.textContent = state.simulationFault
         ? `このプレイは無効です（${state.simulationFault.code ?? "simulationFault"}）`
+        : state.status === "retired"
+          ? "リタイアしたため、入力記録とランキングには登録していません"
         : check?.ok ? "入力記録の再生一致を確認しました" : "入力記録の検証に失敗しました";
     }
   }
@@ -812,13 +921,23 @@ export class GameController {
   /** Testable fixed-tick API; it does not expose target mutation methods. */
   advanceTicks(count = 1) {
     if (this.deterministicTestMode) this.stopLoop();
-    if (this.deterministicTestMode && this.clockPaused && !this.isPortrait()) this.resumeClock();
-    if (this.isPortrait() || this.clockPaused) return this.snapshot();
+    if (this.deterministicTestMode && this.clockPaused && !this.userPaused) this.resumeClock();
+    if (this.userPaused || this.clockPaused) return this.snapshot();
     // The real practice requires a pointer gesture. Test callers must use the
     // explicit skip path instead of silently completing it through ticks.
     if (this.screens.phase === "practice") return this.snapshot();
     if (this.phase === "home" || this.phase === "countdown") this.session.beginPlay();
-    const state = this.session.advanceTicks(count);
+    let remaining = Math.max(0, Math.trunc(Number(count) || 0));
+    // A user pause still owns the same one-boundary input contract as a page
+    // resume. Consume the marked frame before deterministic test ticks so a
+    // held pointer cannot survive a pause merely because rAF is bypassed.
+    if (this.deterministicTestMode && this.resumePendingFrame) {
+      this.session.nextFrame();
+      this.interruptPending = false;
+      this.resumePendingFrame = false;
+      remaining = Math.max(0, remaining - 1);
+    }
+    const state = this.session.advanceTicks(remaining);
     if (this.deterministicTestMode) {
       this.resumePendingFrame = false;
       this.interruptPending = false;
@@ -829,7 +948,7 @@ export class GameController {
 
   settleTerminal() {
     if (this.deterministicTestMode) this.stopLoop();
-    if (this.isPortrait() || this.clockPaused) return this.snapshot();
+    if (this.userPaused || this.clockPaused) return this.snapshot();
     const state = this.session.finishNow();
     this.finalizeOnFrame = false;
     this.resultOnFrame = false;
@@ -847,6 +966,7 @@ export class GameController {
       phase: this.phase,
       clock: {
         paused: this.clockPaused,
+        userPaused: this.userPaused,
         running: this.running,
         resumeRemainingSeconds: this.resumeStartedMs === null
           ? 0
@@ -894,6 +1014,10 @@ export class GameController {
       setQualityPreference: (value) => this.setQualityPreference(value),
       setPlayerName: (name) => this.setPlayerName(name),
       setSoundEnabled: (enabled) => this.setSoundEnabled(enabled),
+      pause: () => this.pauseGame(),
+      resume: () => this.resumeGame(),
+      retire: () => this.retireGame(),
+      togglePauseRules: () => this.togglePauseRules(),
       skipPractice: () => this.tutorial.skip(),
       shareText: () => this.shareButton?.dataset.shareText ?? "",
       profile: () => ({ ...this.profile }),

@@ -179,6 +179,7 @@ test("score guide exposes every addition, zero deductions, and all blast radii",
   assert.match(guide.selection, /0\.05秒（3更新）/);
   assert.match(guide.selection, /外輪が一周/);
   assert.match(guide.selection, /2\.5秒で、3個以上は自動起爆、3個未満は取消/);
+  assert.match(guide.choices, /同色4個以上/);
   assert.deepEqual(explosionRangeRows(DEFAULT_RULES).map((row) => row.count), [3, 4, 5, 6]);
   assert.deepEqual(
     explosionRangeRows(DEFAULT_RULES).map((row) => row.radius),

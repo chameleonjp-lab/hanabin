@@ -15,6 +15,13 @@ test("static page has the M1 loading contract", async () => {
   assert.match(html, /type="module"\s+src="\.\/src\/app\.js"/);
   assert.match(html, /id="app-error"[^>]+role="alert"/);
   assert.match(html, /id="orientation-guide"/);
+  assert.match(html, /id="player-name"[^>]+required/);
+  assert.match(html, /id="pause-button"/);
+  assert.match(html, /id="pause-resume-button"/);
+  assert.match(html, /id="pause-retire-button"/);
+  assert.match(html, /id="pause-rules-button"/);
+  assert.match(html, /id="result-ranking-list"/);
+  assert.match(html, /id="result-experiment-link"/);
   assert.doesNotMatch(html, /<(?:script|link)[^>]+(?:src|href)=["']https?:\/\//i);
 });
 
@@ -58,6 +65,7 @@ test("M1 entry files exist without a build step", async () => {
     "src/ui/result.js",
     "src/audio/sound.js",
     "src/storage/local-storage.js",
+    "src/storage/local-ranking.js",
     "src/config/release.js",
     "src/ui/screens.js",
     "scripts/serve.mjs",

@@ -6,6 +6,7 @@ test("M7 terminal flow is repeatable and records one result per run", async ({ p
   await page.setViewportSize({ width: 667, height: 375 });
   await page.goto("/hanabin/?e2e=1");
   await expect(page.locator("#app")).not.toHaveAttribute("data-state", "loading");
+  await page.locator("#player-name").fill("M7テスト");
 
   const callApi = (method, ...args) => page.evaluate(async ({ method: name, args: values }) => {
     const api = window.__hanabinTest;

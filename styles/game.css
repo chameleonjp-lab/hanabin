@@ -563,6 +563,7 @@
 .hud-pill--time strong { color: var(--game-gold); }
 .hud-pill--combo strong { color: var(--game-pink); }
 .hud-pill--blast strong { color: var(--game-gold); font-size: 0.78rem; }
+.hud-pill--choices strong { color: var(--game-green); }
 
 .hud-pill--selection {
   margin-left: auto;
@@ -654,6 +655,81 @@
 
 .resume-overlay small {
   color: #bac6e5;
+}
+
+.pause-button {
+  position: absolute;
+  top: clamp(8px, 1.6vw, 18px);
+  right: clamp(8px, 1.6vw, 18px);
+  z-index: 4;
+  min-height: 38px;
+  padding: 7px 13px;
+  color: #eef5ff;
+  background: rgba(6, 12, 31, 0.86);
+  pointer-events: auto;
+}
+
+.pause-menu {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(3, 7, 19, 0.78);
+  backdrop-filter: blur(7px);
+  pointer-events: auto;
+}
+
+.pause-menu__card {
+  display: grid;
+  width: min(100%, 430px);
+  gap: 10px;
+  padding: clamp(20px, 4vw, 32px);
+  border: 1px solid rgba(121, 230, 255, 0.34);
+  border-radius: 18px;
+  background: rgba(8, 15, 36, 0.96);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.38);
+  text-align: center;
+}
+
+.pause-menu__card h2,
+.pause-menu__card p {
+  margin: 0;
+}
+
+.pause-menu__card > p:not(.home-kicker) {
+  color: #bac6e5;
+  font-size: 0.78rem;
+}
+
+.pause-menu__actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.pause-menu__actions button {
+  min-height: 44px;
+  padding: 8px 6px;
+  font-size: 0.72rem;
+}
+
+.pause-rules {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid rgba(146, 188, 255, 0.18);
+  border-radius: 10px;
+  background: rgba(14, 23, 48, 0.7);
+  color: #c7d3ef;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.pause-rules p {
+  margin: 0;
 }
 
 .play-instruction {
@@ -763,6 +839,17 @@
   font-size: 0.82rem;
 }
 
+.result-status {
+  margin: -12px 0 0;
+  color: var(--game-green);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.result-status[data-retired="true"] {
+  color: var(--game-gold);
+}
+
 .result-best-mark {
   margin: -5px 0 0;
   color: var(--game-gold);
@@ -789,6 +876,84 @@
   color: var(--game-cyan);
   font-size: 0.78rem;
   line-height: 1.5;
+}
+
+.result-ranking {
+  width: min(100%, 600px);
+  padding: 13px 14px 12px;
+  border: 1px solid rgba(146, 188, 255, 0.17);
+  border-radius: 12px;
+  background: rgba(8, 15, 36, 0.5);
+  text-align: left;
+}
+
+.result-ranking__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.result-ranking__heading h3 {
+  margin: 0;
+  color: var(--game-cyan);
+  font-size: 0.8rem;
+}
+
+.result-ranking__heading span,
+.result-ranking__note {
+  color: #8fa2cf;
+  font-size: 0.65rem;
+}
+
+.result-ranking__list {
+  display: grid;
+  gap: 4px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.result-ranking__list li {
+  display: grid;
+  grid-template-columns: 2em minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 4px 6px;
+  border-radius: 7px;
+  background: rgba(14, 23, 48, 0.62);
+  color: #dce7ff;
+  font-size: 0.7rem;
+}
+
+.result-ranking__rank {
+  color: var(--game-gold);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.result-ranking__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-ranking__score {
+  color: #eef5ff;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.result-ranking__empty {
+  color: #9da9c9;
+  text-align: center;
+}
+
+.result-ranking__note {
+  margin: 9px 0 0;
+  line-height: 1.45;
 }
 
 .share-panel {
@@ -894,11 +1059,68 @@
   .field-row select {
     width: 100%;
   }
+
+  .pause-menu__actions {
+    grid-template-columns: 1fr;
+  }
+
+  .result-ranking__heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .finalizing-mark {
     animation-duration: 2.4s;
+  }
+}
+
+/* Portrait uses the same logical 16:9 board rotated clockwise: the logical
+   top edge appears on the screen's right and the logical bottom on the left.
+   CanvasRenderer owns the matching coordinate transform. */
+@media (orientation: portrait) {
+  .app-shell[data-screen="play"] {
+    min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+    place-items: center;
+    padding: 8px;
+  }
+
+  .app-shell[data-screen="play"] .game-app {
+    width: 100%;
+    max-width: 620px;
+    padding: 8px;
+  }
+
+  .app-shell[data-screen="play"] .game-header {
+    align-items: center;
+    gap: 3px;
+  }
+
+  .app-shell[data-screen="play"] .game-header .status {
+    text-align: center;
+  }
+
+  .app-shell[data-screen="play"] .screen--play {
+    margin-top: 8px;
+  }
+
+  .app-shell[data-screen="play"] .game-frame {
+    width: min(100%, calc((100dvh - var(--safe-top) - var(--safe-bottom) - 142px) * 9 / 16));
+    height: min(calc(100dvh - var(--safe-top) - var(--safe-bottom) - 142px), 900px);
+    aspect-ratio: 9 / 16;
+  }
+
+  .app-shell[data-screen="play"] .play-instruction {
+    max-width: 28rem;
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .app-shell[data-screen="practice"] .practice-board {
+    width: min(100%, 430px);
+    aspect-ratio: 9 / 16;
   }
 }
 

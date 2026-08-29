@@ -95,7 +95,7 @@ export class GameSession {
   beginPlay() {
     if (!this.state) this.prepare(this.seed);
     if (this.phase === "countdown" || this.phase === "home") {
-      startGame(this.state);
+      startGame(this.state, this.rules);
       this.countdownRemaining = 0;
       this.setPhase("playing");
       this.emitUpdate();
@@ -178,6 +178,35 @@ export class GameSession {
     if (!this.state) return null;
     if (!this.finalized) this.finalize();
     if (this.phase === "finalizing") this.setPhase("result");
+    this.emitUpdate();
+    return this.state;
+  }
+
+  /** End the current run intentionally without creating a replay or record. */
+  retire() {
+    if (!this.state || this.phase === "result" || this.phase === "fault") return this.state;
+    this.pointer?.clear?.();
+    this.state.pointerPressed = false;
+    this.state.hoverCandidateId = null;
+    this.state.hoverTicks = 0;
+    this.state.selectedIds = [];
+    this.state.selectedColor = null;
+    this.state.selectionSinceTick = null;
+    this.state.selectionAgeTicks = 0;
+    this.state.selectionRecords = [];
+    this.state.lastAcquisitionX = null;
+    this.state.lastAcquisitionY = null;
+    this.state.lastAcquisitionTick = null;
+    this.state.chainQueue = [];
+    this.state.queuedTargetIds = [];
+    this.state.activeExplosions = [];
+    this.state.status = "retired";
+    this.state.finalScore = this.state.score;
+    this.state.lastAction = { type: "retire" };
+    this.finalized = true;
+    this.replay = null;
+    this.replayCheck = { ok: false, reason: "RETIRED" };
+    this.setPhase("result");
     this.emitUpdate();
     return this.state;
   }
