@@ -2,7 +2,7 @@
 
 同色の花火を選び、起爆位置と時刻を考えて連鎖を伸ばす、スマートフォン向け60秒スコアアタックゲームです。
 
-M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未完了で、公開URL専用の実時間終端検査とGitHub Pagesの公開元修正は完了していますが、iPhone 17 Proの実機確認と初見5人の試遊が残っています。追加要件（選択肢保証、一時停止、名前必須、結果導線、PC操作、縦画面、端末内TOP10）は対応を開始し、[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)へ整理しています。
+M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未完了で、公開URL専用の実時間終端検査とGitHub Pagesの公開元修正は完了していますが、iPhone 17 Proの実機確認と初見5人の試遊が残っています。追加要件（選択肢保証、一時停止、名前必須、結果導線、PC操作、縦画面、端末内TOP10）はDraft PR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)へ実装し、CI Core／Browser #85も成功しています。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)へ整理しています。
 
 2026年8月23日の操作感度、PC/touch演出、効果音、得点表示、予告バランスの後続修正はPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、公開Pagesへ反映済みです。マージ後の自動検査と公開検査は成功していますが、iPhone 17 Pro / Safari実機と初見5人の試遊は未確認です。実装済み範囲と実機未確認項目は[`docs/EXPERIENCE_BALANCE_AUDIT.md`](./docs/EXPERIENCE_BALANCE_AUDIT.md)を正本とします。
 

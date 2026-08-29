@@ -5,7 +5,7 @@
 - MVP受入: **6/7**（M7は不合格のまま）
 - 公開URL: [HANABIN](https://chameleonjp-lab.github.io/hanabin/)
 
-> 2026年8月29日追記: 直近の敵対的検証と追加要件を統合した追補を開始した。選択肢保証、一時停止、名前必須、結果画面のホーム／実験場／端末内TOP10、PCマウス操作、縦画面の時計回り論理表示を実装し、自動検証を進めている。これはまだ`main`へマージしていない作業中の変更であり、実機iPhone 17 Pro、初見5人、公開後確認は未完了である。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)を正本とする。
+> 2026年8月29日追記: 直近の敵対的検証と追加要件を統合した追補を開始した。選択肢保証、一時停止、名前必須、結果画面のホーム／実験場／端末内TOP10、PCマウス操作、縦画面の時計回り論理表示をDraft PR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)へ実装した。CI Core #85とCI Browser #85は成功したが、これはまだ`main`へマージしていない作業中の変更であり、実機iPhone 17 Pro、初見5人、公開後確認は未完了である。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)を正本とする。
 
 > 2026年8月23日のスマホ操作、PC/touch演出、SE、得点表示、予告バランスの後続修正はPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、GitHub Pagesへ公開済みである。マージ後のCI Core #78、CI Browser #78、Deploy GitHub Pages #23、Public Release Smoke #18はすべて成功した。iPhone 17 Pro / Safari実機と初見5人の試遊は未確認であり、M7受入は6/7のままとする。
 
@@ -13,7 +13,7 @@
 
 公開URL専用の実時間終端検査は、設定変更後もホームから結果画面まで成功している。2026年8月16日にGitHub Pages APIを確認し、公開元がGitHub Actionsへ切り替わったこと、限定artifact以外のファイルが公開されていないことを確認した。
 
-そのため、既存M7の残件は次の2つである。これに加えて、追加要件の自動検証とDraft PRレビューを進める。
+そのため、既存M7の残件は次の2つである。追加要件の自動検証はDraft PR #36で完了し、現在はDraftレビューと実機確認へ進む段階である。
 
 1. iPhone 17 Proで実機確認する。横画面と、時計回りの論理16:9で対応した縦画面の両方について、タップ位置、長押し中の選択、色選択、練習の再挑戦・本番進行を確認する。
 2. 初見5人の試遊結果を記録する。
@@ -88,7 +88,7 @@
 
 ## 次の作業
 
-1. 追加要件の自動検証を完了し、Draft PRレビューを行う。
+1. Draft PR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)のレビューを行う（Core／Browser CI #85は成功済み）。
 2. iPhone 17 Proで横・縦画面、入力境界、停止、結果導線を実機確認する。
 3. 初見5人の試遊を記録する。
 4. すべて合格した場合だけMVP受入を7/7へ更新する。
