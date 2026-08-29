@@ -201,7 +201,7 @@ export class GameController {
     });
     this.practiceButton?.addEventListener("click", () => {
       void this.sound.unlock();
-      this.openPractice({ returnHome: false });
+      this.requestPractice();
     });
     this.practiceHomeButton?.addEventListener("click", () => this.goHome());
     this.retryButton?.addEventListener("click", () => {
@@ -398,6 +398,15 @@ export class GameController {
       return null;
     }
     return this.start(seed);
+  }
+
+  requestPractice() {
+    if (!this.persistProfileControls()) {
+      if (this.status) this.status.textContent = "名前を入力してから練習してください";
+      this.playerNameInput?.focus?.();
+      return null;
+    }
+    return this.openPractice({ returnHome: false });
   }
 
   finishPractice(skipped = false) {
