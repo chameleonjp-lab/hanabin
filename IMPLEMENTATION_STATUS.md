@@ -88,7 +88,7 @@
 
 ## 次の作業
 
-1. Draft PR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)のレビューを行う（Core／Browser CI #85は成功済み）。
+1. Draft PR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)のレビューを行う（Core／Browser CI #87は成功済み）。
 2. iPhone 17 Proで横・縦画面、入力境界、停止、結果導線を実機確認する。
 3. 初見5人の試遊を記録する。
 4. すべて合格した場合だけMVP受入を7/7へ更新する。
