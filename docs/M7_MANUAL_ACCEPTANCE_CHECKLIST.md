@@ -6,7 +6,7 @@
 - 公開URL: [HANABIN](https://chameleonjp-lab.github.io/hanabin/)
 - この文書の役割: 自動検査で確認できないiPhone 17 Pro（横・縦画面追補）の実機、初見試遊、GitHub Pages設定を、実際の証跡で記録する。追加要件の一覧は`POST_MVP_HARDENING_PLAN.md`を参照する
 
-> 2026年8月23日の操作・演出・音・バランス変更はPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、Pagesへ再配備済みである。マージ後の自動検査と公開検査は成功した。以下の実機項目は公開URLをiPhone 17 Pro / Safariで確認し、自動検査を実機合格の証跡へ流用しない。
+> 2026年8月23日の操作・演出・音・バランス変更はPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、Pagesへ再配備済みである。追加要件（選択肢保証、一時停止、名前必須、結果導線、PC操作、縦画面、端末内TOP10）はPull Request [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)で`main`へマージされた。#36のマージ後も[Deploy GitHub Pages #24](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047185)と[Public Release Smoke #19](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256066052)が成功している。以下の実機項目は公開URLをiPhone 17 Pro / Safariで確認し、自動検査を実機合格の証跡へ流用しない。
 
 ## 1. 記録のルール
 
@@ -106,8 +106,8 @@ iPhone 11 Pro、iPad Pro 2018は今回の受入対象外。
 | 確認項目 | 結果 | 証跡・メモ |
 |---|---|---|
 | Pagesの公開元がGitHub Actions | 合格 | Pages APIが`build_type: workflow`、`source: main /`を返した |
-| Deploy GitHub Pages | 合格 | [Deploy GitHub Pages #21](https://github.com/chameleonjp-lab/hanabin/actions/runs/31915623844) |
-| Public Release Smoke | 合格 | [Public Release Smoke #16](https://github.com/chameleonjp-lab/hanabin/actions/runs/31915642023)で2テスト成功 |
+| Deploy GitHub Pages | 合格 | [Deploy GitHub Pages #24](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047185) |
+| Public Release Smoke | 合格 | [Public Release Smoke #19](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256066052)で2テスト成功 |
 | 公開URLが `https://chameleonjp-lab.github.io/hanabin/` である | 確認済み | Pages APIの`html_url`を確認 |
 | HTTPSが有効 | 確認済み | Pages APIの`https_enforced: true`を確認 |
 | 公開対象外URLが404 | 合格 | `package.json`、README、docs、workflow設定を公開URLから検査し、すべて404 |

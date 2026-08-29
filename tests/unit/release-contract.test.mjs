@@ -39,9 +39,9 @@ test("M7 Pages workflow deploys only the default branch artifact", async () => {
   assert.match(workflow, /workflow_dispatch:/u);
   assert.match(workflow, /pages:\s+write/u);
   assert.match(workflow, /id-token:\s+write/u);
-  assert.match(workflow, /actions\/configure-pages@v5/u);
-  assert.match(workflow, /actions\/upload-pages-artifact@v4/u);
-  assert.match(workflow, /actions\/deploy-pages@v4/u);
+  assert.match(workflow, /actions\/configure-pages@[0-9a-f]{40}\s+#\s+v5/u);
+  assert.match(workflow, /actions\/upload-pages-artifact@[0-9a-f]{40}\s+#\s+v4/u);
+  assert.match(workflow, /actions\/deploy-pages@[0-9a-f]{40}\s+#\s+v4/u);
   assert.match(workflow, /path:\s+\.\/site/u);
   assert.doesNotMatch(workflow, /npm (?:ci|install)/u);
   for (const releasePath of [

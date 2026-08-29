@@ -389,6 +389,38 @@ test("presentation events distinguish direct detonation from true chain ledger e
   assert.equal(JSON.stringify(state), JSON.stringify(cloned));
 });
 
+test("presentation trace follows the sampled pointer path within one fixed tick", () => {
+  const tracker = new PresentationEventTracker({ traceDistance: 100 });
+  const state = {
+    gameVersion: "test",
+    ruleVersion: "test-rules",
+    rulesFingerprint: "same-core",
+    seed: 8,
+    tick: 0,
+    inputFrames: [{ type: "pointer", pressed: true, x: 0, y: 0, tick: 0 }],
+    waves: [],
+    fireworks: [],
+    selectedIds: [],
+    scoreEvents: [],
+    bonusEvents: [],
+    stats: { entitiesSpawned: 0, entitiesExpired: 0, maxChain: 0, selectionDrops: 0 },
+  };
+  assert.deepEqual(tracker.consume(state).map((event) => event.type), ["tap"]);
+
+  state.tick = 1;
+  state.inputFrames.push({
+    type: "pointer",
+    pressed: true,
+    x: 0,
+    y: 100,
+    tick: 1,
+    path: [{ x: 0, y: 0 }, { x: 100, y: 0 }, { x: 100, y: 100 }],
+  });
+  const events = tracker.consume(state);
+  assert.deepEqual(events.map((event) => event.type), ["trace"]);
+  assert.equal(events[0].distance, 300);
+});
+
 test("M6 practice uses three fixed same-colour targets and normalizes touch points", () => {
   assert.equal(PRACTICE_TARGETS.length, PRACTICE_TARGET_COUNT);
   assert.equal(new Set(PRACTICE_TARGETS.map((target) => target.color)).size, 1);

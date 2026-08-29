@@ -52,6 +52,11 @@ export const normalizePracticePoint = (clientX, clientY, rect) => {
 const distanceSquared = (left, right) =>
   (left.x - right.x) ** 2 + (left.y - right.y) ** 2;
 
+const validPracticePoint = (point, rules) => point &&
+  Number.isInteger(point.x) && Number.isInteger(point.y) &&
+  point.x >= 0 && point.x <= rules.boardWidth &&
+  point.y >= 0 && point.y <= rules.boardHeight;
+
 export const practiceTargetBoardPoint = (target, {
   boardWidth = BOARD_WIDTH,
   boardHeight = BOARD_HEIGHT,
@@ -61,14 +66,8 @@ export const practiceTargetBoardPoint = (target, {
   y: Math.round(target.y * boardHeight),
 });
 
-/** Return the same nearest, same-colour, circular candidate used by play. */
-export const findPracticeCandidate = (
-  point,
-  selectedIds = [],
-  rulesArg = DEFAULT_RULES,
-) => {
-  if (!point || !Number.isInteger(point.x) || !Number.isInteger(point.y)) return null;
-  const rules = mergeRules(rulesArg);
+const findPracticeCandidateAtPoint = (point, selectedIds, rules) => {
+  if (!validPracticePoint(point, rules)) return null;
   const selected = new Set(selectedIds.map(String));
   const targets = PRACTICE_TARGETS.map((target) => practiceTargetBoardPoint(target, rules));
   const first = targets.find((target) => selected.has(String(target.id))) ?? null;
@@ -93,6 +92,47 @@ export const findPracticeCandidate = (
       return leftId === rightId ? 0 : leftId < rightId ? -1 : 1;
     })
     .at(0)?.target ?? null;
+};
+
+const practicePathSamples = (point, rules) => {
+  const rawPath = Array.isArray(point?.path)
+    ? point.path.filter((candidate) => validPracticePoint(candidate, rules))
+    : [];
+  const points = rawPath.length ? rawPath.map((candidate) => ({ ...candidate })) : [point];
+  if (!validPracticePoint(points.at(-1), rules)) return [];
+  if (points.at(-1).x !== point.x || points.at(-1).y !== point.y) {
+    points.push({ x: point.x, y: point.y });
+  }
+  const spacing = Math.max(1, Math.round(rules.selectionHitRadius * 0.5));
+  const samples = [];
+  for (let index = 0; index < points.length; index += 1) {
+    const start = points[index - 1] ?? points[index];
+    const end = points[index];
+    const distance = Math.hypot(end.x - start.x, end.y - start.y);
+    const steps = Math.max(1, Math.ceil(distance / spacing));
+    for (let step = 0; step <= steps; step += 1) {
+      const ratio = step / steps;
+      samples.push({
+        x: Math.round(start.x + (end.x - start.x) * ratio),
+        y: Math.round(start.y + (end.y - start.y) * ratio),
+      });
+    }
+  }
+  return samples;
+};
+
+/** Return the same nearest, same-colour, circular candidate used by play. */
+export const findPracticeCandidate = (
+  point,
+  selectedIds = [],
+  rulesArg = DEFAULT_RULES,
+) => {
+  const rules = mergeRules(rulesArg);
+  for (const sample of practicePathSamples(point, rules)) {
+    const candidate = findPracticeCandidateAtPoint(sample, selectedIds, rules);
+    if (candidate) return candidate;
+  }
+  return null;
 };
 
 /**

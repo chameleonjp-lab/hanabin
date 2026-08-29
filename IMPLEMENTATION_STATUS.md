@@ -5,7 +5,7 @@
 - MVP受入: **6/7**（M7は不合格のまま）
 - 公開URL: [HANABIN](https://chameleonjp-lab.github.io/hanabin/)
 
-> 2026年8月29日追記: 直近の敵対的検証と追加要件を統合した追補を開始した。選択肢保証、一時停止、名前必須、結果画面のホーム／実験場／端末内TOP10、PCマウス操作、縦画面の時計回り論理表示をDraft PR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)へ実装した。Core全量ゲートの15分制限によるキャンセルを30分へ延長して解消し、CI Core #87とCI Browser #87、全量ゲート、厳格再生fixture生成、artifactアップロードまで成功した。これはまだ`main`へマージしていない作業中の変更であり、実機iPhone 17 Pro、初見5人、公開後確認は未完了である。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)を正本とする。
+> 2026年8月29日追記: 直近の敵対的検証と追加要件を統合した追補はPR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)で`main`へマージ済みである。選択肢保証、一時停止、名前必須、結果画面のホーム／実験場／端末内TOP10、PCマウス操作、縦画面の時計回り論理表示を含む。マージ後の[CI Core #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047169)、[CI Browser #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047156)、[Deploy GitHub Pages #24](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047185)、[Public Release Smoke #19](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256066052)は成功した。現在は敵対的検証で見つかった高速なぞりの経路補間、Pointer Capture失敗時のwindowフォールバック、Pages ActionsのSHA固定を後続Draft PRで対応中である。実機iPhone 17 Pro、初見5人、後続変更の公開後確認は未完了である。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)を正本とする。
 
 > 2026年8月23日のスマホ操作、PC/touch演出、SE、得点表示、予告バランスの後続修正はPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、GitHub Pagesへ公開済みである。マージ後のCI Core #78、CI Browser #78、Deploy GitHub Pages #23、Public Release Smoke #18はすべて成功した。iPhone 17 Pro / Safari実機と初見5人の試遊は未確認であり、M7受入は6/7のままとする。
 
@@ -13,7 +13,7 @@
 
 公開URL専用の実時間終端検査は、設定変更後もホームから結果画面まで成功している。2026年8月16日にGitHub Pages APIを確認し、公開元がGitHub Actionsへ切り替わったこと、限定artifact以外のファイルが公開されていないことを確認した。
 
-そのため、既存M7の残件は次の2つである。追加要件の自動検証はDraft PR #36で完了し、現在はDraftレビューと実機確認へ進む段階である。
+そのため、既存M7の残件は次の2つである。追加要件はPR #36でマージ済みで、現在は敵対的検証の後続補修と実機確認へ進む段階である。
 
 1. iPhone 17 Proで実機確認する。横画面と、時計回りの論理16:9で対応した縦画面の両方について、タップ位置、長押し中の選択、色選択、練習の再挑戦・本番進行を確認する。
 2. 初見5人の試遊結果を記録する。
@@ -30,7 +30,7 @@
 | M4 | 抜け道対策とゲーム設計審査 | マージ済み | 合格 | [#8](https://github.com/chameleonjp-lab/hanabin/pull/8) |
 | M5 | 花火表現と性能対策 | マージ済み | 合格 | [#9](https://github.com/chameleonjp-lab/hanabin/pull/9) |
 | M6 | 練習、保存、結果、共有、音 | マージ済み | 合格 | [#10](https://github.com/chameleonjp-lab/hanabin/pull/10) |
-| M7 | 総合検証とMVP公開 | マージ済み | 不合格 | [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) / [#17](https://github.com/chameleonjp-lab/hanabin/pull/17) / [#19](https://github.com/chameleonjp-lab/hanabin/pull/19) / [#34](https://github.com/chameleonjp-lab/hanabin/pull/34) |
+| M7 | 総合検証とMVP公開 | マージ済み | 不合格 | [#11](https://github.com/chameleonjp-lab/hanabin/pull/11) / [#17](https://github.com/chameleonjp-lab/hanabin/pull/17) / [#19](https://github.com/chameleonjp-lab/hanabin/pull/19) / [#34](https://github.com/chameleonjp-lab/hanabin/pull/34) / [#36](https://github.com/chameleonjp-lab/hanabin/pull/36) |
 
 ## 進捗の数え方
 
@@ -60,10 +60,10 @@
 ### M7: 公開候補
 
 - 公開版、ルール版、入力記録版、保存形式版を固定した。
-- [CI Core #78](https://github.com/chameleonjp-lab/hanabin/actions/runs/32682500837)でNode 22/24、全量シミュレーション、再生監査が成功した。
-- [CI Browser #78](https://github.com/chameleonjp-lab/hanabin/actions/runs/32682500846)でChromiumとWebKit Touchのブラウザ試験が成功した。
-- [Deploy GitHub Pages #23](https://github.com/chameleonjp-lab/hanabin/actions/runs/32682500867)で限定artifactの公開に成功した。
-- [Public Release Smoke #18](https://github.com/chameleonjp-lab/hanabin/actions/runs/32682529443)で、公開URLの終端経路と公開対象外URLの404検査が成功した。
+- [CI Core #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047169)でNode 22/24、全量シミュレーション、再生監査が成功した。
+- [CI Browser #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047156)でChromiumとWebKit Touchのブラウザ試験が成功した。
+- [Deploy GitHub Pages #24](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047185)で限定artifactの公開に成功した。
+- [Public Release Smoke #19](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256066052)で、公開URLの終端経路と公開対象外URLの404検査が成功した。
 - 実機・初見試遊の正本は、[M7手動受入チェックリスト](./docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md)とする。
 
 ## GitHub Pagesの判定
@@ -88,7 +88,7 @@
 
 ## 次の作業
 
-1. Draft PR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)のレビューを行う（Core／Browser CI #87は成功済み）。
+1. 後続Draft PRで高速なぞり、Pointer Captureフォールバック、Pages SHA固定のCIを完了する。
 2. iPhone 17 Proで横・縦画面、入力境界、停止、結果導線を実機確認する。
 3. 初見5人の試遊を記録する。
 4. すべて合格した場合だけMVP受入を7/7へ更新する。

@@ -467,6 +467,33 @@ const candidateList = (state, x, y, color, rules) => {
     );
 };
 
+const validPointerPoint = (point, rules) => point &&
+  finiteInteger(point.x) && finiteInteger(point.y) &&
+  point.x >= 0 && point.x <= rules.boardWidth &&
+  point.y >= 0 && point.y <= rules.boardHeight;
+
+/** Find the first target touched by the complete pointer path for this tick. */
+const candidateAlongPointerPath = (state, frame, rules) => {
+  const rawPath = Array.isArray(frame.path) ? frame.path.filter((point) => validPointerPoint(point, rules)) : [];
+  const points = rawPath.length ? rawPath : [{ x: frame.x, y: frame.y }];
+  if (points.at(-1)?.x !== frame.x || points.at(-1)?.y !== frame.y) points.push({ x: frame.x, y: frame.y });
+  const spacing = Math.max(1, Math.round(rules.selectionHitRadius * 0.5));
+  for (let index = 0; index < points.length; index += 1) {
+    const start = points[index - 1] ?? points[index];
+    const end = points[index];
+    const distance = Math.sqrt(distanceSquared(start.x, start.y, end.x, end.y));
+    const steps = Math.max(1, Math.ceil(distance / spacing));
+    for (let step = 0; step <= steps; step += 1) {
+      const ratio = step / steps;
+      const x = Math.round(start.x + (end.x - start.x) * ratio);
+      const y = Math.round(start.y + (end.y - start.y) * ratio);
+      const candidate = candidateList(state, x, y, undefined, rules)[0];
+      if (candidate) return { ...candidate, x, y };
+    }
+  }
+  return null;
+};
+
 export const findCandidates = (state, x, y, options = {}, rulesArg = DEFAULT_RULES) => {
   const rules = mergeRules(rulesArg);
   return candidateList(state, x, y, options.color, rules).map((item) => ({
@@ -581,8 +608,8 @@ export const consumePointerFrame = (state, frame, rulesArg = DEFAULT_RULES) => {
     return null;
   }
   state.pointerPressed = true;
-  const candidates = candidateList(state, frame.x, frame.y, undefined, rules);
-  const candidate = candidates[0]?.entity ?? null;
+  const pathCandidate = candidateAlongPointerPath(state, frame, rules);
+  const candidate = pathCandidate?.entity ?? null;
   if (!candidate) {
     state.hoverCandidateId = null;
     state.hoverTicks = 0;
@@ -595,7 +622,10 @@ export const consumePointerFrame = (state, frame, rulesArg = DEFAULT_RULES) => {
     state.hoverTicks = 1;
   }
   if (state.hoverTicks < rules.minHoldTicks) return null;
-  const acquired = selectEntity(state, candidate.id, rules, { x: frame.x, y: frame.y });
+  const acquired = selectEntity(state, candidate.id, rules, {
+    x: pathCandidate.x,
+    y: pathCandidate.y,
+  });
   state.hoverCandidateId = null;
   state.hoverTicks = 0;
   return acquired;

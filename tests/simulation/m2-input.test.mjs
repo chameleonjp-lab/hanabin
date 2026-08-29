@@ -87,6 +87,10 @@ test("a second pointer cannot replace or move the first active pointer", () => {
     pressed: true,
     x: 120,
     y: 220,
+    path: [
+      { x: 100, y: 200 },
+      { x: 120, y: 220 },
+    ],
   }));
   assert.equal(updatePointerSampler(sampler, {
     type: "pointercancel", pointerId: 11, x: 130, y: 230,
@@ -95,8 +99,74 @@ test("a second pointer cannot replace or move the first active pointer", () => {
     pressed: false,
     x: 130,
     y: 230,
+    path: [
+      { x: 120, y: 220 },
+      { x: 130, y: 230 },
+    ],
     cancelled: true,
   }));
+});
+
+test("pointer sampling keeps a bounded intermediate path for fast movement", () => {
+  const sampler = createPointerSampler();
+  assert.equal(updatePointerSampler(sampler, {
+    type: "pointerdown", pointerId: 17, x: 0, y: 0,
+  }), true);
+  for (let index = 1; index <= 240; index += 1) {
+    assert.equal(updatePointerSampler(sampler, {
+      type: "pointermove", pointerId: 17, x: index * 50, y: index * 25,
+    }), true);
+  }
+  const frame = readPointerFrame(sampler, 4, 4);
+  assert.equal(frame.pressed, true);
+  assert.equal(frame.x, 12_000);
+  assert.equal(frame.y, 6_000);
+  assert.equal(frame.path.length, 128);
+  assert.deepEqual(frame.path.at(-1), { x: 12_000, y: 6_000 });
+  assert.deepEqual(validateInputFrames([frame], { maxTicks: 3_600 }), []);
+});
+
+test("a path crossing a target is acquired without changing the three-tick hold", () => {
+  const state = createGame(1, DEFAULT_RULES);
+  const target = state.fireworks[0];
+  const start = { x: Math.max(0, target.x - 1_000), y: target.y };
+  const middle = { x: target.x, y: target.y };
+  const end = { x: Math.min(DEFAULT_RULES.boardWidth, target.x + 1_000), y: target.y };
+  const frame = (actionId) => ({
+    type: "pointer",
+    pressed: true,
+    x: end.x,
+    y: end.y,
+    actionId,
+    path: [start, middle, end],
+  });
+
+  assert.equal(consumePointerFrame(state, frame(0), DEFAULT_RULES), null);
+  assert.equal(consumePointerFrame(state, frame(1), DEFAULT_RULES), null);
+  const acquired = consumePointerFrame(state, frame(2), DEFAULT_RULES);
+  assert.equal(acquired?.id, target.id);
+  assert.deepEqual(state.selectedIds, [target.id]);
+  assert.equal(state.hoverTicks, 0);
+});
+
+test("a short two-tick tap never acquires or detonates a target", () => {
+  const state = createGame(2, DEFAULT_RULES);
+  const target = state.fireworks[0];
+  const frame = (actionId, pressed) => ({
+    type: "pointer",
+    pressed,
+    x: target.x,
+    y: target.y,
+    actionId,
+  });
+
+  assert.equal(consumePointerFrame(state, frame(0, true), DEFAULT_RULES), null);
+  assert.equal(consumePointerFrame(state, frame(1, true), DEFAULT_RULES), null);
+  assert.deepEqual(state.selectedIds, []);
+  consumePointerFrame(state, frame(2, false), DEFAULT_RULES);
+  assert.deepEqual(state.selectedIds, []);
+  assert.equal(state.stats.detonationCount, 0);
+  assert.equal(state.score, 0);
 });
 
 test("fixed-tick sampling depends on the latest position, not move-event count", () => {

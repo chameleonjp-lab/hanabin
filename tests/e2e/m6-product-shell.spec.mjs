@@ -197,7 +197,7 @@ test("M6 practice fits landscape and remains playable after portrait rotation", 
   await expect(canvas).toHaveAttribute("data-orientation", "landscape");
 });
 
-test("M6 practice rejects an unsampled fast sweep and ignores a second pointer", async ({ page }) => {
+test("M6 practice keeps a one-tick press-and-sweep uncommitted and ignores a second pointer", async ({ page }) => {
   await openPage(page);
   await page.locator("#start-button").click();
   await page.locator("#practice-start").click();

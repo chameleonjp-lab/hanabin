@@ -39,10 +39,10 @@ M5を`main`へマージした後の製品導線を対象とする。決定的な
   - 最高記録の保存と結果共有文
   - 壊れたlocalStorageからの起動
 
-実機の音量、Clipboard権限、Web Share表示、iPhone 17 Pro横画面の入力（縦画面非対応、タップ位置、長押し中の選択）、練習の再挑戦・本番進行はM7へまとめる。
+実機の音量、Clipboard権限、Web Share表示、iPhone 17 Proの横・縦画面入力（タップ位置、長押し中の選択）、練習の再挑戦・本番進行はM7へまとめる。
 
 ## 2026年8月23日 作業ブランチ追補
 
 `agent/mobile-desktop-experience-20260823`では、ホームから何度でも操作練習へ入り、再挑戦・本番・ホームを選べる導線、得点と爆発範囲の説明、自動品質の実効値表示、結果の加点内訳と減点0表示を追加した。効果音はtap、trace、select、chain、detonate、spawn、expire、score、cancelと連鎖節目を鳴らす。tapは受理したDOM押下だけ、それ以外は状態差分を発火源として重複を防ぐ。音は引き続き初期OFFで、iOS / WebKit向けにユーザー操作からAudioContextの作成・再開を試す。
 
-この追補と同じブランチに全端末共通のバランス更新もあるため、M6当時の「得点計算は変更しない」とは工程を分けて記録する。入力・描画・製品導線の関連単体試験54件はローカルで成功したが、ブランチは**未マージ・未公開**であり、iPhone 17 Pro / Safariでの練習理解度、各効果音、タップ・長押しは**実機未確認**である。仕様と未確認項目は`docs/EXPERIENCE_BALANCE_AUDIT.md`およびM7チェックリストを参照する。
+この追補と同じブランチに全端末共通のバランス更新もあるため、M6当時の「得点計算は変更しない」とは工程を分けて記録する。入力・描画・製品導線の関連単体試験54件はローカルで成功し、その後Pull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされた。追加要件はPull Request [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)でマージ済みである。iPhone 17 Pro / Safariでの練習理解度、各効果音、タップ・長押しは**実機未確認**であり、仕様と未確認項目は`docs/EXPERIENCE_BALANCE_AUDIT.md`およびM7チェックリストを参照する。
