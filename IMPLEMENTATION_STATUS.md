@@ -5,7 +5,7 @@
 - MVP受入: **6/7**（M7は不合格のまま）
 - 公開URL: [HANABIN](https://chameleonjp-lab.github.io/hanabin/)
 
-> 2026年8月29日追記: 直近の敵対的検証と追加要件を統合した追補を開始した。選択肢保証、一時停止、名前必須、結果画面のホーム／実験場／端末内TOP10、PCマウス操作、縦画面の時計回り論理表示をDraft PR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)へ実装した。CI Core #85とCI Browser #85は成功したが、これはまだ`main`へマージしていない作業中の変更であり、実機iPhone 17 Pro、初見5人、公開後確認は未完了である。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)を正本とする。
+> 2026年8月29日追記: 直近の敵対的検証と追加要件を統合した追補を開始した。選択肢保証、一時停止、名前必須、結果画面のホーム／実験場／端末内TOP10、PCマウス操作、縦画面の時計回り論理表示をDraft PR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)へ実装した。Core全量ゲートの15分制限によるキャンセルを30分へ延長して解消し、CI Core #87とCI Browser #87、全量ゲート、厳格再生fixture生成、artifactアップロードまで成功した。これはまだ`main`へマージしていない作業中の変更であり、実機iPhone 17 Pro、初見5人、公開後確認は未完了である。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)を正本とする。
 
 > 2026年8月23日のスマホ操作、PC/touch演出、SE、得点表示、予告バランスの後続修正はPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、GitHub Pagesへ公開済みである。マージ後のCI Core #78、CI Browser #78、Deploy GitHub Pages #23、Public Release Smoke #18はすべて成功した。iPhone 17 Pro / Safari実機と初見5人の試遊は未確認であり、M7受入は6/7のままとする。
 
