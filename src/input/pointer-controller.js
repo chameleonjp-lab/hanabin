@@ -111,6 +111,7 @@ export class PointerController {
     this.fingerY = 0;
     this.pendingRelease = false;
     this.deferredPointer = null;
+    this.captureMode = "none";
     this.onChange = typeof onChange === "function" ? onChange : null;
     this.onInterrupt = typeof onInterrupt === "function" ? onInterrupt : null;
     this.onLifecycle = typeof onLifecycle === "function" ? onLifecycle : null;
@@ -130,6 +131,9 @@ export class PointerController {
       },
       pagehide: () => this.handleLifecycle("pagehide"),
       orientationchange: () => this.handleLifecycle("orientationchange"),
+      fallbackPointerMove: (event) => this.handleFallbackPointerEvent(event),
+      fallbackPointerUp: (event) => this.handleFallbackPointerEvent(event),
+      fallbackPointerCancel: (event) => this.handleFallbackPointerEvent(event),
     };
     for (const type of ["pointerdown", "pointermove", "pointerup", "pointercancel"]) {
       element.addEventListener(type, this.handlers[type], { passive: false });
@@ -142,6 +146,14 @@ export class PointerController {
     document.addEventListener("visibilitychange", this.handlers.visibilitychange, { passive: true });
     window.addEventListener("pagehide", this.handlers.pagehide, { passive: true });
     window.addEventListener("orientationchange", this.handlers.orientationchange, { passive: true });
+    // Pointer Capture is supported by current browsers, but some embedded
+    // webviews and older engines can reject it. Window listeners are a
+    // release-safe fallback for events that leave the canvas. Events whose
+    // target is the canvas are already handled by the element listeners and
+    // are ignored here to avoid double sampling.
+    for (const type of ["pointermove", "pointerup", "pointercancel"]) {
+      window.addEventListener(type, this.handlers[`fallbackPointer${type === "pointermove" ? "Move" : type === "pointerup" ? "Up" : "Cancel"}`], { passive: false });
+    }
     element.style.touchAction = "none";
     element.style.userSelect = "none";
     element.style.webkitUserSelect = "none";
@@ -200,6 +212,7 @@ export class PointerController {
       this.element.dataset.pointerCapture = position.pointerId !== null &&
         typeof this.element.hasPointerCapture === "function" &&
         this.element.hasPointerCapture(position.pointerId) ? "true" : "false";
+      this.element.dataset.pointerCaptureMode = this.captureMode;
     }
     if (this.onChange) this.onChange({ ...change, ...position });
   }
@@ -250,10 +263,12 @@ export class PointerController {
     if (this.sampler.marker !== null || this.pendingRelease) {
       const normalized = this.normalizeEvent(event, "pointerdown");
       const point = this.boardPoint(event);
-      if (!normalized || !point || !this.capture(pointerId)) {
+      if (!normalized || !point) {
         this.notify({ type: "pointerdown-ignored-pending-boundary", ignoredPointerId: pointerId });
         return;
       }
+      const captured = this.capture(pointerId);
+      this.captureMode = captured ? "native" : "fallback";
       // Preserve the unsampled release/cancel as the next fixed-tick frame,
       // but keep a genuinely held second tap ready for the following tick.
       // This removes the narrow dead zone without overwriting replay order.
@@ -274,14 +289,9 @@ export class PointerController {
     const point = this.boardPoint(event);
     this.fingerX = point.fingerX;
     this.fingerY = point.fingerY;
-    if (!this.capture(pointerId)) {
-      // Without capture, an up event outside the canvas could leave the
-      // sampler pressed forever. Convert the failed acquisition into the
-      // normal one-shot interrupt marker instead.
-      this.interrupt("pointercapture-failed");
-      return;
-    }
-    this.notify({ type: "pointerdown", pointerId });
+    const captured = this.capture(pointerId);
+    this.captureMode = captured ? "native" : "fallback";
+    this.notify({ type: "pointerdown", pointerId, pointerCapture: this.captureMode });
   }
 
   handlePointerMove(event) {
@@ -327,6 +337,17 @@ export class PointerController {
     this.notify({ type: "pointermove", pointerId });
   }
 
+  handleFallbackPointerEvent(event) {
+    const pointerId = pointerIdOf(event);
+    const ownedPointerId = this.sampler.activePointerId ?? this.deferredPointer?.pointerId ?? null;
+    if (pointerId === null || ownedPointerId !== pointerId) return;
+    const eventTarget = event?.target;
+    if (eventTarget && (eventTarget === this.element || this.element.contains?.(eventTarget))) return;
+    if (event?.type === "pointermove") this.handlePointerMove(event);
+    else if (event?.type === "pointerup") this.handlePointerUp(event);
+    else if (event?.type === "pointercancel") this.handlePointerCancel(event);
+  }
+
   handlePointerUp(event) {
     if (event.cancelable) event.preventDefault();
     const pointerId = pointerIdOf(event);
@@ -337,6 +358,7 @@ export class PointerController {
     if (this.deferredPointer?.pointerId === pointerId) {
       this.deferredPointer = null;
       this.release(pointerId);
+      this.captureMode = "none";
       this.notify({ type: "deferred-pointerup", pointerId });
       return;
     }
@@ -356,6 +378,7 @@ export class PointerController {
     this.fingerX = point.fingerX;
     this.fingerY = point.fingerY;
     this.release(pointerId);
+    this.captureMode = "none";
     this.notify({ type: "pointerup", pointerId });
   }
 
@@ -369,6 +392,7 @@ export class PointerController {
     if (this.deferredPointer?.pointerId === pointerId) {
       this.deferredPointer = null;
       this.release(pointerId);
+      this.captureMode = "none";
       this.notify({ type: "deferred-pointercancel", pointerId });
       if (this.onInterrupt) this.onInterrupt("pointercancel");
       return;
@@ -385,6 +409,7 @@ export class PointerController {
     this.fingerX = point.fingerX;
     this.fingerY = point.fingerY;
     this.release(pointerId);
+    this.captureMode = "none";
     this.notify({ type: "pointercancel", pointerId });
     if (this.onInterrupt) this.onInterrupt("pointercancel");
   }
@@ -431,6 +456,7 @@ export class PointerController {
     }
     if (accepted) this.pendingRelease = false;
     if (accepted) this.release(pointerId);
+    if (accepted) this.captureMode = "none";
     if (deferredPointerId !== null) {
       this.deferredPointer = null;
       this.release(deferredPointerId);
@@ -489,6 +515,7 @@ export class PointerController {
     this.sampler.x = 0;
     this.sampler.y = 0;
     this.sampler.marker = null;
+    this.captureMode = "none";
     this.fingerX = 0;
     this.fingerY = 0;
     this.pendingRelease = false;
@@ -516,6 +543,9 @@ export class PointerController {
     document.removeEventListener("visibilitychange", this.handlers.visibilitychange);
     window.removeEventListener("pagehide", this.handlers.pagehide);
     window.removeEventListener("orientationchange", this.handlers.orientationchange);
+    for (const type of ["pointermove", "pointerup", "pointercancel"]) {
+      window.removeEventListener(type, this.handlers[`fallbackPointer${type === "pointermove" ? "Move" : type === "pointerup" ? "Up" : "Cancel"}`]);
+    }
   }
 }
 

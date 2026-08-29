@@ -4,7 +4,7 @@
 
 ## 2026年8月23日 後続バランス再検証
 
-この節は作業ブランチ `agent/mobile-desktop-experience-20260823` の `m4-gameplay-2` を扱う。以下の変更と再検証は**未マージ・未公開**であり、後段に残す `m4-gameplay-1` の記録は2026年8月11日時点のマージ済み履歴である。
+この節は作業ブランチ `agent/mobile-desktop-experience-20260823` の `m4-gameplay-2` を扱う履歴記録である。当時は未マージ・未公開だったが、後にPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされた。さらに選択肢保証を含む`m4-gameplay-3`はPull Request [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)でマージ済みであり、現在の追補タスクは`docs/POST_MVP_HARDENING_PLAN.md`を参照する。後段に残す `m4-gameplay-1` の記録は2026年8月11日時点のマージ済み履歴である。
 
 - 選択判定半径を420から520へ拡大した。3 tick保持、接続距離5,140、爆発半径1,800 / 2,070 / 2,340 / 2,520は変更しない。
 - 予告準備は次波到来まで1〜60 tick、予告色ちょうど5個、対応する橋渡し対象3個以上の場合だけ成立する。橋渡し対象は全品質で金色の二重リングを表示する。
@@ -99,4 +99,4 @@ npm run test:m2:simulation
 node scripts/generate-replay-fixtures.mjs
 ```
 
-当初の`m4-gameplay-1`は自動検査を含めて`main`へマージ済みである。実機での操作確認はM7へ引き継ぎ、当時のMVP進捗はM5作業開始時点の`4/7`とした。冒頭の`m4-gameplay-2`追補は未マージ・未公開である。
+当初の`m4-gameplay-1`は自動検査を含めて`main`へマージ済みである。実機での操作確認はM7へ引き継ぎ、当時のMVP進捗はM5作業開始時点の`4/7`とした。冒頭の`m4-gameplay-2`追補は当時未マージ・未公開だったが、現在はPR #34で反映済みである。

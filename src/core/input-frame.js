@@ -16,6 +16,8 @@ export const INPUT_TYPES = Object.freeze([
 ]);
 
 const TYPE_SET = new Set(INPUT_TYPES);
+export const MAX_POINTER_PATH_POINTS = 128;
+const MAX_PATH_POINTS = MAX_POINTER_PATH_POINTS;
 
 const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 
@@ -71,6 +73,7 @@ export const validateInputFrame = (frame, {
     "reason",
     "cancelled",
     "interrupted",
+    "path",
   ]);
   if (Object.keys(source).some((key) => !allowedFields.has(key))) {
     errors.push("UNKNOWN_INPUT_FIELD");
@@ -86,6 +89,19 @@ export const validateInputFrame = (frame, {
     for (const key of ["cancelled", "interrupted"]) {
       if (source[key] !== undefined && typeof source[key] !== "boolean") {
         errors.push("INPUT_MARKER_INVALID");
+      }
+    }
+    if (source.path !== undefined) {
+      if (!Array.isArray(source.path) || source.path.length > MAX_PATH_POINTS) {
+        errors.push("POINTER_PATH_INVALID");
+      } else {
+        for (const point of source.path) {
+          if (!point || typeof point !== "object" ||
+              !validPointerCoordinate(point.x) || !validPointerCoordinate(point.y)) {
+            errors.push("POINTER_PATH_POINT_INVALID");
+            break;
+          }
+        }
       }
     }
     if (source.cancelled === true && source.interrupted === true) {
@@ -175,9 +191,16 @@ export const createPointerSampler = () => ({
   x: 0,
   y: 0,
   marker: null,
+  path: [],
 });
 
 const validPointerCoordinate = (value) => Number.isInteger(value) && Number.isFinite(value);
+const appendPathPoint = (sampler, x, y) => {
+  if (!validPointerCoordinate(x) || !validPointerCoordinate(y)) return;
+  if (sampler.path.length >= MAX_PATH_POINTS) sampler.path.shift();
+  const previous = sampler.path.at(-1);
+  if (!previous || previous.x !== x || previous.y !== y) sampler.path.push({ x, y });
+};
 
 export const updatePointerSampler = (sampler, event = {}) => {
   if (!sampler || typeof sampler !== "object" || !event || typeof event !== "object") return false;
@@ -192,6 +215,8 @@ export const updatePointerSampler = (sampler, event = {}) => {
     sampler.x = event.x;
     sampler.y = event.y;
     sampler.marker = null;
+    sampler.path = [];
+    appendPathPoint(sampler, event.x, event.y);
     return true;
   }
   if (type === "interrupt") {
@@ -204,6 +229,10 @@ export const updatePointerSampler = (sampler, event = {}) => {
   if (sampler.activePointerId === null || sampler.activePointerId !== pointerId) return false;
   if (!["pointermove", "pointerup", "pointercancel"].includes(type)) return false;
   if (!validPointerCoordinate(event.x) || !validPointerCoordinate(event.y)) return false;
+  const previousX = sampler.x;
+  const previousY = sampler.y;
+  appendPathPoint(sampler, previousX, previousY);
+  appendPathPoint(sampler, event.x, event.y);
   sampler.x = event.x;
   sampler.y = event.y;
   if (type === "pointerup" || type === "pointercancel") {
@@ -221,10 +250,12 @@ export const readPointerFrame = (sampler, tick, actionId) => {
     pressed: sampler?.pressed === true,
     x: sampler?.x ?? 0,
     y: sampler?.y ?? 0,
+    ...(sampler?.path?.length ? { path: sampler.path.map((point) => ({ ...point })) } : {}),
     ...(marker === "cancelled" ? { cancelled: true } : {}),
     ...(marker === "interrupted" ? { interrupted: true } : {}),
   });
   if (sampler && typeof sampler === "object") sampler.marker = null;
+  if (sampler && typeof sampler === "object") sampler.path = [];
   return frame;
 };
 
@@ -244,8 +275,13 @@ export const canonicalInputFrame = (frame) => {
     "pressed",
     "cancelled",
     "interrupted",
+    "path",
   ]) {
-    if (normalized[key] !== undefined) result[key] = normalized[key];
+    if (normalized[key] !== undefined) {
+      result[key] = key === "path" && Array.isArray(normalized[key])
+        ? normalized[key].map((point) => ({ ...point }))
+        : normalized[key];
+    }
   }
   return result;
 };

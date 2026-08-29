@@ -449,6 +449,31 @@ test("a rapid second hold is queued behind the unsampled release boundary", () =
   });
 });
 
+test("a queued second hold can release through the fallback window path", () => {
+  withBrowserGlobals(({ windowStub }) => {
+    const element = makeEventTarget({ throwOnCapture: true });
+    const controller = new PointerController(element);
+
+    element.dispatch("pointerdown", { pointerId: 75, clientX: 25, clientY: 25 });
+    element.dispatch("pointerup", { pointerId: 75, clientX: 25, clientY: 25 });
+    element.dispatch("pointerdown", { pointerId: 76, clientX: 75, clientY: 75 });
+
+    assert.equal(controller.activePointerId, 76);
+    assert.equal(element.dataset.pointerCaptureMode, "fallback");
+    windowStub.dispatch("pointermove", {
+      pointerId: 76, clientX: 90, clientY: 90,
+    });
+    windowStub.dispatch("pointerup", {
+      pointerId: 76, clientX: 90, clientY: 90,
+    });
+
+    assert.equal(controller.activePointerId, null);
+    assert.equal(controller.sampleFrame(0, 0).pressed, false);
+    assert.equal(controller.sampleFrame(1, 1).pressed, false);
+    controller.destroy();
+  });
+});
+
 test("a second tap released before its queued tick cannot become a ghost hold", () => {
   withBrowserGlobals(() => {
     const element = makeEventTarget();
@@ -643,6 +668,61 @@ test("practice ignores a complete press and sweep between two sampled ticks", ()
   });
 });
 
+test("practice can acquire a target crossed by a sampled path after three ticks", () => {
+  withBrowserGlobals(() => {
+    const { canvas, element } = makeTutorialFixture();
+    const tutorial = new TutorialController(element);
+    tutorial.state = "running";
+    const target = practiceTargetBoardPoint(PRACTICE_TARGETS[1]);
+    const framePoint = (actionId) => ({
+      pointerId: 86,
+      pointerType: "touch",
+      clientX: target.x / 100,
+      clientY: target.y / 100,
+      path: [
+        { x: target.x - 1_000, y: target.y },
+        { x: target.x, y: target.y },
+        { x: target.x + 1_000, y: target.y },
+      ],
+      actionId,
+    });
+
+    canvas.dispatch("pointerdown", {
+      pointerId: 86,
+      pointerType: "touch",
+      clientX: 0,
+      clientY: target.y / 100,
+    });
+    tutorial.consumeInputFrame({
+      type: "pointer",
+      pressed: true,
+      x: target.x + 1_000,
+      y: target.y,
+      path: framePoint(0).path,
+      actionId: 0,
+    });
+    tutorial.consumeInputFrame({
+      type: "pointer",
+      pressed: true,
+      x: target.x + 1_000,
+      y: target.y,
+      path: framePoint(1).path,
+      actionId: 1,
+    });
+    assert.equal(tutorial.snapshot().selectedCount, 0);
+    tutorial.consumeInputFrame({
+      type: "pointer",
+      pressed: true,
+      x: target.x + 1_000,
+      y: target.y,
+      path: framePoint(2).path,
+      actionId: 2,
+    });
+    assert.equal(tutorial.snapshot().selectedCount, 1);
+    tutorial.destroy();
+  });
+});
+
 test("practice tap and trace cues use the same 240-board-unit movement contract as play", () => {
   withBrowserGlobals(() => {
     const { canvas, element } = makeTutorialFixture();
@@ -698,8 +778,8 @@ test("practice cannot start, skip, or continue while portrait interaction is blo
   });
 });
 
-test("a Pointer Capture failure clears the pointer and emits one interrupted marker", () => {
-  withBrowserGlobals(() => {
+test("a Pointer Capture failure falls back to window events without stranding the pointer", () => {
+  withBrowserGlobals(({ windowStub }) => {
     const element = makeEventTarget({ throwOnCapture: true });
     const interrupts = [];
     const controller = new PointerController(element, {
@@ -707,21 +787,25 @@ test("a Pointer Capture failure clears the pointer and emits one interrupted mar
     });
 
     element.dispatch("pointerdown", { pointerId: 19, clientX: 50, clientY: 50 });
-    assert.equal(controller.activePointerId, null);
-    assert.equal(controller.pressed, false);
-    assert.deepEqual(interrupts, ["pointercapture-failed"]);
+    assert.equal(controller.activePointerId, 19);
+    assert.equal(controller.pressed, true);
+    assert.deepEqual(interrupts, []);
+    assert.equal(element.dataset.pointerCaptureMode, "fallback");
 
-    const interrupted = controller.sampleFrame(0, 0);
-    const following = controller.sampleFrame(1, 1);
-    assert.equal(interrupted.pressed, false);
-    assert.equal(interrupted.interrupted, true);
-    assert.equal(following.interrupted, undefined);
+    windowStub.dispatch("pointermove", {
+      pointerId: 19, clientX: 90, clientY: 90,
+    });
+    assert.equal(controller.position.pressed, true);
+    windowStub.dispatch("pointerup", {
+      pointerId: 19, clientX: 90, clientY: 90,
+    });
+    assert.equal(controller.sampleFrame(0, 0).pressed, false);
     assert.equal(controller.activePointerId, null);
     controller.destroy();
   });
 });
 
-test("a Pointer Capture no-op is detected instead of leaving a pressed pointer", () => {
+test("a Pointer Capture no-op also uses the release-safe fallback", () => {
   withBrowserGlobals(() => {
     const element = makeEventTarget({ noOpCapture: true });
     const interrupts = [];
@@ -730,10 +814,10 @@ test("a Pointer Capture no-op is detected instead of leaving a pressed pointer",
     });
 
     element.dispatch("pointerdown", { pointerId: 20, clientX: 50, clientY: 50 });
-    assert.equal(controller.activePointerId, null);
-    assert.equal(controller.pressed, false);
-    assert.deepEqual(interrupts, ["pointercapture-failed"]);
-    assert.equal(controller.sampleFrame(0, 0).interrupted, true);
+    assert.equal(controller.activePointerId, 20);
+    assert.equal(controller.pressed, true);
+    assert.deepEqual(interrupts, []);
+    assert.equal(element.dataset.pointerCaptureMode, "fallback");
     controller.destroy();
   });
 });

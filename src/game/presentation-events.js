@@ -20,6 +20,18 @@ const distance = (left, right) => Math.hypot(
   finite(right?.x) - finite(left?.x),
   finite(right?.y) - finite(left?.y),
 );
+const pathDistance = (from, frame, to) => {
+  const path = array(frame?.path).filter((point) =>
+    Number.isFinite(Number(point?.x)) && Number.isFinite(Number(point?.y)));
+  if (!path.length) return distance(from, to);
+  let total = 0;
+  let previous = from;
+  for (const point of path) {
+    total += distance(previous, point);
+    previous = point;
+  }
+  return total + distance(previous, to);
+};
 
 const runKeyFor = (state) => [
   state?.gameVersion ?? "game",
@@ -125,7 +137,7 @@ export class PresentationEventTracker {
         events.push({ type: "tap", x: point.x, y: point.y, tick: integer(frame.tick) });
         this.traceDistanceCarry = 0;
       } else if (pressed && this.pointerPressed && this.pointerPoint) {
-        traced += distance(this.pointerPoint, point);
+        traced += pathDistance(this.pointerPoint, frame, point);
       }
       this.pointerPressed = pressed;
       this.pointerPoint = pressed ? point : null;

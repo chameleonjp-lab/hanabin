@@ -217,6 +217,39 @@ test("M3 mouse input selects and detonates through the browser adapter", async (
   assertClean(diagnostics);
 });
 
+test("M3 fixed ticks inspect an intermediate pointer path without weakening hold time", async ({ page }) => {
+  const diagnostics = await openPage(page, viewports[0]);
+  await beginPlaying(page);
+  const box = await canvasBox(page);
+  const target = (await firstThreeTargets(page))[0];
+  const start = pointForAim({ ...target, x: Math.max(0, target.x - 1_000) }, box);
+  const middle = pointForAim(target, box);
+  const end = pointForAim({ ...target, x: Math.min(BOARD_WIDTH, target.x + 1_000) }, box);
+
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  const pointerId = (await callApi(page, "renderModel")).pointer.pointerId;
+  expect(pointerId).not.toBeNull();
+  for (let tick = 0; tick < 3; tick += 1) {
+    for (const point of [start, middle, end]) {
+      await dispatchPointer(page, "pointermove", {
+        pointerId,
+        clientX: point.x,
+        clientY: point.y,
+        pointerType: "mouse",
+      });
+    }
+    await callApi(page, "advanceTicks", 1);
+  }
+  const snapshot = await callApi(page, "snapshot");
+  expect(snapshot.selectedIds).toEqual([target.id]);
+  expect(snapshot.inputFrames.some((frame) => Array.isArray(frame.path) && frame.path.length >= 3)).toBe(true);
+  expect(snapshot.simulationFault).toBeNull();
+  await page.mouse.up();
+  await callApi(page, "advanceTicks", 1);
+  assertClean(diagnostics);
+});
+
 test("M3 PC presentation keeps mouse click-drag input on the deterministic path", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === "webkit-touch", "PC presentation is covered by Chromium only");
   const diagnostics = await openPage(page, viewports[2]);
