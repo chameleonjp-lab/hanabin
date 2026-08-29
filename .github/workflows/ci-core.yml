@@ -44,7 +44,10 @@ jobs:
   simulation:
     name: Full M4 gameplay simulation (Node 24)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The one-shot gate includes 10,000 safety seeds plus an 8-strategy
+    # 1,000-seed comparison.  Its measured runtime is about 15 minutes on
+    # GitHub-hosted runners, so leave enough headroom for runner variance.
+    timeout-minutes: 30
     env:
       NODE_OPTIONS: --max-old-space-size=512
     steps:
