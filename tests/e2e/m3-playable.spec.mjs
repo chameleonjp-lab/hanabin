@@ -222,10 +222,7 @@ test("M3 held pointer explains the minimum hold when a target is not yet selecte
   await beginPlaying(page);
   const box = await canvasBox(page);
   const target = (await firstThreeTargets(page))[0];
-  const point = {
-    x: box.left + target.x / BOARD_WIDTH * box.width,
-    y: box.top + target.y / BOARD_HEIGHT * box.height,
-  };
+  const point = pointForAim(target, box);
 
   await page.mouse.move(point.x, point.y);
   await page.mouse.down();
