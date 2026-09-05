@@ -217,6 +217,23 @@ test("M3 mouse input selects and detonates through the browser adapter", async (
   assertClean(diagnostics);
 });
 
+test("M3 held pointer explains the minimum hold when a target is not yet selected", async ({ page }) => {
+  const diagnostics = await openPage(page, viewports[0]);
+  await beginPlaying(page);
+  const box = await canvasBox(page);
+  const target = (await firstThreeTargets(page))[0];
+  const point = pointForAim(target, box);
+
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.down();
+  await callApi(page, "advanceTicks", 1);
+  await expect(page.locator("#play-message")).toHaveText("もう少し押してから動かします");
+  await page.mouse.up();
+  await callApi(page, "advanceTicks", 1);
+  await expect(page.locator("#play-message")).toHaveText("");
+  assertClean(diagnostics);
+});
+
 test("M3 fixed ticks inspect an intermediate pointer path without weakening hold time", async ({ page }) => {
   const diagnostics = await openPage(page, viewports[0]);
   await beginPlaying(page);

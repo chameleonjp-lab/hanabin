@@ -28,16 +28,76 @@ export const scoreBreakdownFor = (state = {}) => {
   };
 };
 
-export const resultHintFor = (state = {}) => {
+const detonationRowsFor = (state = {}) => {
+  const rows = new Map();
+  const scoreEvents = Array.isArray(state.scoreEvents) ? state.scoreEvents : [];
+  scoreEvents
+    .filter((event) => event?.kind === "direct")
+    .forEach((event, index) => {
+      const actionKey = event?.actionId === null || event?.actionId === undefined
+        ? `unknown:${index}`
+        : String(event.actionId);
+      const row = rows.get(actionKey) ?? {
+        actionId: event?.actionId ?? null,
+        selectedCount: 0,
+        fireTick: Number.isFinite(Number(event?.fireTick)) ? Number(event.fireTick) : null,
+      };
+      row.selectedCount += 1;
+      if (row.fireTick === null && Number.isFinite(Number(event?.fireTick))) {
+        row.fireTick = Number(event.fireTick);
+      }
+      rows.set(actionKey, row);
+    });
+  return [...rows.values()];
+};
+
+/** Derive one actionable run summary from the existing deterministic ledgers. */
+export const resultStatsFor = (state = {}) => {
   const stats = state.stats ?? {};
-  const maxChain = Math.max(0, Math.trunc(Number(stats.maxChain) || 0));
+  const detonations = detonationRowsFor(state);
+  const detonationCount = Math.max(
+    0,
+    Math.trunc(Number(stats.detonationCount) || detonations.length),
+  );
+  const selectionTotal = detonations.reduce((total, row) => total + row.selectedCount, 0);
+  const smallDetonations = detonations.filter((row) => row.selectedCount <= 3).length;
   const directTargets = Math.max(0, Math.trunc(Number(stats.directTargets) || 0));
   const chainTargets = Math.max(0, Math.trunc(Number(stats.chainTargets) || 0));
+  const totalTargets = directTargets + chainTargets;
+  return {
+    detonationCount,
+    selectionSamples: detonations.length,
+    averageSelectionCount: detonations.length ? selectionTotal / detonations.length : null,
+    smallDetonationRate: detonations.length ? smallDetonations / detonations.length : 0,
+    selectionDrops: Math.max(0, Math.trunc(Number(stats.selectionDrops) || 0)),
+    directTargets,
+    chainTargets,
+    chainRatio: totalTargets ? chainTargets / totalTargets : 0,
+    forecastSuccesses: forecastSuccessCountFor(state),
+    maxChain: Math.max(0, Math.trunc(Number(stats.maxChain) || 0)),
+  };
+};
+
+export const resultHintFor = (state = {}) => {
+  const metrics = resultStatsFor(state);
   if (Math.max(0, Number(state.finalScore ?? state.score) || 0) <= 0) {
     return "まずは同じ色の花火を3つ見つけ、指を押したまま少し待ってから離してみましょう。";
   }
-  if (maxChain < 5) return "次の波の予告を見て、同じ色を先回りしてつなぐと連鎖が伸びます。";
-  if (directTargets > chainTargets) return "次は選択した花火を5個まで増やし、予告対象を準備に使ってみましょう。";
+  if (metrics.averageSelectionCount !== null && metrics.averageSelectionCount < 3.4) {
+    return `平均${metrics.averageSelectionCount.toFixed(1)}個で起爆しました。次は4個目を足し、爆発範囲を広げてみましょう。`;
+  }
+  if (metrics.selectionDrops >= 2 && metrics.selectionDrops > metrics.detonationCount) {
+    return "外輪が一周してから次へ動き、選択中の花火が消える前に離してみましょう。";
+  }
+  if (metrics.forecastSuccesses === 0 && metrics.maxChain < 5 && metrics.detonationCount > 0) {
+    return "金色の二重リングを3つ含め、次の波が近づいたときに離してみましょう。";
+  }
+  if (metrics.detonationCount > 0 && metrics.chainRatio < 0.35) {
+    return "選ぶ花火を次の花火の近くに集めてから離すと、連鎖が伸びやすくなります。";
+  }
+  if (metrics.directTargets > metrics.chainTargets) {
+    return "次は選択した花火を5個まで増やし、予告対象を準備に使ってみましょう。";
+  }
   return "連鎖の途中で次の色へ視線を移し、起爆後の短い待ち時間に次の花火を準備してみましょう。";
 };
 

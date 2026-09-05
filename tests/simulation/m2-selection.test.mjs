@@ -5,8 +5,10 @@ import { DEFAULT_RULES } from "../../src/config/rules.js";
 import {
   advanceGame,
   createGame,
+  consumePointerFrame,
   detonate,
   findCandidates,
+  pointerFailureReasonFor,
   selectAt,
   selectEntity,
 } from "../../src/core/engine.js";
@@ -157,6 +159,55 @@ test("selection ties use distance then front depth then id, and offscreen select
   advanceGame(moving, 1, DEFAULT_RULES);
   assert.deepEqual(moving.selectedIds, []);
   assert.equal(moving.stats.selectionDrops, 1);
+});
+
+test("pointer failure feedback follows hold, colour, link, and cooldown rules", () => {
+  const state = cluster();
+  const target = state.fireworks[0];
+  state.fireworks.push(makeFirework({ id: 7, x: 10_200, y: 4_500 }));
+  const frame = (actionId, x, y, pressed = true) => ({
+    type: "pointer",
+    actionId,
+    tick: actionId,
+    pressed,
+    x,
+    y,
+  });
+
+  assert.equal(pointerFailureReasonFor(state, frame(0, target.x, target.y)), "target-not-selectable");
+  state.pointerPressed = false;
+  assert.equal(consumePointerFrame(state, frame(0, target.x, target.y), DEFAULT_RULES), null);
+  assert.equal(state.lastAction.reason, "selection-not-held");
+  assert.equal(consumePointerFrame(state, frame(1, target.x, target.y), DEFAULT_RULES), null);
+  assert.equal(state.lastAction.reason, "selection-not-held");
+
+  assert.ok(selectEntity(state, 1, DEFAULT_RULES, { x: target.x, y: target.y }));
+  state.tick = 1;
+  state.timeTick = 1;
+  assert.equal(
+    pointerFailureReasonFor(state, frame(1, 9_000, 4_500)),
+    "different-color",
+  );
+  assert.equal(
+    pointerFailureReasonFor(state, frame(1, 10_200, 4_500)),
+    "target-outside-selection-geometry",
+  );
+
+  state.cooldownUntilTick = 12;
+  assert.equal(pointerFailureReasonFor(state, frame(1, target.x, target.y)), "cooldown");
+});
+
+test("an expired selected target reports a visible cancellation reason", () => {
+  const state = fixture([
+    makeFirework({ id: 1, x: 4_000, y: 4_500, lifetimeTicks: 1 }),
+  ]);
+  assert.ok(selectEntity(state, 1, DEFAULT_RULES, { x: 4_000, y: 4_500 }));
+  advanceGame(state, 1, DEFAULT_RULES);
+  assert.deepEqual(state.selectedIds, []);
+  assert.deepEqual(state.lastAction, {
+    type: "selection-cancelled",
+    reason: "target-expired",
+  });
 });
 
 test("selectEntity cannot bypass pointer hit and link geometry", () => {
