@@ -343,6 +343,10 @@ test("M6 forecast success is announced during play and counted in the result", a
   const nextWave = state.upcomingWaves[0];
   expect(nextWave.fireTick - state.tick).toBeGreaterThanOrEqual(1);
   expect(nextWave.fireTick - state.tick).toBeLessThanOrEqual(60);
+  await expect(page.locator("#hud-forecast-items .forecast-item").first())
+    .toHaveAttribute("data-forecast-window", "open");
+  await expect(page.locator("#hud-forecast-items .forecast-item").first())
+    .toContainText("予告準備");
   const targets = state.fireworks
     .filter((entity) => entity.status === "active" && entity.visible !== false)
     .filter((entity) => entity.forecastForWaveIndex === nextWave.waveIndex)

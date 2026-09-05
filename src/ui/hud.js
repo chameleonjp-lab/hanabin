@@ -13,6 +13,83 @@ const byId = (root, id) => root?.querySelector?.(`#${id}`) ?? null;
 const formatScore = (value) => Math.max(0, Math.trunc(Number(value) || 0)).toLocaleString("ja-JP");
 const formatSeconds = (value) => Math.max(0, Number(value) || 0).toFixed(1);
 const positionLabels = Object.freeze({ left: "左", center: "中央", right: "右" });
+const idKey = (value) => String(value);
+
+const safeRuleCount = (value, fallback) => Math.max(1, Math.trunc(Number(value) || fallback));
+
+/**
+ * Derive the player-facing forecast preparation state without changing the
+ * game state. The core remains the only place that awards the bonus; this
+ * helper only explains the same timing and selection conditions in the HUD.
+ */
+export const forecastReadinessFor = (state = {}, rules = DEFAULT_RULES) => {
+  const nextWave = state?.upcomingWaves?.[0] ?? null;
+  const tick = Number(state?.tick);
+  const fireTick = Number(nextWave?.fireTick);
+  const leadTicks = Number.isFinite(tick) && Number.isFinite(fireTick)
+    ? Math.trunc(fireTick - tick)
+    : null;
+  const requiredSelectionCount = safeRuleCount(rules.forecastPlanSelectionCount, 5);
+  const requiredBridgeCount = safeRuleCount(rules.minimumSelection, 3);
+  const selectedIds = Array.isArray(state?.selectedIds) ? state.selectedIds : [];
+  const entitiesById = new Map(
+    (Array.isArray(state?.fireworks) ? state.fireworks : [])
+      .map((entity) => [idKey(entity?.id), entity]),
+  );
+  const selectedEntities = selectedIds
+    .map((id) => entitiesById.get(idKey(id)))
+    .filter((entity) => entity?.status === "active" && entity.visible !== false);
+  const selectedCount = selectedEntities.length;
+  const selectedColor = state?.selectedColor ?? selectedEntities[0]?.color ?? null;
+  const forecastColor = nextWave ? colorName(nextWave.primaryColor) : null;
+  const selectedColorMatches = selectedCount > 0 &&
+    colorName(selectedColor) === forecastColor &&
+    selectedEntities.every((entity) => colorName(entity.color) === forecastColor);
+  const forecastWaveIndex = Number.isInteger(nextWave?.waveIndex) ? nextWave.waveIndex : null;
+  const bridgeCount = selectedEntities.filter((entity) =>
+    forecastWaveIndex !== null && entity.forecastForWaveIndex === forecastWaveIndex,
+  ).length;
+  const windowOpen = Boolean(nextWave &&
+    Number.isFinite(leadTicks) &&
+    leadTicks >= 1 &&
+    leadTicks <= rules.forecastPlanLeadTicks);
+  let status = "window-closed";
+  if (windowOpen) {
+    if (!selectedCount) status = "window-open";
+    else if (!selectedColorMatches) status = "wrong-color";
+    else if (selectedCount === requiredSelectionCount && bridgeCount >= requiredBridgeCount) status = "ready";
+    else status = "progress";
+  }
+  return {
+    status,
+    windowOpen,
+    ready: status === "ready",
+    waveId: nextWave?.waveId ?? null,
+    waveIndex: forecastWaveIndex,
+    forecastColor,
+    leadTicks,
+    selectedCount,
+    requiredSelectionCount,
+    bridgeCount,
+    requiredBridgeCount,
+    selectionRemaining: Math.max(0, requiredSelectionCount - selectedCount),
+    bridgeRemaining: Math.max(0, requiredBridgeCount - bridgeCount),
+  };
+};
+
+const forecastCueTextFor = (readiness = {}) => {
+  if (readiness.status === "ready") return "予告準備OK";
+  if (readiness.status === "window-open") return "今なら予告準備";
+  if (readiness.status === "wrong-color") return "予告色を選択";
+  if (readiness.status !== "progress") return "";
+  if (readiness.selectedCount > readiness.requiredSelectionCount) {
+    return `ちょうど${readiness.requiredSelectionCount}個に調整`;
+  }
+  const remaining = [];
+  if (readiness.selectionRemaining > 0) remaining.push(`あと${readiness.selectionRemaining}個`);
+  if (readiness.bridgeRemaining > 0) remaining.push(`金色の輪あと${readiness.bridgeRemaining}個`);
+  return remaining.join("・") || `ちょうど${readiness.requiredSelectionCount}個`;
+};
 
 const INPUT_FAILURE_MESSAGES = Object.freeze({
   "selection-not-held": "もう少し押してから動かします",
@@ -43,22 +120,48 @@ export const blastRangeForSelection = (count = 0, rules = DEFAULT_RULES) => {
   return { count: selectedCount, radius, label };
 };
 
-export const forecastMarkup = (waves = [], currentTick = 0, rules = DEFAULT_RULES) => waves.slice(0, 2).map((wave, index) => {
-  const color = colorName(wave.primaryColor);
-  const value = colorValue(wave.primaryColor);
-  const symbol = colorSymbol(wave.primaryColor);
-  const position = positionLabels[wave.position] ?? "—";
-  const fireTick = Number(wave.fireTick);
-  const seconds = Number.isFinite(fireTick)
-    ? formatSeconds((fireTick - (Number(currentTick) || 0)) / rules.tickRate)
-    : "—";
-  return `<span class="forecast-item" data-wave-index="${index}" data-wave-color="${color}">` +
-    `<i class="forecast-swatch" style="color:${value}" aria-hidden="true">${symbol}</i>` +
-    `<span class="forecast-order">${index + 1}波</span>` +
-    `<span class="forecast-position" data-wave-position="${wave.position ?? ""}">${position}</span>` +
-    `<span class="forecast-arrival" data-wave-fire-tick="${Number.isFinite(fireTick) ? fireTick : ""}">あと${seconds}s</span>` +
-    `</span>`;
-}).join("");
+export const forecastMarkup = (
+  waves = [],
+  currentTick = 0,
+  rules = DEFAULT_RULES,
+  readiness = null,
+) => {
+  const forecastReadiness = readiness ?? forecastReadinessFor({
+    upcomingWaves: waves,
+    tick: currentTick,
+  }, rules);
+  return waves.slice(0, 2).map((wave, index) => {
+    const color = colorName(wave.primaryColor);
+    const value = colorValue(wave.primaryColor);
+    const symbol = colorSymbol(wave.primaryColor);
+    const position = positionLabels[wave.position] ?? "—";
+    const fireTick = Number(wave.fireTick);
+    const seconds = Number.isFinite(fireTick)
+      ? formatSeconds((fireTick - (Number(currentTick) || 0)) / rules.tickRate)
+      : "—";
+    const isPrimary = index === 0;
+    const isWindowOpen = isPrimary && forecastReadiness.windowOpen &&
+      (forecastReadiness.waveId === null || forecastReadiness.waveId === wave.waveId);
+    const classes = ["forecast-item"];
+    if (isWindowOpen) classes.push("forecast-item--window-open");
+    if (isWindowOpen && forecastReadiness.ready) classes.push("forecast-item--ready");
+    const cue = isWindowOpen ? forecastCueTextFor(forecastReadiness) : "";
+    const readinessAttributes = isPrimary
+      ? ` data-forecast-window="${isWindowOpen ? "open" : "closed"}"` +
+        ` data-forecast-ready="${isWindowOpen && forecastReadiness.ready ? "true" : "false"}"` +
+        ` data-forecast-status="${isWindowOpen ? forecastReadiness.status : "window-closed"}"` +
+        ` data-forecast-selected-count="${isWindowOpen ? forecastReadiness.selectedCount : 0}"` +
+        ` data-forecast-bridge-count="${isWindowOpen ? forecastReadiness.bridgeCount : 0}"`
+      : "";
+    return `<span class="${classes.join(" ")}" data-wave-index="${index}" data-wave-color="${color}"${readinessAttributes}>` +
+      `<i class="forecast-swatch" style="color:${value}" aria-hidden="true">${symbol}</i>` +
+      `<span class="forecast-order">${index + 1}波</span>` +
+      `<span class="forecast-position" data-wave-position="${wave.position ?? ""}">${position}</span>` +
+      `<span class="forecast-arrival" data-wave-fire-tick="${Number.isFinite(fireTick) ? fireTick : ""}">あと${seconds}s</span>` +
+      (cue ? `<span class="forecast-cue">${cue}</span>` : "") +
+      `</span>`;
+  }).join("");
+};
 
 const selectionInterruptionMessageFor = (reason) => {
   if (reason === "release-below-minimum") {
@@ -133,6 +236,7 @@ export const updateHud = (root, state, {
     root.dataset.availableChoices = String(available);
   }
   if (forecast) {
+    const forecastReadiness = forecastReadinessFor(safeState, rules);
     const forecastKey = (safeState.upcomingWaves ?? []).slice(0, 2)
       .map((wave) => {
         const fireTick = Number(wave.fireTick);
@@ -140,10 +244,15 @@ export const updateHud = (root, state, {
           ? Math.ceil(Math.max(0, fireTick - (safeState.tick ?? 0)) / 6)
           : "";
         return `${wave.waveId ?? ""}:${wave.primaryColor ?? ""}:${wave.position ?? ""}:${progressBucket}`;
-      }).join("|");
+      }).join("|") + `|${forecastReadiness.status}:${forecastReadiness.selectedCount}:${forecastReadiness.bridgeCount}`;
     if (forecast.dataset.forecastKey !== forecastKey) {
       forecast.dataset.forecastKey = forecastKey;
-      forecast.innerHTML = forecastMarkup(safeState.upcomingWaves ?? [], safeState.tick ?? 0, rules);
+      forecast.innerHTML = forecastMarkup(
+        safeState.upcomingWaves ?? [],
+        safeState.tick ?? 0,
+        rules,
+        forecastReadiness,
+      );
       if (!safeState.upcomingWaves?.length) forecast.textContent = "—";
     }
   }
