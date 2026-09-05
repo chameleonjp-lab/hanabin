@@ -32,6 +32,93 @@ export const chainMilestoneFor = (chain) => {
   return result;
 };
 
+/**
+ * Decorative tiers make the player's contribution legible without changing
+ * the explosion geometry used by the game rules. Color is paired with ring
+ * shape/weight so the distinction survives muted color palettes and low
+ * quality profiles.
+ */
+export const explosionPresentationFor = (explosion = {}) => {
+  const direct = explosion.kind === "direct";
+  const generation = Math.max(0, Math.trunc(finite(explosion.depth)));
+  if (direct) {
+    return {
+      role: "direct",
+      accentColor: "#f7fbff",
+      ringAlpha: 0.86,
+      lineWidthMultiplier: 1,
+      innerRadiusScale: 0.58,
+      accentRadiusScale: 0.88,
+      accentRingAlpha: 0.52,
+      accentLineWidthMultiplier: 1,
+    };
+  }
+  if (generation >= 2) {
+    return {
+      role: "chain-deep",
+      accentColor: "#ffd166",
+      ringAlpha: 0.82,
+      lineWidthMultiplier: 1.12,
+      innerRadiusScale: 0.5,
+      accentRadiusScale: 1.16,
+      accentRingAlpha: 0.68,
+      accentLineWidthMultiplier: 1.1,
+    };
+  }
+  return {
+    role: "chain",
+    accentColor: "#79e6ff",
+    ringAlpha: 0.7,
+    lineWidthMultiplier: 0.9,
+    innerRadiusScale: 0.52,
+    accentRadiusScale: 0.76,
+    accentRingAlpha: 0.5,
+    accentLineWidthMultiplier: 0.9,
+  };
+};
+
+/**
+ * Higher chain milestones use more rings and a wider pulse. This is a visual
+ * acknowledgement only; the milestone thresholds remain in CHAIN_MILESTONES.
+ */
+export const chainMilestonePresentationFor = (milestone) => {
+  const value = Math.max(0, Math.trunc(finite(milestone)));
+  if (value >= 30) {
+    return {
+      color: "#fff0a8",
+      ringCount: 4,
+      radiusScale: 1.24,
+      lineWidthMultiplier: 1.2,
+      fillAlpha: 0.3,
+    };
+  }
+  if (value >= 20) {
+    return {
+      color: "#ffd166",
+      ringCount: 3,
+      radiusScale: 1.12,
+      lineWidthMultiplier: 1.1,
+      fillAlpha: 0.26,
+    };
+  }
+  if (value >= 10) {
+    return {
+      color: "#ff9f68",
+      ringCount: 2,
+      radiusScale: 1.02,
+      lineWidthMultiplier: 1,
+      fillAlpha: 0.23,
+    };
+  }
+  return {
+    color: "#79e6ff",
+    ringCount: 1,
+    radiusScale: 0.94,
+    lineWidthMultiplier: 0.92,
+    fillAlpha: 0.2,
+  };
+};
+
 export const spawnExplosionParticles = (pool, explosion, {
   profile,
   nowMs = 0,
@@ -163,21 +250,36 @@ const drawExplosionRings = (ctx, explosions, {
     const radius = Math.max(3, finite(explosion.radius) * scale * (0.16 + easeOut(age) * 0.84));
     const color = colorValue(explosion.sourceColor ?? explosion.targetColor);
     const generation = Math.max(0, Math.trunc(finite(explosion.depth)));
-    const ringAlpha = (1 - age) * (explosion.kind === "direct" ? 0.86 : 0.68) * glowMultiplier;
+    const presentation = explosionPresentationFor(explosion);
+    const ringAlpha = (1 - age) * presentation.ringAlpha * glowMultiplier;
     ctx.globalAlpha = ringAlpha;
     ctx.strokeStyle = color;
     ctx.shadowColor = color;
     ctx.shadowBlur = Math.max(4, radius * 0.35) * glowMultiplier;
-    ctx.lineWidth = Math.max(1.5, width / (explosion.kind === "direct" ? 500 : 720));
+    ctx.lineWidth = Math.max(1.5, width / (explosion.kind === "direct" ? 500 : 720)) *
+      presentation.lineWidthMultiplier;
     ctx.beginPath();
     ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
     ctx.stroke();
 
     ctx.globalAlpha = ringAlpha * (0.36 + Math.min(0.45, generation * 0.05));
-    ctx.lineWidth = Math.max(1, width / 1_050);
+    ctx.strokeStyle = presentation.accentColor;
+    ctx.shadowColor = presentation.accentColor;
+    ctx.lineWidth = Math.max(1, width / 1_050) * presentation.accentLineWidthMultiplier;
     ctx.beginPath();
-    ctx.arc(point.x, point.y, radius * (0.58 + generation * 0.018), 0, Math.PI * 2);
+    ctx.arc(point.x, point.y, radius * presentation.innerRadiusScale, 0, Math.PI * 2);
     ctx.stroke();
+
+    if (presentation.role === "chain-deep") {
+      ctx.globalAlpha = ringAlpha * presentation.accentRingAlpha;
+      ctx.lineWidth = Math.max(1, width / 1_180) * presentation.accentLineWidthMultiplier;
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, radius * presentation.accentRadiusScale, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = color;
+    ctx.shadowColor = color;
     for (let ring = 0; ring < Math.max(0, Math.trunc(secondaryRings)); ring += 1) {
       ctx.globalAlpha = ringAlpha * (0.24 / (ring + 1));
       ctx.lineWidth = Math.max(0.8, width / 1_400);
@@ -246,17 +348,25 @@ const drawMilestonePulses = (ctx, pulses, {
   for (const pulse of pulses) {
     const age = clamp((finite(nowMs) - pulse.startedAtMs) / 850, 0, 1);
     const point = boardToCanvas(pulse.x, pulse.y, width, height, boardWidth, boardHeight);
-    const radius = (160 + pulse.milestone * 18) * scale * (0.55 + age * 0.85);
+    const presentation = chainMilestonePresentationFor(pulse.milestone);
+    const radius = (160 + pulse.milestone * 18) * scale * presentation.radiusScale *
+      (0.55 + age * 0.85);
     ctx.save();
-    ctx.globalAlpha = (1 - age) * 0.78;
-    ctx.strokeStyle = pulse.milestone >= 20 ? "#ffd166" : "#79e6ff";
+    ctx.strokeStyle = presentation.color;
     ctx.shadowColor = ctx.strokeStyle;
     ctx.shadowBlur = 18;
-    ctx.lineWidth = Math.max(1.5, width / 540);
-    ctx.beginPath();
-    ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.globalAlpha = (1 - age) * 0.22;
+    for (let ring = 0; ring < presentation.ringCount; ring += 1) {
+      const ringProgress = presentation.ringCount === 1
+        ? 1
+        : ring / (presentation.ringCount - 1);
+      ctx.globalAlpha = (1 - age) * (ring === 0 ? 0.78 : 0.4 / (ring + 1));
+      ctx.lineWidth = Math.max(1.5, width / 540) * presentation.lineWidthMultiplier *
+        (ring === 0 ? 1 : 0.72);
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, radius * (0.82 + ringProgress * 0.24), 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = (1 - age) * presentation.fillAlpha;
     ctx.fillStyle = ctx.strokeStyle;
     ctx.beginPath();
     ctx.arc(point.x, point.y, radius * 0.42, 0, Math.PI * 2);

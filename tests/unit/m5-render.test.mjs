@@ -4,6 +4,9 @@ import { test } from "node:test";
 import {
   CHAIN_MILESTONES,
   chainMilestoneFor,
+  chainMilestonePresentationFor,
+  drawFireworkEffects,
+  explosionPresentationFor,
   explosionVisualKey,
   spawnExplosionParticles,
 } from "../../src/render/firework-effects.js";
@@ -34,6 +37,8 @@ test("M5 keeps three decoration profiles while preserving competitive informatio
     assert.ok(profile.resolutionScale > 0 && profile.resolutionScale <= 1);
   }
   assert.ok(QUALITY_PROFILES.low.particleCapacity < QUALITY_PROFILES.high.particleCapacity);
+  assert.equal(QUALITY_PROFILES.low.scoreLabels, true);
+  assert.equal(QUALITY_PROFILES.low.scoreLabelLimit, 1);
 });
 
 test("presentation capability detection chooses rich desktop only for a fine hover pointer", () => {
@@ -56,6 +61,28 @@ test("presentation capability detection chooses rich desktop only for a fine hov
   assert.equal(touch.variant, "touch");
   assert.equal(touch.coarsePointer, true);
   assert.equal(touch.reducedMotion, true);
+});
+
+test("low touch quality keeps one score label as success feedback", () => {
+  const labels = [];
+  const context = {
+    save() {},
+    restore() {},
+    beginPath() {},
+    arc() {},
+    fill() {},
+    stroke() {},
+    fillText(label) { labels.push(label); },
+  };
+  drawFireworkEffects(context, {
+    state: { seed: 1, tick: 4, activeExplosions: [] },
+    width: 1_600,
+    height: 900,
+    profile: QUALITY_PROFILES.low,
+    nowMs: 100,
+    scoreFeedback: [{ amount: 100, startedAtMs: 0, x: 4_000, y: 3_000 }],
+  });
+  assert.deepEqual(labels, ["+100"]);
 });
 
 test("desktop quality is richer while reduced motion keeps competitive geometry intact", () => {
@@ -178,6 +205,32 @@ test("chain milestones use the intended 5, 10, 20, 30 thresholds", () => {
   assert.equal(chainMilestoneFor(19), 10);
   assert.equal(chainMilestoneFor(30), 30);
   assert.equal(chainMilestoneFor(99), 30);
+});
+
+test("chain presentation distinguishes direct, shallow, and deep reactions", () => {
+  const direct = explosionPresentationFor({ kind: "direct", depth: 0 });
+  const shallow = explosionPresentationFor({ kind: "chain", depth: 1 });
+  const deep = explosionPresentationFor({ kind: "chain", depth: 2 });
+  assert.equal(direct.role, "direct");
+  assert.equal(shallow.role, "chain");
+  assert.equal(deep.role, "chain-deep");
+  assert.notEqual(direct.accentColor, shallow.accentColor);
+  assert.notEqual(shallow.accentColor, deep.accentColor);
+  assert.ok(deep.lineWidthMultiplier > shallow.lineWidthMultiplier);
+  assert.ok(deep.accentRadiusScale > 1);
+});
+
+test("higher chain milestones receive stronger multi-ring pulses", () => {
+  const five = chainMilestonePresentationFor(5);
+  const ten = chainMilestonePresentationFor(10);
+  const twenty = chainMilestonePresentationFor(20);
+  const thirty = chainMilestonePresentationFor(30);
+  assert.equal(five.ringCount, 1);
+  assert.equal(ten.ringCount, 2);
+  assert.equal(twenty.ringCount, 3);
+  assert.equal(thirty.ringCount, 4);
+  assert.ok(thirty.radiusScale > twenty.radiusScale);
+  assert.ok(thirty.fillAlpha > five.fillAlpha);
 });
 
 test("decorative rendering reads the game state without writing to it", () => {
