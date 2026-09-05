@@ -410,7 +410,7 @@ test("M6 profile name is rendered as text, best record is saved, and share URL i
   await expect(page.locator("#result-screen")).toBeVisible();
   await expect(page.locator("#result-player-name")).toHaveText("<b>A</b>");
   expect(await page.locator("#result-player-name b").count()).toBe(0);
-  await expect(page.locator("#result-hint")).not.toHaveText("");
+  await expect(page.locator("#result-hint")).toContainText("4個目を足し");
   const share = await callApi(page, "shareText");
   const expectedUrl = await page.evaluate(() => {
     const url = new URL(location.href);
