@@ -14,7 +14,7 @@ import {
   validateGame,
   waveTickAt,
 } from "../../src/core/index.js";
-import { forecastMarkup } from "../../src/ui/hud.js";
+import { forecastMarkup, forecastReadinessFor } from "../../src/ui/hud.js";
 import { scoreBreakdownFor } from "../../src/ui/result.js";
 
 const countColor = (wave, color) => wave.entities.filter((entity) => entity.color === color).length;
@@ -209,6 +209,70 @@ test("M4 HUD preview exposes color, position, order, and arrival progress", () =
   assert.match(markup, /data-wave-fire-tick="180">あと2\.0s/);
   assert.match(markup, /2波/);
   assert.equal(directExplosionRadiusForSelection(5, DEFAULT_RULES), 2_340);
+});
+
+const forecastReadinessFixture = ({
+  leadTicks = DEFAULT_RULES.forecastPlanLeadTicks,
+  selectedCount = 0,
+  bridgeCount = 0,
+  selectedColor = 0,
+} = {}) => ({
+  tick: 100,
+  selectedIds: Array.from({ length: selectedCount }, (_, index) => index + 1),
+  selectedColor: selectedCount ? selectedColor : null,
+  fireworks: Array.from({ length: selectedCount }, (_, index) => ({
+    id: index + 1,
+    color: selectedColor,
+    status: "active",
+    visible: true,
+    forecastForWaveIndex: index < bridgeCount ? 1 : null,
+  })),
+  upcomingWaves: [{
+    waveId: "wave-1",
+    waveIndex: 1,
+    primaryColor: 0,
+    fireTick: 100 + leadTicks,
+  }],
+});
+
+test("M4 forecast readiness exposes the timing and remaining preparation work", () => {
+  const closed = forecastReadinessFor(forecastReadinessFixture({ leadTicks: 61 }), DEFAULT_RULES);
+  assert.equal(closed.status, "window-closed");
+  assert.equal(closed.windowOpen, false);
+
+  const open = forecastReadinessFor(forecastReadinessFixture(), DEFAULT_RULES);
+  assert.equal(open.status, "window-open");
+  assert.equal(open.windowOpen, true);
+  assert.equal(open.leadTicks, DEFAULT_RULES.forecastPlanLeadTicks);
+
+  const progress = forecastReadinessFor(forecastReadinessFixture({
+    selectedCount: 4,
+    bridgeCount: 2,
+  }), DEFAULT_RULES);
+  assert.equal(progress.status, "progress");
+  assert.equal(progress.selectionRemaining, 1);
+  assert.equal(progress.bridgeRemaining, 1);
+
+  const ready = forecastReadinessFor(forecastReadinessFixture({
+    selectedCount: 5,
+    bridgeCount: 3,
+  }), DEFAULT_RULES);
+  assert.equal(ready.status, "ready");
+  assert.equal(ready.ready, true);
+  assert.equal(ready.selectionRemaining, 0);
+  assert.equal(ready.bridgeRemaining, 0);
+});
+
+test("M4 HUD forecast marks the open window and explains readiness", () => {
+  const state = forecastReadinessFixture({ selectedCount: 5, bridgeCount: 3 });
+  const readiness = forecastReadinessFor(state, DEFAULT_RULES);
+  const markup = forecastMarkup(state.upcomingWaves, state.tick, DEFAULT_RULES, readiness);
+  assert.match(markup, /forecast-item--window-open/);
+  assert.match(markup, /forecast-item--ready/);
+  assert.match(markup, /data-forecast-window="open"/);
+  assert.match(markup, /data-forecast-ready="true"/);
+  assert.match(markup, /data-forecast-status="ready"/);
+  assert.match(markup, /予告準備OK/);
 });
 
 test("the next-wave forecast remains deterministic in a fresh game", () => {
