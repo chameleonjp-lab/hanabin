@@ -14,16 +14,29 @@ const openPage = async (page, viewport = null) => {
 
 const completePracticeGesture = async (page) => {
   const canvas = page.locator("#practice-canvas");
-  const targets = await practicePoints(canvas);
-  await page.mouse.move(targets[0].x, targets[0].y);
-  await page.mouse.down();
-  for (const target of targets) {
-    await page.mouse.move(target.x, target.y);
-    await page.clock.runFor(60);
-  }
-  await page.mouse.up();
-  await page.clock.runFor(20);
+  const connectTargets = async () => {
+    const targets = await practicePoints(canvas);
+    await page.mouse.move(targets[0].x, targets[0].y);
+    await page.mouse.down();
+    for (const target of targets) {
+      await page.mouse.move(target.x, target.y);
+      await page.clock.runFor(60);
+    }
+    await page.mouse.up();
+    await page.clock.runFor(20);
+  };
+
+  await connectTargets();
+  await expect(canvas).toHaveAttribute("data-practice-state", "stage-transition");
+  await expect(canvas).toHaveAttribute("data-practice-stage", "1");
+  await page.clock.runFor(700);
+  await expect(canvas).toHaveAttribute("data-practice-state", "running");
+  await expect(canvas).toHaveAttribute("data-practice-stage", "2");
+  await connectTargets();
   await expect(canvas).toHaveAttribute("data-practice-state", "success");
+  await expect(canvas).toHaveAttribute("data-practice-stage", "2");
+  await expect(canvas).toHaveAttribute("data-practice-chain-captured", "true");
+  await expect(page.locator("#practice-feedback")).toContainText("巻き込み成功");
 };
 
 const callApi = (page, method, ...args) => page.evaluate(async ({ method: name, args }) => {
@@ -83,7 +96,7 @@ test("M6 first practice can be skipped and then starts the real game", async ({ 
   expect(await page.locator("#sound-toggle").isChecked()).toBe(false);
   await page.locator("#start-button").click();
   await expect(page.locator("#practice-screen")).toBeVisible();
-  await expect(page.locator("#practice-value")).toHaveText("12秒");
+  await expect(page.locator("#practice-value")).toHaveText("18秒");
   await callApi(page, "skipPractice");
   await callApi(page, "advanceTicks", 1);
   await expect(page.locator("#play-screen")).toBeVisible();
@@ -93,7 +106,7 @@ test("M6 first practice can be skipped and then starts the real game", async ({ 
   });
 });
 
-test("M6 first practice succeeds only after connecting three targets and releasing", async ({ page }) => {
+test("M6 first practice teaches basic selection and then a real nearby chain", async ({ page }) => {
   await openPage(page);
   await page.locator("#start-button").click();
   await page.locator("#practice-start").click();
@@ -300,11 +313,11 @@ test("M6 practice safely stops and clears progress on page lifecycle interruptio
   await page.mouse.up();
 });
 
-test("M6 practice timeout does not mark the practice as complete", async ({ page }) => {
+test("M6 an uncompleted first practice step expires without marking practice complete", async ({ page }) => {
   await openPage(page);
   await page.locator("#start-button").click();
   await page.locator("#practice-start").click();
-  await page.clock.runFor(12_500);
+  await page.clock.runFor(8_500);
   await expect(page.locator("#practice-canvas")).toHaveAttribute("data-practice-state", "expired");
   expect((await callApi(page, "profile"))).toMatchObject({
     practiceCompleted: false,

@@ -19,10 +19,17 @@ import { DEFAULT_RULES } from "../../src/config/rules.js";
 import { explosionRangeRows, scoreGuideModel } from "../../src/ui/rules-guide.js";
 import { updatePlayMessage } from "../../src/ui/hud.js";
 import {
+  findPracticeCandidate,
   normalizePracticePoint,
   PRACTICE_SECONDS,
+  PRACTICE_CHAIN_TARGET,
+  PRACTICE_STAGE_COUNT,
+  PRACTICE_STAGE_TWO_TARGETS,
   PRACTICE_TARGET_COUNT,
   PRACTICE_TARGETS,
+  practiceTargetBoardPoint,
+  practiceStageDurationsFor,
+  practiceTargetsAt,
 } from "../../src/ui/tutorial.js";
 import {
   forecastSuccessCountFor,
@@ -236,7 +243,7 @@ test("M6 sound is silent by default and only creates audio when enabled", () => 
   };
   const enabled = new SoundController({ enabled: true, contextFactory: () => fakeContext });
   assert.equal(enabled.detonation(), true);
-  assert.equal(PRACTICE_SECONDS, 12);
+  assert.equal(PRACTICE_SECONDS, 18);
 });
 
 test("sound unlock resumes WebKit-style suspended audio and survives off-on", async () => {
@@ -431,6 +438,26 @@ test("M6 practice uses three fixed same-colour targets and normalizes touch poin
     height: 100,
   }), { x: 0, y: 0 });
   assert.equal(normalizePracticePoint(0, 0, { left: 0, top: 0, width: 0, height: 100 }), null);
+});
+
+test("M6 practice adds a short moving chain lesson without changing play rules", () => {
+  assert.equal(PRACTICE_STAGE_COUNT, 2);
+  assert.deepEqual(practiceStageDurationsFor(18), [8, 10]);
+  assert.equal(PRACTICE_STAGE_TWO_TARGETS.length, 3);
+  assert.equal(PRACTICE_CHAIN_TARGET.selectable, false);
+
+  const initial = practiceTargetsAt(2, 0);
+  const later = practiceTargetsAt(2, 60);
+  assert.equal(initial.length, 4);
+  assert.equal(initial.filter((target) => target.selectable !== false).length, 3);
+  assert.equal(initial.at(-1).id, PRACTICE_CHAIN_TARGET.id);
+  assert.notDeepEqual(
+    initial.slice(0, 3).map(({ x, y }) => [x, y]),
+    later.slice(0, 3).map(({ x, y }) => [x, y]),
+  );
+
+  const chainPoint = practiceTargetBoardPoint(PRACTICE_CHAIN_TARGET);
+  assert.equal(findPracticeCandidate(chainPoint, [], {}, { stage: 2, tick: 0 }), null);
 });
 
 test("M6 forecast feedback derives successful plans from the score ledger", () => {

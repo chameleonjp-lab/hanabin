@@ -5,6 +5,8 @@
 - MVP受入: **6/7**（M7は不合格のまま）
 - 公開URL: [HANABIN](https://chameleonjp-lab.github.io/hanabin/)
 
+> 2026年9月3日追記（Draft PR）: ゲームクリエイターレビューのP0対応として、ホームの説明を3点へ整理し、操作練習を静止した3個から動く3個＋近接巻き込みまでの2段階へ拡張した。ゲーム本編のルール版・得点・再生契約は変更していない。Node単体は確認済みだが、ブラウザ実体、iPhone 17 Pro、初見5人の理解度は未確認であり、MVP受入は6/7のままとする。
+
 > 2026年8月29日追記: 直近の敵対的検証と追加要件を統合した追補はPR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)で`main`へマージ済みである。選択肢保証、一時停止、名前必須、結果画面のホーム／実験場／端末内TOP10、PCマウス操作、縦画面の時計回り論理表示を含む。マージ後の[CI Core #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047169)、[CI Browser #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047156)、[Deploy GitHub Pages #24](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047185)、[Public Release Smoke #19](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256066052)は成功した。現在は敵対的検証で見つかった高速なぞりの経路補間、Pointer Capture失敗時のwindowフォールバック、Pages ActionsのSHA固定を後続Draft PRで対応中である。実機iPhone 17 Pro、初見5人、後続変更の公開後確認は未完了である。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)を正本とする。
 
 > 2026年8月23日のスマホ操作、PC/touch演出、SE、得点表示、予告バランスの後続修正はPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、GitHub Pagesへ公開済みである。マージ後のCI Core #78、CI Browser #78、Deploy GitHub Pages #23、Public Release Smoke #18はすべて成功した。iPhone 17 Pro / Safari実機と初見5人の試遊は未確認であり、M7受入は6/7のままとする。

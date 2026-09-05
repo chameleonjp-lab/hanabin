@@ -2,12 +2,20 @@ import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
   DEFAULT_RULES,
+  directExplosionRadiusForSelection,
   mergeRules,
 } from "../config/rules.js";
 import { PointerController } from "../input/pointer-controller.js";
 import { displayEntityRadius } from "../render/competitive-layer.js";
 
-export const PRACTICE_SECONDS = 12;
+// The practice is intentionally short enough to finish before a first-time
+// player loses interest, while still giving one complete example of a chain.
+// The first stage uses the original three-target lesson.  The second stage
+// adds movement and one non-selectable nearby target that the explosion can
+// actually capture.
+export const PRACTICE_SECONDS = 18;
+export const PRACTICE_STAGE_COUNT = 2;
+export const PRACTICE_STAGE_TRANSITION_MS = 650;
 export const PRACTICE_TARGET_COUNT = 3;
 export const PRACTICE_SUCCESS_DISPLAY_MS = 700;
 export const PRACTICE_TRACE_DISTANCE = 240;
@@ -25,6 +33,48 @@ const PRACTICE_DECOYS = Object.freeze([
   Object.freeze({ x: 0.66, y: 0.27, color: "#6ea8ff", symbol: "◆" }),
 ]);
 
+export const PRACTICE_STAGE_TWO_TARGETS = Object.freeze([
+  Object.freeze({
+    id: "practice-moving-green-1",
+    x: 0.28,
+    y: 0.52,
+    color: "#72e5ba",
+    symbol: "▲",
+    motionX: 0.014,
+    motionY: 0.010,
+    phase: 0,
+  }),
+  Object.freeze({
+    id: "practice-moving-green-2",
+    x: 0.50,
+    y: 0.40,
+    color: "#72e5ba",
+    symbol: "▲",
+    motionX: 0.012,
+    motionY: 0.014,
+    phase: 1.7,
+  }),
+  Object.freeze({
+    id: "practice-moving-green-3",
+    x: 0.70,
+    y: 0.52,
+    color: "#72e5ba",
+    symbol: "▲",
+    motionX: 0.013,
+    motionY: 0.011,
+    phase: 3.2,
+  }),
+]);
+
+export const PRACTICE_CHAIN_TARGET = Object.freeze({
+  id: "practice-chain-yellow-1",
+  x: 0.79,
+  y: 0.52,
+  color: "#ffd166",
+  symbol: "✦",
+  selectable: false,
+});
+
 const LIFECYCLE_REASONS = new Set([
   "visibilitychange",
   "pagehide",
@@ -37,6 +87,38 @@ const finite = (value, fallback = PRACTICE_SECONDS) => Number.isFinite(Number(va
   : fallback;
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+export const practiceStageDurationsFor = (durationSeconds = PRACTICE_SECONDS) => {
+  const total = Math.max(10, Math.min(20, Math.trunc(finite(durationSeconds))));
+  const first = Math.max(4, Math.min(total - 4, Math.round(total * 0.45)));
+  return Object.freeze([first, total - first]);
+};
+
+const movingPracticeTargetAt = (target, tick = 0) => {
+  const safeTick = Math.max(0, Math.trunc(Number(tick) || 0));
+  return {
+    ...target,
+    x: clamp(
+      target.x + Math.sin((safeTick + target.phase) * 0.05) * target.motionX,
+      0.12,
+      0.88,
+    ),
+    y: clamp(
+      target.y + Math.cos((safeTick + target.phase) * 0.043) * target.motionY,
+      0.18,
+      0.82,
+    ),
+  };
+};
+
+/** Return the deterministic practice layout for a stage and input tick. */
+export const practiceTargetsAt = (stage = 1, tick = 0) => {
+  if (stage !== 2) return PRACTICE_TARGETS.map((target) => ({ ...target, selectable: true }));
+  return [
+    ...PRACTICE_STAGE_TWO_TARGETS.map((target) => movingPracticeTargetAt(target, tick)),
+    { ...PRACTICE_CHAIN_TARGET },
+  ];
+};
 
 export const normalizePracticePoint = (clientX, clientY, rect) => {
   if (!rect || !Number.isFinite(rect.left) || !Number.isFinite(rect.top) ||
@@ -66,16 +148,17 @@ export const practiceTargetBoardPoint = (target, {
   y: Math.round(target.y * boardHeight),
 });
 
-const findPracticeCandidateAtPoint = (point, selectedIds, rules) => {
+const findPracticeCandidateAtPoint = (point, selectedIds, rules, targets) => {
   if (!validPracticePoint(point, rules)) return null;
   const selected = new Set(selectedIds.map(String));
-  const targets = PRACTICE_TARGETS.map((target) => practiceTargetBoardPoint(target, rules));
-  const first = targets.find((target) => selected.has(String(target.id))) ?? null;
+  const boardTargets = targets.map((target) => practiceTargetBoardPoint(target, rules));
+  const first = boardTargets.find((target) => selected.has(String(target.id))) ?? null;
   const lastId = selectedIds.at(-1);
-  const last = targets.find((target) => String(target.id) === String(lastId)) ?? null;
+  const last = boardTargets.find((target) => String(target.id) === String(lastId)) ?? null;
   const hitRadiusSquared = rules.selectionHitRadius ** 2;
   const linkRadiusSquared = rules.selectionLinkDistance ** 2;
-  return targets
+  return boardTargets
+    .filter((target) => target.selectable !== false)
     .filter((target) => !selected.has(String(target.id)))
     .filter((target) => !first || !rules.selectionSameColor || target.color === first.color)
     .map((target) => ({
@@ -126,10 +209,12 @@ export const findPracticeCandidate = (
   point,
   selectedIds = [],
   rulesArg = DEFAULT_RULES,
+  { stage = 1, tick = 0, targets = null } = {},
 ) => {
   const rules = mergeRules(rulesArg);
+  const layout = targets ?? practiceTargetsAt(stage, tick);
   for (const sample of practicePathSamples(point, rules)) {
-    const candidate = findPracticeCandidateAtPoint(sample, selectedIds, rules);
+    const candidate = findPracticeCandidateAtPoint(sample, selectedIds, rules, layout);
     if (candidate) return candidate;
   }
   return null;
@@ -157,7 +242,8 @@ export class TutorialController {
     this.context = this.canvas?.getContext?.("2d");
     if (!this.canvas || !this.context) throw new TypeError("TutorialController requires a practice canvas");
     this.rules = mergeRules(rules);
-    this.durationSeconds = Math.max(10, Math.min(15, Math.trunc(finite(durationSeconds))));
+    this.durationSeconds = Math.max(10, Math.min(20, Math.trunc(finite(durationSeconds))));
+    this.stageDurations = practiceStageDurationsFor(this.durationSeconds);
     this.onComplete = typeof onComplete === "function" ? onComplete : null;
     this.onSkip = typeof onSkip === "function" ? onSkip : null;
     this.sound = sound;
@@ -170,7 +256,12 @@ export class TutorialController {
     this.timerId = null;
     this.successTimeoutId = null;
     this.state = "ready";
+    this.stage = 1;
+    this.stageStartedAtMs = null;
     this.selectedIds = [];
+    this.selectedRecords = [];
+    this.successTargets = [];
+    this.chainCaptured = false;
     this.gesturePressed = false;
     this.hoverCandidateId = null;
     this.hoverTicks = 0;
@@ -184,6 +275,7 @@ export class TutorialController {
     this.messageElement = element.querySelector("#practice-message");
     this.progressElement = element.querySelector("#practice-progress");
     this.feedbackElement = element.querySelector("#practice-feedback");
+    this.stageElement = element.querySelector("#practice-stage");
     this.startButton = element.querySelector("#practice-start");
     this.skipButton = element.querySelector("#practice-skip");
     this.continueButton = element.querySelector("#practice-continue");
@@ -268,7 +360,10 @@ export class TutorialController {
     this.selectionSinceTick = null;
     this.tracePoint = null;
     this.traceDistanceCarry = 0;
-    if (clearSelection) this.selectedIds = [];
+    if (clearSelection) {
+      this.selectedIds = [];
+      this.selectedRecords = [];
+    }
   }
 
   show() {
@@ -276,9 +371,13 @@ export class TutorialController {
     this.stopSuccessTimer();
     this.remainingSeconds = this.durationSeconds;
     this.startedAtMs = null;
+    this.stageStartedAtMs = null;
     this.state = "ready";
+    this.stage = 1;
     this.pointer.clear();
     this.resetGesture();
+    this.successTargets = [];
+    this.chainCaptured = false;
     this.inputTick = 0;
     this.lastInterruptReason = "";
     this.lastFailureReason = "";
@@ -299,6 +398,10 @@ export class TutorialController {
     this.resetGesture();
     this.remainingSeconds = this.durationSeconds;
     this.startedAtMs = Date.now();
+    this.stageStartedAtMs = this.startedAtMs;
+    this.stage = 1;
+    this.successTargets = [];
+    this.chainCaptured = false;
     this.inputTick = 0;
     this.lastInterruptReason = "";
     this.lastFailureReason = "";
@@ -310,9 +413,20 @@ export class TutorialController {
 
   tick(now = Date.now()) {
     if (this.state !== "running" || this.startedAtMs === null) return this.snapshot();
+    const currentNowMs = Number.isFinite(Number(now)) ? Number(now) : Date.now();
     this.advanceInputTicks(1, { render: false });
-    this.remainingSeconds = Math.max(0, this.durationSeconds - (now - this.startedAtMs) / 1000);
-    if (this.remainingSeconds <= 0) {
+    const stageElapsedSeconds = Math.max(
+      0,
+      (currentNowMs - (this.stageStartedAtMs ?? this.startedAtMs)) / 1000,
+    );
+    const stageRemainingSeconds = Math.max(
+      0,
+      this.stageDurations[this.stage - 1] - stageElapsedSeconds,
+    );
+    this.remainingSeconds = this.stage === 1
+      ? stageRemainingSeconds + this.stageDurations[1]
+      : stageRemainingSeconds;
+    if (stageRemainingSeconds <= 0) {
       this.stopTimer();
       this.pointer.clear();
       this.resetGesture();
@@ -335,7 +449,63 @@ export class TutorialController {
     return this.snapshot();
   }
 
+  practiceTargets(tick = this.inputTick) {
+    return practiceTargetsAt(this.stage, tick);
+  }
+
+  isPracticeChainCaptured(targets = this.practiceTargets(this.inputTick)) {
+    const chainTarget = targets.find((target) => target.id === PRACTICE_CHAIN_TARGET.id);
+    if (!chainTarget) return false;
+    const chainPoint = practiceTargetBoardPoint(chainTarget, this.rules);
+    const selected = new Set(this.selectedIds.map(String));
+    const radiusSquared = directExplosionRadiusForSelection(this.selectedIds.length, this.rules) ** 2;
+    return targets
+      .filter((target) => selected.has(String(target.id)))
+      .map((target) => practiceTargetBoardPoint(target, this.rules))
+      .some((target) => distanceSquared(target, chainPoint) <= radiusSquared);
+  }
+
+  completeStageOne() {
+    if (this.stage !== 1 || this.state !== "running") return this.snapshot();
+    this.stopSuccessTimer();
+    this.resetGesture({ clearSelection: false });
+    this.successTargets = this.practiceTargets(this.inputTick);
+    this.state = "stage-transition";
+    this.lastFailureReason = "";
+    this.render();
+    this.successTimeoutId = setTimeout(() => this.beginStageTwo(), PRACTICE_STAGE_TRANSITION_MS);
+    return this.snapshot();
+  }
+
+  beginStageTwo() {
+    if (this.state !== "stage-transition") return this.snapshot();
+    this.stopSuccessTimer();
+    this.stage = 2;
+    this.stageStartedAtMs = Date.now();
+    this.remainingSeconds = this.stageDurations[1];
+    this.resetGesture();
+    this.state = "running";
+    this.lastFailureReason = "";
+    this.render();
+    return this.snapshot();
+  }
+
+  completeSelection() {
+    if (this.stage === 1) return this.completeStageOne();
+    if (this.isPracticeChainCaptured()) {
+      this.chainCaptured = true;
+      this.successTargets = this.practiceTargets(this.inputTick);
+      return this.succeed();
+    }
+    this.resetGesture();
+    this.lastFailureReason = "chain-out-of-range";
+    this.sound?.cancel?.({ reason: this.lastFailureReason });
+    this.render();
+    return this.snapshot();
+  }
+
   consumeInputFrame(frame) {
+    if (this.state === "stage-transition") return;
     if (frame.cancelled === true || frame.interrupted === true) {
       this.resetGesture();
       this.lastFailureReason = frame.cancelled ? "pointer-cancelled" : "pointer-interrupted";
@@ -347,7 +517,7 @@ export class TutorialController {
       this.hoverCandidateId = null;
       this.hoverTicks = 0;
       if (wasPressed && this.selectedIds.length >= this.rules.minSelection) {
-        this.succeed();
+        this.completeSelection();
       } else if (wasPressed || this.selectedIds.length) {
         this.selectedIds = [];
         this.lastFailureReason = "release-below-minimum";
@@ -359,7 +529,7 @@ export class TutorialController {
     if (this.selectionSinceTick !== null &&
         frame.tick - this.selectionSinceTick >= this.rules.selectionTimeoutTicks) {
       if (this.selectedIds.length >= this.rules.minSelection) {
-        this.succeed();
+        this.completeSelection();
       } else {
         this.resetGesture();
         this.lastFailureReason = "selection-timeout";
@@ -367,7 +537,10 @@ export class TutorialController {
       }
       return;
     }
-    const candidate = findPracticeCandidate(frame, this.selectedIds, this.rules);
+    const candidate = findPracticeCandidate(frame, this.selectedIds, this.rules, {
+      stage: this.stage,
+      tick: frame.tick,
+    });
     if (!candidate) {
       this.hoverCandidateId = null;
       this.hoverTicks = 0;
@@ -381,6 +554,15 @@ export class TutorialController {
     if (this.hoverTicks < this.rules.minHoldTicks) return;
     if (this.selectedIds.length < this.rules.maxSelection) {
       this.selectedIds.push(candidate.id);
+      const selectedTarget = this.practiceTargets(frame.tick)
+        .find((target) => String(target.id) === String(candidate.id));
+      this.selectedRecords.push(selectedTarget
+        ? { ...selectedTarget }
+        : {
+          ...candidate,
+          x: candidate.x / this.rules.boardWidth,
+          y: candidate.y / this.rules.boardHeight,
+        });
       if (this.selectedIds.length === 1) this.selectionSinceTick = frame.tick;
       this.sound?.selection?.({ count: this.selectedIds.length });
     }
@@ -522,6 +704,13 @@ export class TutorialController {
     const height = this.height;
     const logicalWidth = this.orientation === "portrait" ? height : width;
     const logicalHeight = this.orientation === "portrait" ? width : height;
+    const boardStage = this.stage;
+    const targets = this.state === "success" && this.successTargets.length
+      ? this.successTargets
+      : this.state === "stage-transition" && this.successTargets.length
+        ? this.successTargets
+        : this.practiceTargets(this.inputTick);
+    const selectableTargets = targets.filter((target) => target.selectable !== false);
     ctx.setTransform(this.devicePixelRatio, 0, 0, this.devicePixelRatio, 0, 0);
     if (this.orientation === "portrait") {
       ctx.translate(width, 0);
@@ -559,15 +748,20 @@ export class TutorialController {
 
     if (this.selectedIds.length > 1) {
       ctx.save();
-      ctx.strokeStyle = "rgba(255, 113, 143, 0.95)";
-      ctx.shadowColor = "rgba(255, 113, 143, 0.8)";
+      const traceColor = boardStage === 2
+        ? "rgba(114, 229, 186, 0.95)"
+        : "rgba(255, 113, 143, 0.95)";
+      const traceShadow = boardStage === 2
+        ? "rgba(114, 229, 186, 0.8)"
+        : "rgba(255, 113, 143, 0.8)";
+      ctx.strokeStyle = traceColor;
+      ctx.shadowColor = traceShadow;
       ctx.shadowBlur = 18;
       ctx.lineWidth = Math.max(5, logicalWidth / 150);
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       ctx.beginPath();
-      this.selectedIds.forEach((id, index) => {
-        const target = PRACTICE_TARGETS.find((candidate) => candidate.id === id);
+      this.selectedRecords.forEach((target, index) => {
         const point = toCanvas(target);
         if (index === 0) ctx.moveTo(point.x, point.y);
         else ctx.lineTo(point.x, point.y);
@@ -576,15 +770,37 @@ export class TutorialController {
       ctx.restore();
     }
 
-    for (const target of [...PRACTICE_DECOYS, ...PRACTICE_TARGETS]) {
+    if (boardStage === 1) {
+      for (const target of PRACTICE_DECOYS) {
+        const point = toCanvas(target);
+        const scale = Math.min(logicalWidth / this.rules.boardWidth, logicalHeight / this.rules.boardHeight);
+        const radius = displayEntityRadius(scale, this.rules);
+        ctx.save();
+        ctx.globalAlpha = 0.46;
+        ctx.fillStyle = target.color;
+        ctx.shadowColor = target.color;
+        ctx.shadowBlur = radius;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(4, 9, 23, 0.78)";
+        ctx.font = `${Math.max(14, radius * 1.1)}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(target.symbol, point.x, point.y + 1);
+        ctx.restore();
+      }
+    }
+
+    for (const target of selectableTargets) {
       const point = toCanvas(target);
-      const isTarget = "id" in target;
-      const isSelected = isTarget && selected.has(target.id);
-      const isHovered = isTarget && target.id === this.hoverCandidateId;
+      const isSelected = selected.has(target.id);
+      const isHovered = target.id === this.hoverCandidateId;
       const scale = Math.min(logicalWidth / this.rules.boardWidth, logicalHeight / this.rules.boardHeight);
       const radius = displayEntityRadius(scale, this.rules);
       ctx.save();
-      ctx.globalAlpha = isTarget ? 1 : 0.46;
+      ctx.globalAlpha = 1;
       ctx.fillStyle = target.color;
       ctx.shadowColor = target.color;
       ctx.shadowBlur = isSelected || isHovered ? radius * 2.2 : radius;
@@ -597,7 +813,7 @@ export class TutorialController {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(target.symbol, point.x, point.y + 1);
-      if (isSelected || this.state === "success" && isTarget) {
+      if (isSelected || this.state === "success") {
         ctx.strokeStyle = this.state === "success" ? "#75f0bb" : "#f8fcff";
         ctx.lineWidth = Math.max(2, radius * 0.12);
         ctx.beginPath();
@@ -622,6 +838,58 @@ export class TutorialController {
         ctx.stroke();
       }
       ctx.restore();
+    }
+
+    const chainTarget = targets.find((target) => target.id === PRACTICE_CHAIN_TARGET.id);
+    if (chainTarget) {
+      const point = toCanvas(chainTarget);
+      const scale = Math.min(logicalWidth / this.rules.boardWidth, logicalHeight / this.rules.boardHeight);
+      const radius = displayEntityRadius(scale, this.rules);
+      ctx.save();
+      ctx.globalAlpha = this.chainCaptured ? 1 : 0.82;
+      ctx.fillStyle = chainTarget.color;
+      ctx.shadowColor = chainTarget.color;
+      ctx.shadowBlur = this.chainCaptured ? radius * 2.4 : radius * 1.5;
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "rgba(4, 9, 23, 0.8)";
+      ctx.font = `${Math.max(14, radius * 1.05)}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(chainTarget.symbol, point.x, point.y + 1);
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = this.chainCaptured ? "#75f0bb" : "rgba(255, 209, 102, 0.92)";
+      ctx.lineWidth = Math.max(2, radius * 0.12);
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, radius * 1.65, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = this.chainCaptured ? "#75f0bb" : "#ffd166";
+      ctx.font = `800 ${Math.max(10, radius * 0.7)}px sans-serif`;
+      ctx.fillText(this.chainCaptured ? "巻き込み成功" : "巻き込み", point.x, point.y + radius * 2.35);
+      ctx.restore();
+    }
+
+    if (this.chainCaptured && this.selectedRecords.length && chainTarget) {
+      const chainPoint = toCanvas(chainTarget);
+      const nearest = this.selectedRecords
+        .map((target) => ({ target, distance: distanceSquared(target, chainTarget) }))
+        .sort((left, right) => left.distance - right.distance)[0]?.target;
+      if (nearest) {
+        const selectedPoint = toCanvas(nearest);
+        ctx.save();
+        ctx.strokeStyle = "rgba(117, 240, 187, 0.86)";
+        ctx.shadowColor = "rgba(117, 240, 187, 0.9)";
+        ctx.shadowBlur = 10;
+        ctx.lineWidth = Math.max(2, logicalWidth / 260);
+        ctx.beginPath();
+        ctx.moveTo(selectedPoint.x, selectedPoint.y);
+        ctx.lineTo(chainPoint.x, chainPoint.y);
+        ctx.stroke();
+        ctx.restore();
+      }
     }
 
     const pointer = this.pointer.position;
@@ -649,6 +917,12 @@ export class TutorialController {
     const interactionAllowed = this.isInteractionAllowed();
     if (this.boardElement) this.boardElement.dataset.practiceState = boardState;
     canvas.dataset.practiceState = boardState;
+    canvas.dataset.practiceStage = String(this.stage);
+    canvas.dataset.practiceStageCount = String(PRACTICE_STAGE_COUNT);
+    canvas.dataset.practiceChainCaptured = this.chainCaptured ? "true" : "false";
+    canvas.dataset.practiceTargets = selectableTargets
+      .map((target) => `${target.x},${target.y}`)
+      .join("|");
     canvas.dataset.practiceSelectedCount = String(this.selectedIds.length);
     canvas.dataset.practiceRemaining = String(Math.ceil(this.remainingSeconds));
     canvas.dataset.practiceInputTick = String(this.inputTick);
@@ -660,11 +934,22 @@ export class TutorialController {
     ));
     canvas.dataset.practiceLastInterrupt = this.lastInterruptReason;
     canvas.dataset.practiceLastFailure = this.lastFailureReason;
+    if (this.stageElement) {
+      this.stageElement.textContent = boardState === "stage-transition"
+        ? "STEP 1 / 2 · 基本操作 成功"
+        : this.state === "success"
+          ? "STEP 2 / 2 · 巻き込み成功"
+          : this.stage === 2
+            ? "STEP 2 / 2 · 動く花火を巻き込む"
+            : "STEP 1 / 2 · まずは3つつなぐ";
+    }
     if (this.valueElement) {
       this.valueElement.textContent = boardState === "ready"
         ? `${this.durationSeconds}秒`
         : boardState === "running"
           ? String(Math.max(1, Math.ceil(this.remainingSeconds)))
+          : boardState === "stage-transition"
+            ? "1 / 2"
           : boardState === "expired"
             ? "再挑戦"
             : boardState === "success"
@@ -675,13 +960,19 @@ export class TutorialController {
       this.messageElement.textContent = !interactionAllowed
         ? "現在の画面では練習できません。画面を確認してください。"
         : boardState === "ready"
-        ? "まず練習を始め、光っている同じ色を3つなぞります。"
+        ? "まずは静止した同じ色を3つつなぎます。成功すると、動く花火の巻き込みへ進みます。"
         : boardState === "running"
-          ? "1本の指で押したまま、外輪が一周して選択数が増えるまで待ち、赤い花火を3つつないで離します。3つ以上は2.5秒でも自動起爆します。"
+          ? this.stage === 2
+            ? "STEP 2：動く同じ色を3つつなぎ、近くの花火へ爆発を届かせてから離します。"
+            : "STEP 1：1本の指で押したまま、外輪が一周して選択数が増えるまで待ち、同じ色を3つつないで離します。"
+          : boardState === "stage-transition"
+            ? "STEP 1 成功。次は動く花火を3つつなぎ、近くの花火も巻き込みます。"
           : boardState === "expired"
-            ? "練習を中断しました。もう一度、3つをつないでみましょう。"
+            ? this.stage === 2
+              ? "練習を中断しました。動く3つをつないで、近くの花火へ届かせてみましょう。"
+              : "練習を中断しました。もう一度、3つをつないでみましょう。"
             : boardState === "success"
-              ? "成功！何度でも練習するか、本番へ進めます。"
+              ? "成功！爆発が近くの花火へ届きました。本番へ進めます。"
               : "練習を飛ばして、本番へ進みます。";
     }
     if (this.progressElement) this.progressElement.textContent = `${this.selectedIds.length} / ${PRACTICE_TARGET_COUNT}`;
@@ -689,15 +980,19 @@ export class TutorialController {
       this.feedbackElement.textContent = !interactionAllowed
         ? "画面を確認すると練習を再開できます"
         : boardState === "success"
-        ? "巻き込み成功"
+        ? "巻き込み成功：近くの花火にも爆発が届きました"
         : boardState === "expired"
           ? "もう一度挑戦できます"
           : this.lastFailureReason === "secondary-pointer-ignored"
             ? "2本目の指は無効です。最初の1本だけで操作してください"
+            : this.lastFailureReason === "chain-out-of-range"
+              ? "爆発が届きませんでした。黄色い花火へ近づいてから離してください"
             : this.selectedIds.length === 0
               ? "外輪が一周して選択数が増えるまで、各花火で短く止めてください"
               : this.selectedIds.length >= this.rules.minSelection
-                ? `${this.selectedIds.length}個選択中。離すか2.5秒で自動起爆します`
+                ? this.stage === 2
+                  ? `${this.selectedIds.length}個選択中。近くの花火へ届く位置で離します`
+                  : `${this.selectedIds.length}個選択中。離すか2.5秒で自動起爆します`
                 : `${this.selectedIds.length}個選択中。3個未満のまま2.5秒になると取消です`;
     }
     if (this.startButton) {
@@ -713,7 +1008,7 @@ export class TutorialController {
       this.continueButton.disabled = boardState !== "success" || !interactionAllowed;
     }
     if (this.skipButton) {
-      this.skipButton.hidden = !["ready", "running", "expired"].includes(boardState);
+      this.skipButton.hidden = !["ready", "running", "stage-transition", "expired"].includes(boardState);
       this.skipButton.disabled = !interactionAllowed;
     }
   }
@@ -726,6 +1021,10 @@ export class TutorialController {
       selectedCount: this.selectedIds.length,
       selectedIds: [...this.selectedIds],
       targetCount: PRACTICE_TARGET_COUNT,
+      stage: this.stage,
+      stageCount: PRACTICE_STAGE_COUNT,
+      stageDurations: [...this.stageDurations],
+      chainCaptured: this.chainCaptured,
       hoverCandidateId: this.hoverCandidateId,
       hoverTicks: this.hoverTicks,
       inputTick: this.inputTick,

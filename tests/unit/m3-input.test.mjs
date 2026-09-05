@@ -556,7 +556,7 @@ test("each 60 Hz practice timer callback consumes exactly one input tick", () =>
   });
 });
 
-test("practice requires three sampled ticks per target and succeeds only on release", () => {
+test("practice requires three sampled ticks per target and advances after the first release", () => {
   withBrowserGlobals(() => {
     const { canvas, element } = makeTutorialFixture();
     const tutorial = new TutorialController(element);
@@ -582,7 +582,8 @@ test("practice requires three sampled ticks per target and succeeds only on rele
     canvas.dispatch("pointerup", clientPoint(PRACTICE_TARGETS.at(-1)));
     tutorial.advanceInputTicks(1);
 
-    assert.equal(tutorial.snapshot().state, "success");
+    assert.equal(tutorial.snapshot().state, "stage-transition");
+    assert.equal(tutorial.snapshot().stage, 1);
     assert.equal(tutorial.snapshot().selectedCount, 3);
     tutorial.destroy();
   });
@@ -615,7 +616,7 @@ test("practice applies the real 2.5-second selection timeout", () => {
   });
 });
 
-test("practice auto-detonates three selected targets at the 2.5-second boundary", () => {
+test("practice auto-advances after three selected targets reach the 2.5-second boundary", () => {
   withBrowserGlobals(() => {
     const { canvas, element } = makeTutorialFixture();
     const tutorial = new TutorialController(element);
@@ -637,8 +638,50 @@ test("practice auto-detonates three selected targets at the 2.5-second boundary"
 
     tutorial.advanceInputTicks(tutorial.rules.selectionTimeoutTicks);
 
-    assert.equal(tutorial.snapshot().state, "success");
+    assert.equal(tutorial.snapshot().state, "stage-transition");
+    assert.equal(tutorial.snapshot().stage, 1);
     assert.equal(tutorial.snapshot().selectedCount, 3);
+    tutorial.destroy();
+  });
+});
+
+test("practice stage two requires moving targets and a real nearby chain target", () => {
+  withBrowserGlobals(() => {
+    const { canvas, element } = makeTutorialFixture();
+    const tutorial = new TutorialController(element);
+    tutorial.state = "running";
+    tutorial.stage = 2;
+    const clientPoint = (target) => ({
+      pointerId: 87,
+      pointerType: "touch",
+      clientX: target.x * 160,
+      clientY: target.y * 90,
+    });
+
+    let targets = tutorial.practiceTargets(tutorial.inputTick);
+    tutorial.selectedIds = targets.slice(0, 3).map((target) => target.id);
+    assert.equal(tutorial.isPracticeChainCaptured(targets), true);
+    assert.equal(tutorial.isPracticeChainCaptured(targets.map((target) => target.id === "practice-chain-yellow-1"
+      ? { ...target, x: 0.95 }
+      : target)), false);
+    tutorial.resetGesture();
+    targets = tutorial.practiceTargets(tutorial.inputTick);
+    canvas.dispatch("pointerdown", clientPoint(targets[0]));
+    tutorial.advanceInputTicks(3);
+    for (let index = 1; index < 3; index += 1) {
+      targets = tutorial.practiceTargets(tutorial.inputTick);
+      canvas.dispatch("pointermove", clientPoint(targets[index]));
+      tutorial.advanceInputTicks(3);
+    }
+    assert.equal(tutorial.snapshot().selectedCount, 3);
+    canvas.dispatch("pointerup", clientPoint(tutorial.practiceTargets(tutorial.inputTick)[2]));
+    tutorial.advanceInputTicks(1);
+
+    assert.equal(tutorial.snapshot().state, "success");
+    assert.equal(tutorial.snapshot().stage, 2);
+    assert.equal(tutorial.snapshot().chainCaptured, true);
+    assert.ok(tutorial.selectedRecords.every((target) => target.x >= 0 && target.x <= 1 &&
+      target.y >= 0 && target.y <= 1));
     tutorial.destroy();
   });
 });

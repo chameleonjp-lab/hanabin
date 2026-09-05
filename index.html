@@ -43,7 +43,7 @@
       <section class="app-card game-app" aria-labelledby="app-title">
         <header class="game-header">
           <div>
-            <p class="eyebrow">HANABIN / MVP RELEASE CANDIDATE</p>
+            <p class="eyebrow">HANABIN</p>
             <h1 id="app-title">花火の連鎖をつなぐ</h1>
           </div>
           <p id="app-status" class="status" role="status" aria-live="polite">読み込み中…</p>
@@ -56,11 +56,8 @@
         <section id="home-screen" class="screen screen--home" data-screen="home" aria-labelledby="home-title">
           <div class="home-intro">
             <p class="home-kicker">60秒 SCORE ATTACK</p>
-            <h2 id="home-title">同じ色を3つ以上、線でつないで起爆</h2>
-            <p>
-              花火を押し続けて3つ以上選び、指を離すか、選択開始から2.5秒で連鎖が始まります。
-              次の2波の色を見て、どこで起爆するかを決めてください。
-            </p>
+            <h2 id="home-title">同じ色を3つつないで、連鎖を起こす</h2>
+            <p>同じ色の花火を1本指でつなぎ、指を離すと爆発します。爆発が近くの花火に届くほど高得点です。</p>
           </div>
           <div class="profile-panel" aria-label="プレイヤー設定">
             <div class="profile-panel__heading">
@@ -94,9 +91,9 @@
             </div>
           </div>
           <div class="home-rules" aria-label="操作の要点">
-            <span><i class="rule-dot rule-dot--cyan" aria-hidden="true"></i>最初の1本だけ有効</span>
-            <span><i class="rule-dot rule-dot--gold" aria-hidden="true"></i>3つ以上で離すと起爆</span>
-            <span><i class="rule-dot rule-dot--pink" aria-hidden="true"></i>2.5秒で自動判定</span>
+            <span><i class="rule-dot rule-dot--cyan" aria-hidden="true"></i>同じ色を3つ以上つなぐ</span>
+            <span><i class="rule-dot rule-dot--gold" aria-hidden="true"></i>指を離すと爆発</span>
+            <span><i class="rule-dot rule-dot--pink" aria-hidden="true"></i>近くへ広がるほど高得点</span>
           </div>
           <details id="score-guide" class="score-guide">
             <summary>得点・爆発範囲を確認</summary>
@@ -121,20 +118,21 @@
             <button id="start-button" class="primary-button" type="button">ゲームを開始</button>
             <button id="practice-button" class="secondary-button" type="button">操作練習</button>
           </div>
-          <p class="home-hint">1本指で外輪が一周して選択数が増えるまで短く押し、そのままなぞります。3つ以上なら離すか2.5秒で起爆し、2つ以下のまま2.5秒になると取消です。</p>
+          <p class="home-hint">詳しい操作と得点は「得点・爆発範囲を確認」で見られます。</p>
         </section>
 
         <section id="practice-screen" class="screen screen--practice" data-screen="practice" hidden aria-labelledby="practice-title">
           <p class="home-kicker">OPERATION PRACTICE</p>
-          <h2 id="practice-title">12秒の操作練習を何度でも</h2>
-          <p id="practice-message" class="practice-message">1本指で外輪が一周して選択数が増えるまで押し、同じ色を3つなぞって離します。選択開始から2.5秒でも自動起爆します。</p>
-          <div class="practice-value" aria-live="polite"><strong id="practice-value">12秒</strong></div>
+          <h2 id="practice-title">18秒で2つの操作を練習</h2>
+          <p id="practice-stage" class="practice-stage-label">STEP 1 / 2 · まずは3つつなぐ</p>
+          <p id="practice-message" class="practice-message">まずは静止した同じ色を3つつなぎます。成功すると、動く花火の巻き込みへ進みます。</p>
+          <div class="practice-value" aria-live="polite"><strong id="practice-value">18秒</strong></div>
           <div id="practice-board" class="practice-board" data-practice-state="ready">
             <canvas
               id="practice-canvas"
               width="960"
               height="540"
-              aria-label="練習用の花火盤。同じ色の花火を3つなぞって指を離すか2.5秒待ちます"
+              aria-label="練習用の花火盤。同じ色の花火を3つつなぎ、近くの花火へ爆発を届かせます"
             ></canvas>
             <div class="practice-board-status" aria-live="polite">
               <span id="practice-progress">0 / 3</span>
@@ -142,9 +140,8 @@
             </div>
           </div>
           <div class="practice-steps" aria-label="練習の手順">
-            <div><span>1</span><strong>押す</strong><small>外輪が一周するまで待つ</small></div>
-            <div><span>2</span><strong>つなぐ</strong><small>3つ以上を線で結ぶ</small></div>
-            <div><span>3</span><strong>離す／待つ</strong><small>3つ以上は2.5秒でも自動起爆</small></div>
+            <div><span>STEP 1</span><strong>3つつなぐ</strong><small>同じ色を選び、外輪が一周するまで短く止めます</small></div>
+            <div><span>STEP 2</span><strong>巻き込む</strong><small>動く3つをつなぎ、近くの花火へ爆発を届かせます</small></div>
           </div>
           <div class="practice-actions">
             <button id="practice-start" class="primary-button" type="button">練習を始める</button>
