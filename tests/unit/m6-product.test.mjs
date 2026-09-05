@@ -12,12 +12,13 @@ import {
 import {
   buildShareText,
   publicUrlFor,
+  resultStatsFor,
   resultHintFor,
   scoreBreakdownFor,
 } from "../../src/ui/result.js";
 import { DEFAULT_RULES } from "../../src/config/rules.js";
 import { explosionRangeRows, scoreGuideModel } from "../../src/ui/rules-guide.js";
-import { updatePlayMessage } from "../../src/ui/hud.js";
+import { inputFailureMessageFor, updatePlayMessage } from "../../src/ui/hud.js";
 import {
   findPracticeCandidate,
   normalizePracticePoint,
@@ -172,6 +173,62 @@ test("M6 result hints use player-facing operation words instead of internal tick
   assert.match(firstHint, /指を押したまま少し待ってから離して/);
   assert.match(chainHint, /短い待ち時間に次の花火を準備/);
   assert.doesNotMatch(`${firstHint} ${chainHint}`, /\btick\b/i);
+});
+
+test("M6 result stats derive selection size and chain ratio from the score ledger", () => {
+  const metrics = resultStatsFor({
+    scoreEvents: [
+      { kind: "direct", actionId: 1, fireTick: 10 },
+      { kind: "direct", actionId: 1, fireTick: 10 },
+      { kind: "direct", actionId: 1, fireTick: 10 },
+      { kind: "direct", actionId: 2, fireTick: 100 },
+      { kind: "direct", actionId: 2, fireTick: 100 },
+      { kind: "direct", actionId: 2, fireTick: 100 },
+      { kind: "direct", actionId: 2, fireTick: 100 },
+      { kind: "chain", actionId: 2, fireTick: 101 },
+    ],
+    stats: {
+      detonationCount: 2,
+      directTargets: 7,
+      chainTargets: 1,
+      selectionDrops: 0,
+      maxChain: 4,
+    },
+  });
+  assert.equal(metrics.detonationCount, 2);
+  assert.equal(metrics.averageSelectionCount, 3.5);
+  assert.equal(metrics.smallDetonationRate, 0.5);
+  assert.equal(metrics.chainRatio, 1 / 8);
+  assert.equal(metrics.forecastSuccesses, 0);
+});
+
+test("M6 result hint chooses one next action from the run metrics", () => {
+  const addFourth = resultHintFor({
+    score: 900,
+    scoreEvents: [
+      { kind: "direct", actionId: 1 },
+      { kind: "direct", actionId: 1 },
+      { kind: "direct", actionId: 1 },
+    ],
+    stats: { detonationCount: 1, directTargets: 3, chainTargets: 0 },
+  });
+  const avoidDrop = resultHintFor({
+    score: 2_000,
+    scoreEvents: [
+      { kind: "direct", actionId: 1 },
+      { kind: "direct", actionId: 1 },
+      { kind: "direct", actionId: 1 },
+      { kind: "direct", actionId: 2 },
+      { kind: "direct", actionId: 2 },
+      { kind: "direct", actionId: 2 },
+      { kind: "direct", actionId: 2 },
+    ],
+    stats: { detonationCount: 2, directTargets: 7, chainTargets: 2, selectionDrops: 4 },
+  });
+  assert.match(addFourth, /4個目を足し/);
+  assert.match(avoidDrop, /外輪が一周してから次へ動き/);
+  assert.equal(addFourth.split("。 ").length, 1);
+  assert.equal(avoidDrop.split("。 ").length, 1);
 });
 
 test("score guide exposes every addition, zero deductions, and all blast radii", () => {
@@ -493,4 +550,23 @@ test("play feedback explains an incomplete tap and the remaining target count", 
   assert.match(element.textContent, /3個未満のため取消/);
   updatePlayMessage(element, { selectedIds: [1, 2, 3], lastAction: { type: "select" } });
   assert.equal(element.textContent, "指を離すか2.5秒で自動起爆");
+});
+
+test("play feedback names the reason a held pointer did not acquire a target", () => {
+  const element = { textContent: "" };
+  updatePlayMessage(element, {
+    pointerPressed: true,
+    lastAction: { type: "ignored", reason: "selection-not-held" },
+  });
+  assert.equal(element.textContent, inputFailureMessageFor("selection-not-held"));
+  updatePlayMessage(element, {
+    pointerPressed: true,
+    lastAction: { type: "ignored", reason: "different-color" },
+  });
+  assert.equal(element.textContent, "同じ色の花火だけをつなぎます");
+  updatePlayMessage(element, {
+    pointerPressed: false,
+    lastAction: { type: "ignored", reason: "target-outside-selection-geometry" },
+  });
+  assert.equal(element.textContent, "");
 });
