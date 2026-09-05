@@ -240,13 +240,17 @@ const clearSelectionState = (state, reason = "clear") => {
 };
 
 const dropInvisibleSelections = (state, rules) => {
-  if (!state.selectedIds.length) return;
+  if (!state.selectedIds.length) return null;
   const kept = [];
   const records = [];
+  let dropReason = null;
   for (const id of state.selectedIds) {
     const entity = getEntity(state, id);
     if (!entity || entity.status !== "active" || (rules.selectionMustBeVisible && !entity.visible)) {
       state.stats.selectionDrops += 1;
+      if (dropReason === null) {
+        dropReason = entity?.status === "expired" ? "target-expired" : "target-offscreen";
+      }
       continue;
     }
     kept.push(entity.id);
@@ -262,6 +266,10 @@ const dropInvisibleSelections = (state, rules) => {
   } else {
     state.selectionAgeTicks = Math.max(0, state.tick - state.selectionSinceTick);
   }
+  if (dropReason !== null) {
+    state.lastAction = { type: "selection-cancelled", reason: dropReason };
+  }
+  return dropReason;
 };
 
 const promotePending = (state, rules) => {
@@ -288,7 +296,7 @@ const refreshAt = (state, tick, rules) => {
     }
   }
   promotePending(state, rules);
-  dropInvisibleSelections(state, rules);
+  const selectionDropReason = dropInvisibleSelections(state, rules);
   if (state.selectedIds.length && state.selectionSinceTick !== null) {
     state.selectionAgeTicks = Math.max(0, tick - state.selectionSinceTick);
     if (state.selectionAgeTicks >= rules.selectionTimeoutTicks) {
@@ -296,11 +304,15 @@ const refreshAt = (state, tick, rules) => {
         detonate(state, rules, state.actionCount);
       } else {
         clearSelectionState(state, "timeout");
+        state.lastAction = { type: "selection-cleared", reason: "selection-timeout" };
       }
     }
   }
   state.stats.maxActiveEntities = Math.max(state.stats.maxActiveEntities, activeEntities(state).length);
   ensurePlayableChoices(state, rules);
+  if (selectionDropReason !== null) {
+    state.lastAction = { type: "selection-cancelled", reason: selectionDropReason };
+  }
   state.stats.maxActiveEntities = Math.max(state.stats.maxActiveEntities, activeEntities(state).length);
 };
 
@@ -472,12 +484,17 @@ const validPointerPoint = (point, rules) => point &&
   point.x >= 0 && point.x <= rules.boardWidth &&
   point.y >= 0 && point.y <= rules.boardHeight;
 
-/** Find the first target touched by the complete pointer path for this tick. */
-const candidateAlongPointerPath = (state, frame, rules) => {
-  const rawPath = Array.isArray(frame.path) ? frame.path.filter((point) => validPointerPoint(point, rules)) : [];
-  const points = rawPath.length ? rawPath : [{ x: frame.x, y: frame.y }];
-  if (points.at(-1)?.x !== frame.x || points.at(-1)?.y !== frame.y) points.push({ x: frame.x, y: frame.y });
+const pointerPathSamples = (frame, rules) => {
+  const rawPath = Array.isArray(frame?.path)
+    ? frame.path.filter((point) => validPointerPoint(point, rules))
+    : [];
+  const points = rawPath.length ? rawPath : [{ x: frame?.x, y: frame?.y }];
+  if (!validPointerPoint(points.at(-1), rules)) return [];
+  if (points.at(-1).x !== frame.x || points.at(-1).y !== frame.y) {
+    points.push({ x: frame.x, y: frame.y });
+  }
   const spacing = Math.max(1, Math.round(rules.selectionHitRadius * 0.5));
+  const samples = [];
   for (let index = 0; index < points.length; index += 1) {
     const start = points[index - 1] ?? points[index];
     const end = points[index];
@@ -485,11 +502,85 @@ const candidateAlongPointerPath = (state, frame, rules) => {
     const steps = Math.max(1, Math.ceil(distance / spacing));
     for (let step = 0; step <= steps; step += 1) {
       const ratio = step / steps;
-      const x = Math.round(start.x + (end.x - start.x) * ratio);
-      const y = Math.round(start.y + (end.y - start.y) * ratio);
-      const candidate = candidateList(state, x, y, undefined, rules)[0];
-      if (candidate) return { ...candidate, x, y };
+      samples.push({
+        x: Math.round(start.x + (end.x - start.x) * ratio),
+        y: Math.round(start.y + (end.y - start.y) * ratio),
+      });
     }
+  }
+  return samples;
+};
+
+const nearbyTargetAt = (state, x, y, rules) => {
+  const hitRadiusSquared = rules.selectionHitRadius * rules.selectionHitRadius;
+  return activeEntities(state)
+    .filter((entity) => entity.visible)
+    .map((entity) => ({
+      entity,
+      distanceSquared: distanceSquared(x, y, entity.x, entity.y),
+    }))
+    .filter((item) => item.distanceSquared <= hitRadiusSquared)
+    .sort((left, right) =>
+      left.distanceSquared - right.distanceSquared ||
+      right.entity.depth - left.entity.depth ||
+      compareIds(left.entity.id, right.entity.id),
+    )[0] ?? null;
+};
+
+const nearbyTargetAlongPointerPath = (state, frame, rules) => {
+  for (const point of pointerPathSamples(frame, rules)) {
+    const nearby = nearbyTargetAt(state, point.x, point.y, rules);
+    if (nearby) return { ...nearby, x: point.x, y: point.y };
+  }
+  return null;
+};
+
+const selectionLinkOrigin = (state) => {
+  const lastSelected = state.selectedIds.length
+    ? getEntity(state, state.selectedIds[state.selectedIds.length - 1])
+    : null;
+  const x = lastSelected?.x ?? state.lastAcquisitionX;
+  const y = lastSelected?.y ?? state.lastAcquisitionY;
+  return finiteInteger(x) && finiteInteger(y) ? { x, y } : null;
+};
+
+/**
+ * Classify why a pressed pointer frame did not acquire a target. This is
+ * presentation guidance only; it never changes the candidate or scoring
+ * rules. The classification follows the same hit radius and link origin as
+ * the actual selection path.
+ */
+export const pointerFailureReasonFor = (
+  state,
+  frame,
+  rulesArg = DEFAULT_RULES,
+) => {
+  const rules = mergeRules(rulesArg);
+  if (!state || !frame) return "target-not-selectable";
+  if (state.tick < state.cooldownUntilTick) return "cooldown";
+  const nearby = nearbyTargetAlongPointerPath(state, frame, rules);
+  if (!nearby) return "target-outside-selection-geometry";
+  const target = nearby.entity;
+  const selectedKeys = new Set(state.selectedIds.map(idKey));
+  if (selectedKeys.has(idKey(target.id))) return "target-already-selected";
+  if (state.selectedIds.length >= rules.maxSelection) return "selection-limit";
+  if (state.selectedColor !== null && rules.selectionSameColor &&
+      state.selectedColor !== target.color) {
+    return "different-color";
+  }
+  const origin = selectionLinkOrigin(state);
+  if (origin && distanceSquared(origin.x, origin.y, target.x, target.y) >
+      rules.selectionLinkDistance ** 2) {
+    return "target-outside-selection-geometry";
+  }
+  return "target-not-selectable";
+};
+
+/** Find the first target touched by the complete pointer path for this tick. */
+const candidateAlongPointerPath = (state, frame, rules) => {
+  for (const point of pointerPathSamples(frame, rules)) {
+    const candidate = candidateList(state, point.x, point.y, undefined, rules)[0];
+    if (candidate) return { ...candidate, x: point.x, y: point.y };
   }
   return null;
 };
@@ -613,6 +704,10 @@ export const consumePointerFrame = (state, frame, rulesArg = DEFAULT_RULES) => {
   if (!candidate) {
     state.hoverCandidateId = null;
     state.hoverTicks = 0;
+    state.lastAction = {
+      type: "ignored",
+      reason: pointerFailureReasonFor(state, frame, rules),
+    };
     return null;
   }
   if (idKey(state.hoverCandidateId) === idKey(candidate.id)) {
@@ -621,7 +716,14 @@ export const consumePointerFrame = (state, frame, rulesArg = DEFAULT_RULES) => {
     state.hoverCandidateId = candidate.id;
     state.hoverTicks = 1;
   }
-  if (state.hoverTicks < rules.minHoldTicks) return null;
+  if (state.hoverTicks < rules.minHoldTicks) {
+    state.lastAction = {
+      type: "ignored",
+      reason: "selection-not-held",
+      id: candidate.id,
+    };
+    return null;
+  }
   const acquired = selectEntity(state, candidate.id, rules, {
     x: pathCandidate.x,
     y: pathCandidate.y,
