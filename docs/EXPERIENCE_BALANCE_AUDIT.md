@@ -179,7 +179,7 @@ DPR係数は、端末DPRを先に1〜2へ制限した値へ掛け、その結果
 
 | 確認手段 | 対象 | 2026年8月29日時点 |
 |---|---|---|
-| 関連Node単体試験 | pointer所有・中断・練習、経路補間、短いタップ、orientation、touch/PC/reduced-motion、自動品質、粒上限、得点案内と内訳、WebKit型resume、保存読書き失敗時のmemory継続、全10 cue、同時発音上限、真の連鎖イベント | **後続追補で137件中136件成功・1件skip（ローカル）** |
+| 関連Node単体試験 | pointer所有・中断・練習、経路補間、短いタップ、orientation、touch/PC/reduced-motion、自動品質、粒上限、得点案内と内訳、WebKit型resume、保存読書き失敗時のmemory継続、全10 cue、同時発音上限、真の連鎖イベント | **後続追補で149件中148件成功・1件skip（ローカル）** |
 | Node全体 | 単体・シミュレーション等 | PR #36の[CI Core #89](https://github.com/chameleonjp-lab/hanabin/actions/runs/33253942472)が成功。後続補修は別CIで確認する。実機の合格を意味しない |
 | CIブラウザ | Chromium / WebKit Touchでの導線、gesture契約、公開候補 | PR #36の[CI Browser #89](https://github.com/chameleonjp-lab/hanabin/actions/runs/33253942468)が成功。後続補修は別CIで確認する。iPhone実機の合格を意味しない |
 | iPhone 17 Pro / Safari | 横画面、タップ位置、長押し、2本指、ダブルタップ、スワイプ、練習、全SE、Auto品質、10回連続プレイ | **未確認** |
