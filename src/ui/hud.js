@@ -14,6 +14,25 @@ const formatScore = (value) => Math.max(0, Math.trunc(Number(value) || 0)).toLoc
 const formatSeconds = (value) => Math.max(0, Number(value) || 0).toFixed(1);
 const positionLabels = Object.freeze({ left: "左", center: "中央", right: "右" });
 
+const INPUT_FAILURE_MESSAGES = Object.freeze({
+  "selection-not-held": "もう少し押してから動かします",
+  "target-outside-selection-geometry": "花火にもっと近くを通します",
+  "different-color": "同じ色の花火だけをつなぎます",
+  cooldown: "爆発直後です。少し待ちます",
+  "target-already-selected": "この花火は選択済みです",
+  "selection-limit": "選択は12個までです",
+  "target-expired": "花火が消えました。近くから選び直します",
+  "target-offscreen": "花火が画面外へ出ました。近くから選び直します",
+  "target-not-active": "この花火はもうありません",
+  "target-not-selectable": "花火の中心に近づけます",
+  "selection-coordinate-required": "花火の中心を狙います",
+  "one-acquisition-per-tick": "少しずつなぞります",
+  "selection-timeout": "時間切れです。3個以上なら離して起爆します",
+  "release-rejected": "起爆できませんでした。もう一度選びます",
+});
+
+export const inputFailureMessageFor = (reason) => INPUT_FAILURE_MESSAGES[reason] ?? "花火の中心を狙います";
+
 export const blastRangeForSelection = (count = 0, rules = DEFAULT_RULES) => {
   const selectedCount = Math.max(0, Math.trunc(Number(count) || 0));
   const effectiveCount = Math.max(rules.minimumSelection, selectedCount);
@@ -40,6 +59,19 @@ export const forecastMarkup = (waves = [], currentTick = 0, rules = DEFAULT_RULE
     `<span class="forecast-arrival" data-wave-fire-tick="${Number.isFinite(fireTick) ? fireTick : ""}">あと${seconds}s</span>` +
     `</span>`;
 }).join("");
+
+const selectionInterruptionMessageFor = (reason) => {
+  if (reason === "release-below-minimum") {
+    return "3個未満のため取消。外輪が一周するまで押してなぞりましょう";
+  }
+  if (reason === "selection-timeout") {
+    return "時間切れで取消。3個以上なら離すか2.5秒で起爆します";
+  }
+  if (["target-expired", "target-offscreen"].includes(reason)) {
+    return inputFailureMessageFor(reason);
+  }
+  return "操作を中断しました。1本指でもう一度なぞりましょう";
+};
 
 /** Update only DOM presentation; state remains owned by GameSession. */
 export const updateHud = (root, state, {
@@ -124,9 +156,9 @@ export const updatePlayMessage = (element, state, phase = "playing") => {
   if (phase === "finalizing") message = "最後の連鎖を確定中…";
   else if (state?.simulationFault) message = "判定エラー：このプレイは無効です";
   else if (["selection-cleared", "selection-cancelled"].includes(state?.lastAction?.type)) {
-    message = state.lastAction.reason === "release-below-minimum"
-      ? "3個未満のため取消。外輪が一周するまで押してなぞりましょう"
-      : "操作を中断しました。1本指でもう一度なぞりましょう";
+    message = selectionInterruptionMessageFor(state.lastAction.reason);
+  } else if (state?.lastAction?.type === "ignored" && state.pointerPressed) {
+    message = inputFailureMessageFor(state.lastAction.reason);
   } else if (state?.lastAction?.type === "detonate") {
     const forecastSuccess = forecastSuccessForAction(state, state.lastAction.actionId);
     if (forecastSuccess) {
