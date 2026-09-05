@@ -602,12 +602,38 @@
   gap: 6px;
 }
 
+#hud-forecast-items {
+  flex: 1 1 auto;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .forecast-item {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-height: 22px;
+  padding: 2px 5px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: rgba(16, 27, 61, 0.44);
   color: #eaf1ff;
   font-size: 0.7rem;
+}
+
+.forecast-item--window-open {
+  border-color: rgba(255, 209, 102, 0.72);
+  background: rgba(104, 77, 23, 0.34);
+  box-shadow: 0 0 13px rgba(255, 209, 102, 0.2);
+}
+
+.forecast-item--ready {
+  border-color: rgba(255, 238, 168, 0.96);
+  background: rgba(126, 88, 18, 0.46);
+  box-shadow: 0 0 18px rgba(255, 209, 102, 0.38);
 }
 
 .forecast-position,
@@ -618,6 +644,22 @@
 
 .forecast-arrival {
   color: #79e6ff;
+}
+
+.forecast-item--window-open .forecast-arrival,
+.forecast-item--ready .forecast-arrival {
+  color: #fff0a8;
+}
+
+.forecast-cue {
+  color: var(--game-gold);
+  font-size: 0.62rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.forecast-item--ready .forecast-cue {
+  color: #fff4bf;
 }
 
 .forecast-swatch {
@@ -1045,11 +1087,15 @@
 
   .hud-forecast {
     overflow: hidden;
-    white-space: nowrap;
+    white-space: normal;
   }
 
   .hud-forecast .hud-label {
     flex: 0 0 auto;
+  }
+
+  #hud-forecast-items {
+    overflow: hidden;
   }
 
   .profile-settings-grid,
