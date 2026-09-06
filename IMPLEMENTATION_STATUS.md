@@ -11,6 +11,8 @@
 
 > 2026年9月5日追記（後続Draft PR）: 次波までの予告窓が開いたとき、HUDの予告欄を強調し、未選択時の準備タイミング、選択中の不足数、条件達成時の「予告準備OK」を表示する処理を追加した。既存の予告条件から表示だけを導出し、ルール版・得点・入力記録・保存形式は変更していない。Node単体を追加確認し、ブラウザ実体、iPhone 17 Pro、初見5人の理解度は未確認である。
 
+> 2026年9月5日追記（後続Draft PR）: 直接爆発・浅い連鎖・深い連鎖で輪の色、太さ、内外構成を変え、5・10・20・30連鎖の節目を1〜4重のパルスで表示する処理を追加した。低品質でも最新の得点ラベルを1つ残す。ルール版・得点・入力記録・保存形式は変更していない。M5単体と構文検査は確認済みだが、ブラウザ実体、iPhone 17 Pro、初見5人の成功感は未確認である。
+
 > 2026年8月29日追記: 直近の敵対的検証と追加要件を統合した追補はPR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)で`main`へマージ済みである。選択肢保証、一時停止、名前必須、結果画面のホーム／実験場／端末内TOP10、PCマウス操作、縦画面の時計回り論理表示を含む。マージ後の[CI Core #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047169)、[CI Browser #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047156)、[Deploy GitHub Pages #24](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047185)、[Public Release Smoke #19](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256066052)は成功した。現在は敵対的検証で見つかった高速なぞりの経路補間、Pointer Capture失敗時のwindowフォールバック、Pages ActionsのSHA固定を後続Draft PRで対応中である。実機iPhone 17 Pro、初見5人、後続変更の公開後確認は未完了である。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)を正本とする。
 
 > 2026年8月23日のスマホ操作、PC/touch演出、SE、得点表示、予告バランスの後続修正はPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、GitHub Pagesへ公開済みである。マージ後のCI Core #78、CI Browser #78、Deploy GitHub Pages #23、Public Release Smoke #18はすべて成功した。iPhone 17 Pro / Safari実機と初見5人の試遊は未確認であり、M7受入は6/7のままとする。

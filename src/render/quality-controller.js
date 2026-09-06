@@ -14,7 +14,8 @@ const freezeProfiles = (profiles, variant) => Object.freeze(Object.fromEntries(
 /**
  * The touch profiles retain M5's shipped budgets. New fields describe
  * optional decoration only; renderers that do not know them keep the current
- * appearance and deterministic game state remains untouched.
+ * appearance and deterministic game state remains untouched. Low touch keeps
+ * one score label so a successful chain is still acknowledged under budget.
  */
 export const QUALITY_PROFILES = freezeProfiles({
   low: {
@@ -31,8 +32,8 @@ export const QUALITY_PROFILES = freezeProfiles({
     shockwaveRings: 1,
     secondaryRings: 0,
     auroraAlpha: 0,
-    scoreLabels: false,
-    scoreLabelLimit: 0,
+    scoreLabels: true,
+    scoreLabelLimit: 1,
     starTwinkle: true,
     milestonePulses: true,
     motionScale: 1,
