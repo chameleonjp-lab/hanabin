@@ -211,6 +211,20 @@ test("M4 HUD preview exposes color, position, order, and arrival progress", () =
   assert.equal(directExplosionRadiusForSelection(5, DEFAULT_RULES), 2_340);
 });
 
+test("M4 portrait HUD translates logical horizontal zones to screen vertical zones", () => {
+  const markup = forecastMarkup([
+    { waveId: "wave-1", primaryColor: "blue", position: "left", fireTick: 180 },
+    { waveId: "wave-2", primaryColor: "yellow", position: "right", fireTick: 330 },
+  ], 60, DEFAULT_RULES, null, "portrait");
+  const centerMarkup = forecastMarkup([
+    { waveId: "wave-center", primaryColor: "green", position: "center", fireTick: 180 },
+  ], 60, DEFAULT_RULES, null, "portrait");
+  assert.match(markup, /data-wave-position="left">画面上側/);
+  assert.match(markup, /data-wave-position="right">画面下側/);
+  assert.match(centerMarkup, /data-wave-position="center">中央/);
+  assert.doesNotMatch(markup, /data-wave-position="left">左/);
+});
+
 const forecastReadinessFixture = ({
   leadTicks = DEFAULT_RULES.forecastPlanLeadTicks,
   selectedCount = 0,

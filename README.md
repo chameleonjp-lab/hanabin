@@ -2,7 +2,7 @@
 
 同色の花火を選び、起爆位置と時刻を考えて連鎖を伸ばす、スマートフォン向け60秒スコアアタックゲームです。
 
-M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未完了で、公開URL専用の実時間終端検査とGitHub Pagesの公開元修正は完了していますが、iPhone 17 Proの実機確認と初見5人の試遊が残っています。追加要件（選択肢保証、一時停止、名前必須、結果導線、PC操作、縦画面、端末内TOP10）はPR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)で`main`へマージ済みです。高速なぞり、Pointer Capture失敗時のwindowフォールバック、Pages ActionsのSHA固定、予告・連鎖の視覚フィードバックは実装済みで、PR [#41](https://github.com/chameleonjp-lab/hanabin/pull/41)まで`main`へ反映済みです。現在はルール数値を変えずに、60秒の時間帯別体験を確認する計測と、iPhone 17 Pro／初見5人の受入へ進んでいます。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)へ整理しています。
+M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未完了で、公開URL専用の実時間終端検査とGitHub Pagesの公開元修正は完了していますが、iPhone 17 Proの実機確認と初見5人の試遊が残っています。追加要件（選択肢保証、一時停止、名前必須、結果導線、PC操作、縦画面、端末内TOP10）はPR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)で`main`へマージ済みです。高速なぞり、Pointer Capture失敗時のwindowフォールバック、Pages ActionsのSHA固定、予告・連鎖の視覚フィードバック、時間帯別プレイ曲線計測はPR [#42](https://github.com/chameleonjp-lab/hanabin/pull/42)まで`main`へ反映済みです。現在はルール数値を変えずに、縦画面の予告位置表示と、iPhone 17 Pro／初見5人の受入へ進んでいます。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)へ整理しています。
 
 2026年8月23日の操作感度、PC/touch演出、効果音、得点表示、予告バランスの後続修正はPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、公開Pagesへ反映済みです。追加要件を含むPR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)もマージされ、[CI Core #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047169)、[CI Browser #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047156)、[Deploy GitHub Pages #24](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047185)、[Public Release Smoke #19](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256066052)が成功しています。iPhone 17 Pro / Safari実機と初見5人の試遊は未確認です。実装済み範囲と実機未確認項目は[`docs/EXPERIENCE_BALANCE_AUDIT.md`](./docs/EXPERIENCE_BALANCE_AUDIT.md)を正本とします。
 
@@ -86,7 +86,7 @@ M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未�
 - 実機受入対象: iPhone 17 Proのみ。横画面と、時計回りの論理16:9表示にした縦画面で、指を押したまま色を選び、指を離して起爆する。実機確認は未完了
 - 文書だけを変更したPull Requestのマージ履歴はGitHubを正本とし、進捗判定が変わらない限り各文書へ追記しない
 
-後続の敵対的検証対応と予告・連鎖の視覚フィードバックはPR #41まで`main`へ反映済みです。現行`main`のマージ後CIとPages公開Smokeは成功済みです。現在は`npm run test:m2:play-curve`による時間帯別の自動計測と、iPhone 17 Pro・初見5人の手動受入を進めます。
+後続の敵対的検証対応、予告・連鎖の視覚フィードバック、時間帯別プレイ曲線計測はPR #42まで`main`へ反映済みです。現行`main`のマージ後CIとPages公開Smokeは成功済みです。現在は縦画面の予告位置表示と、iPhone 17 Pro・初見5人の手動受入を進めます。
 
 時間帯別の自動計測は、既存ルールの判定・得点・再生結果を変更せず、0〜10秒、10〜25秒、25〜45秒、45〜55秒、55〜60秒ごとの得点・起爆・直接／連鎖対象・波数・最大選択グループを集計する開発用レポートです。自動戦略の比較であり、初見プレイヤーやiPhone実機の代替証明ではありません。
 

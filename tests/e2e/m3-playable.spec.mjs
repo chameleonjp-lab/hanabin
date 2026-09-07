@@ -195,6 +195,25 @@ test("M3 portrait viewport keeps a playable board with clockwise logical mapping
   await beginPlaying(page);
   await expect(page.locator("#play-screen")).toBeVisible();
   await expect(page.locator("#game-canvas")).toHaveAttribute("data-orientation", "portrait");
+  await expect(page.locator("#game-hud")).toHaveAttribute("data-orientation", "portrait");
+  const forecastPositions = await page.locator("#hud-forecast-items .forecast-item").evaluateAll((items) =>
+    items.map((item) => {
+      const position = item.querySelector(".forecast-position");
+      return {
+        logical: position?.dataset.wavePosition ?? "",
+        label: position?.textContent ?? "",
+      };
+    }),
+  );
+  expect(forecastPositions.length).toBeGreaterThan(0);
+  for (const forecast of forecastPositions) {
+    const expected = {
+      left: "画面上側",
+      center: "中央",
+      right: "画面下側",
+    }[forecast.logical] ?? "—";
+    expect(forecast.label).toBe(expected);
+  }
   const frame = await page.locator("#game-frame").boundingBox();
   expect(frame).not.toBeNull();
   expect(frame.width / frame.height).toBeCloseTo(9 / 16, 2);

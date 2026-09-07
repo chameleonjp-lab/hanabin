@@ -13,6 +13,11 @@ const byId = (root, id) => root?.querySelector?.(`#${id}`) ?? null;
 const formatScore = (value) => Math.max(0, Math.trunc(Number(value) || 0)).toLocaleString("ja-JP");
 const formatSeconds = (value) => Math.max(0, Number(value) || 0).toFixed(1);
 const positionLabels = Object.freeze({ left: "左", center: "中央", right: "右" });
+const portraitPositionLabels = Object.freeze({
+  left: "画面上側",
+  center: "中央",
+  right: "画面下側",
+});
 const idKey = (value) => String(value);
 
 const safeRuleCount = (value, fallback) => Math.max(1, Math.trunc(Number(value) || fallback));
@@ -125,16 +130,18 @@ export const forecastMarkup = (
   currentTick = 0,
   rules = DEFAULT_RULES,
   readiness = null,
+  orientation = "landscape",
 ) => {
   const forecastReadiness = readiness ?? forecastReadinessFor({
     upcomingWaves: waves,
     tick: currentTick,
   }, rules);
+  const labels = orientation === "portrait" ? portraitPositionLabels : positionLabels;
   return waves.slice(0, 2).map((wave, index) => {
     const color = colorName(wave.primaryColor);
     const value = colorValue(wave.primaryColor);
     const symbol = colorSymbol(wave.primaryColor);
-    const position = positionLabels[wave.position] ?? "—";
+    const position = labels[wave.position] ?? "—";
     const fireTick = Number(wave.fireTick);
     const seconds = Number.isFinite(fireTick)
       ? formatSeconds((fireTick - (Number(currentTick) || 0)) / rules.tickRate)
@@ -181,6 +188,7 @@ export const updateHud = (root, state, {
   phase = "playing",
   rules = DEFAULT_RULES,
   remainingSeconds = null,
+  orientation = "landscape",
 } = {}) => {
   if (!root) return;
   const score = byId(root, "hud-score");
@@ -244,7 +252,7 @@ export const updateHud = (root, state, {
           ? Math.ceil(Math.max(0, fireTick - (safeState.tick ?? 0)) / 6)
           : "";
         return `${wave.waveId ?? ""}:${wave.primaryColor ?? ""}:${wave.position ?? ""}:${progressBucket}`;
-      }).join("|") + `|${forecastReadiness.status}:${forecastReadiness.selectedCount}:${forecastReadiness.bridgeCount}`;
+      }).join("|") + `|${forecastReadiness.status}:${forecastReadiness.selectedCount}:${forecastReadiness.bridgeCount}:${orientation}`;
     if (forecast.dataset.forecastKey !== forecastKey) {
       forecast.dataset.forecastKey = forecastKey;
       forecast.innerHTML = forecastMarkup(
@@ -252,10 +260,12 @@ export const updateHud = (root, state, {
         safeState.tick ?? 0,
         rules,
         forecastReadiness,
+        orientation,
       );
       if (!safeState.upcomingWaves?.length) forecast.textContent = "—";
     }
   }
+  root.dataset.orientation = orientation === "portrait" ? "portrait" : "landscape";
   root.dataset.phase = phase;
 };
 
