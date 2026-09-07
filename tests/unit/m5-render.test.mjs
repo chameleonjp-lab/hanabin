@@ -17,6 +17,9 @@ import {
   detectPresentationExperience,
 } from "../../src/presentation/experience.js";
 import {
+  DISPLAY_SHAPES,
+  colorShape,
+  drawCompetitiveLayer,
   displayEntityRadius,
   isForecastBridgeForNextWave,
 } from "../../src/render/competitive-layer.js";
@@ -115,6 +118,52 @@ test("practice-sized targets and forecast bridge markings remain competitive inf
   assert.equal(isForecastBridgeForNextWave({ forecastForWaveIndex: 8 }, state), true);
   assert.equal(isForecastBridgeForNextWave({ forecastForWaveIndex: 7 }, state), false);
   assert.equal(isForecastBridgeForNextWave({ forecastForWaveIndex: 8 }, { upcomingWaves: [] }), false);
+});
+
+test("active targets keep a color-independent shape and emphasize symbols only while aimed", () => {
+  assert.deepEqual(
+    ["red", "blue", "green", "yellow"].map(colorShape),
+    DISPLAY_SHAPES,
+  );
+  assert.equal(colorShape(2), "triangle");
+  assert.equal(colorShape("unknown"), "circle");
+
+  const labels = [];
+  const context = {
+    save() {},
+    restore() {},
+    beginPath() {},
+    closePath() {},
+    moveTo() {},
+    lineTo() {},
+    arc() {},
+    fill() {},
+    stroke() {},
+    fillText(label) { labels.push(label); },
+  };
+  const state = {
+    tick: 0,
+    fireworks: [{
+      id: "red-target",
+      color: "red",
+      status: "active",
+      visible: true,
+      x: 4_000,
+      y: 3_000,
+    }],
+    selectedIds: [],
+    selectionRecords: [],
+    upcomingWaves: [],
+  };
+  drawCompetitiveLayer(context, { state, width: 1_600, height: 900 });
+  assert.deepEqual(labels, []);
+
+  drawCompetitiveLayer(context, {
+    state: { ...state, hoverCandidateId: "red-target", hoverTicks: 1 },
+    width: 1_600,
+    height: 900,
+  });
+  assert.deepEqual(labels, ["●"]);
 });
 
 test("quality controller can change presentation experience without changing quality level", () => {

@@ -12,6 +12,7 @@ export const DISPLAY_COLORS = Object.freeze({
 });
 
 export const DISPLAY_SYMBOLS = Object.freeze(["●", "◆", "▲", "■"]);
+export const DISPLAY_SHAPES = Object.freeze(["circle", "diamond", "triangle", "square"]);
 
 export const colorName = (color) => {
   if (typeof color === "string" && COLORS.includes(color)) return color;
@@ -21,6 +22,10 @@ export const colorValue = (color) => DISPLAY_COLORS[colorName(color)] ?? "#d9e2f
 export const colorSymbol = (color) => {
   const index = typeof color === "string" ? COLORS.indexOf(color) : color;
   return DISPLAY_SYMBOLS[index] ?? "✦";
+};
+export const colorShape = (color) => {
+  const index = typeof color === "string" ? COLORS.indexOf(color) : color;
+  return DISPLAY_SHAPES[index] ?? "circle";
 };
 
 export const isForecastBridgeForNextWave = (entity, state) => {
@@ -85,6 +90,55 @@ const drawLine = (ctx, from, to, style, width = 1) => {
   ctx.moveTo(from.x, from.y);
   ctx.lineTo(to.x, to.y);
   ctx.stroke();
+  ctx.restore();
+};
+
+/** Draw the color-independent outline used to identify an active target. */
+export const drawDisplayShape = (ctx, {
+  shape = "circle",
+  x = 0,
+  y = 0,
+  radius = 0,
+} = {}) => {
+  if (!ctx) return;
+  const safeRadius = Math.max(0, Number(radius) || 0);
+  ctx.beginPath();
+  if (shape === "diamond") {
+    ctx.moveTo(x, y - safeRadius);
+    ctx.lineTo(x + safeRadius, y);
+    ctx.lineTo(x, y + safeRadius);
+    ctx.lineTo(x - safeRadius, y);
+  } else if (shape === "triangle") {
+    const top = y - safeRadius;
+    const bottom = y + safeRadius * 0.82;
+    ctx.moveTo(x, top);
+    ctx.lineTo(x + safeRadius * 0.92, bottom);
+    ctx.lineTo(x - safeRadius * 0.92, bottom);
+  } else if (shape === "square") {
+    ctx.moveTo(x - safeRadius, y - safeRadius);
+    ctx.lineTo(x + safeRadius, y - safeRadius);
+    ctx.lineTo(x + safeRadius, y + safeRadius);
+    ctx.lineTo(x - safeRadius, y + safeRadius);
+  } else {
+    ctx.arc(x, y, safeRadius, 0, Math.PI * 2);
+  }
+  ctx.closePath();
+};
+
+const drawPetalHalo = (ctx, x, y, radius, color, active) => {
+  ctx.save();
+  ctx.globalAlpha = active ? 0.82 : 0.5;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(1, radius * 0.07);
+  for (let index = 0; index < 8; index += 1) {
+    const angle = Math.PI * 2 * index / 8;
+    const inner = radius * 0.74;
+    const outer = radius * 1.1;
+    ctx.beginPath();
+    ctx.moveTo(x + Math.cos(angle) * inner, y + Math.sin(angle) * inner);
+    ctx.lineTo(x + Math.cos(angle) * outer, y + Math.sin(angle) * outer);
+    ctx.stroke();
+  }
   ctx.restore();
 };
 
@@ -191,22 +245,36 @@ export const drawCompetitiveLayer = (ctx, {
     const selected = selectedIds.has(String(entity.id));
     const hovered = String(state.hoverCandidateId) === String(entity.id);
     const forecastBridge = isForecastBridgeForNextWave(entity, state);
+    const activeTarget = selected || hovered;
+    const shape = colorShape(entity.color);
     const depthScale = 0.82 + Math.min(0.32, Math.max(0, Number(entity.depth ?? 0)) / 4000);
     const radius = entityRadius * depthScale;
     ctx.save();
     ctx.globalAlpha = selected ? 1 : 0.88;
     ctx.shadowColor = color;
-    ctx.shadowBlur = selected || hovered ? radius * 2.8 : radius * 1.35;
+    ctx.shadowBlur = activeTarget ? radius * 2.8 : radius * 1.35;
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+    ctx.arc(point.x, point.y, radius * 0.62, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
-    ctx.fillStyle = "rgba(4, 9, 23, 0.78)";
-    ctx.font = `${Math.max(8, radius * 1.05)}px sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(colorSymbol(entity.color), point.x, point.y + 0.5);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1.3, radius * 0.12);
+    drawDisplayShape(ctx, {
+      shape,
+      x: point.x,
+      y: point.y,
+      radius: radius * 0.98,
+    });
+    ctx.stroke();
+    drawPetalHalo(ctx, point.x, point.y, radius, color, activeTarget);
+    if (activeTarget) {
+      ctx.fillStyle = "rgba(4, 9, 23, 0.86)";
+      ctx.font = `${Math.max(8, radius * 1.05)}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(colorSymbol(entity.color), point.x, point.y + 0.5);
+    }
     // The forecast bonus requires at least three of the five selected
     // targets to be linked to the next wave.  Keep that competitive fact
     // visible at every quality level with a gold double ring.
