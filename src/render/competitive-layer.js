@@ -122,12 +122,24 @@ export const drawDisplayShape = (ctx, {
   } else {
     ctx.arc(x, y, safeRadius, 0, Math.PI * 2);
   }
-  ctx.closePath();
+  if (typeof ctx.closePath === "function") ctx.closePath();
 };
 
-const drawPetalHalo = (ctx, x, y, radius, color, active) => {
+/** Draw the same low-cost petal halo used by the competitive target layer. */
+export const drawDisplayPetalHalo = (
+  ctx,
+  x,
+  y,
+  radius,
+  color,
+  active = false,
+  opacity = 1,
+) => {
+  const opacityScale = Number.isFinite(Number(opacity))
+    ? Math.max(0, Math.min(1, Number(opacity)))
+    : 1;
   ctx.save();
-  ctx.globalAlpha = active ? 0.82 : 0.5;
+  ctx.globalAlpha = (active ? 0.82 : 0.5) * opacityScale;
   ctx.strokeStyle = color;
   ctx.lineWidth = Math.max(1, radius * 0.07);
   for (let index = 0; index < 8; index += 1) {
@@ -267,7 +279,7 @@ export const drawCompetitiveLayer = (ctx, {
       radius: radius * 0.98,
     });
     ctx.stroke();
-    drawPetalHalo(ctx, point.x, point.y, radius, color, activeTarget);
+    drawDisplayPetalHalo(ctx, point.x, point.y, radius, color, activeTarget);
     if (activeTarget) {
       ctx.fillStyle = "rgba(4, 9, 23, 0.86)";
       ctx.font = `${Math.max(8, radius * 1.05)}px sans-serif`;

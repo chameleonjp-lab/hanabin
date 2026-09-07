@@ -28,6 +28,8 @@ import {
   PRACTICE_STAGE_TWO_TARGETS,
   PRACTICE_TARGET_COUNT,
   PRACTICE_TARGETS,
+  practiceDisplayShapeFor,
+  practiceSymbolVisibleFor,
   practiceTargetBoardPoint,
   practiceStageDurationsFor,
   practiceTargetsAt,
@@ -495,6 +497,16 @@ test("M6 practice uses three fixed same-colour targets and normalizes touch poin
     height: 100,
   }), { x: 0, y: 0 });
   assert.equal(normalizePracticePoint(0, 0, { left: 0, top: 0, width: 0, height: 100 }), null);
+});
+
+test("M6 practice uses the same shape language as the competitive board", () => {
+  assert.deepEqual(PRACTICE_TARGETS.map(practiceDisplayShapeFor), ["circle", "circle", "circle"]);
+  assert.deepEqual(PRACTICE_STAGE_TWO_TARGETS.map(practiceDisplayShapeFor), ["triangle", "triangle", "triangle"]);
+  assert.equal(practiceDisplayShapeFor(PRACTICE_CHAIN_TARGET), "square");
+  assert.equal(practiceSymbolVisibleFor(), false);
+  assert.equal(practiceSymbolVisibleFor({ hovered: true }), true);
+  assert.equal(practiceSymbolVisibleFor({ selected: true }), true);
+  assert.equal(practiceSymbolVisibleFor({ success: true }), true);
 });
 
 test("M6 practice adds a short moving chain lesson without changing play rules", () => {

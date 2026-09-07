@@ -6,7 +6,11 @@ import {
   mergeRules,
 } from "../config/rules.js";
 import { PointerController } from "../input/pointer-controller.js";
-import { displayEntityRadius } from "../render/competitive-layer.js";
+import {
+  displayEntityRadius,
+  drawDisplayPetalHalo,
+  drawDisplayShape,
+} from "../render/competitive-layer.js";
 
 // The practice is intentionally short enough to finish before a first-time
 // player loses interest, while still giving one complete example of a chain.
@@ -23,14 +27,14 @@ export const PRACTICE_TRACE_DISTANCE = 240;
 // The practice board is deliberately fixed. It teaches the real gesture
 // without changing the deterministic game session, score, or replay format.
 export const PRACTICE_TARGETS = Object.freeze([
-  Object.freeze({ id: "practice-red-1", x: 0.29, y: 0.54, color: "#ff718f", symbol: "●" }),
-  Object.freeze({ id: "practice-red-2", x: 0.50, y: 0.39, color: "#ff718f", symbol: "●" }),
-  Object.freeze({ id: "practice-red-3", x: 0.71, y: 0.54, color: "#ff718f", symbol: "●" }),
+  Object.freeze({ id: "practice-red-1", x: 0.29, y: 0.54, color: "#ff718f", shape: "circle", symbol: "●" }),
+  Object.freeze({ id: "practice-red-2", x: 0.50, y: 0.39, color: "#ff718f", shape: "circle", symbol: "●" }),
+  Object.freeze({ id: "practice-red-3", x: 0.71, y: 0.54, color: "#ff718f", shape: "circle", symbol: "●" }),
 ]);
 
 const PRACTICE_DECOYS = Object.freeze([
-  Object.freeze({ x: 0.34, y: 0.27, color: "#6ea8ff", symbol: "◆" }),
-  Object.freeze({ x: 0.66, y: 0.27, color: "#6ea8ff", symbol: "◆" }),
+  Object.freeze({ x: 0.34, y: 0.27, color: "#6ea8ff", shape: "diamond", symbol: "◆" }),
+  Object.freeze({ x: 0.66, y: 0.27, color: "#6ea8ff", shape: "diamond", symbol: "◆" }),
 ]);
 
 export const PRACTICE_STAGE_TWO_TARGETS = Object.freeze([
@@ -39,6 +43,7 @@ export const PRACTICE_STAGE_TWO_TARGETS = Object.freeze([
     x: 0.28,
     y: 0.52,
     color: "#72e5ba",
+    shape: "triangle",
     symbol: "▲",
     motionX: 0.014,
     motionY: 0.010,
@@ -49,6 +54,7 @@ export const PRACTICE_STAGE_TWO_TARGETS = Object.freeze([
     x: 0.50,
     y: 0.40,
     color: "#72e5ba",
+    shape: "triangle",
     symbol: "▲",
     motionX: 0.012,
     motionY: 0.014,
@@ -59,6 +65,7 @@ export const PRACTICE_STAGE_TWO_TARGETS = Object.freeze([
     x: 0.70,
     y: 0.52,
     color: "#72e5ba",
+    shape: "triangle",
     symbol: "▲",
     motionX: 0.013,
     motionY: 0.011,
@@ -71,7 +78,8 @@ export const PRACTICE_CHAIN_TARGET = Object.freeze({
   x: 0.79,
   y: 0.52,
   color: "#ffd166",
-  symbol: "✦",
+  shape: "square",
+  symbol: "■",
   selectable: false,
 });
 
@@ -87,6 +95,50 @@ const finite = (value, fallback = PRACTICE_SECONDS) => Number.isFinite(Number(va
   : fallback;
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+export const practiceDisplayShapeFor = (target) => target?.shape ?? "circle";
+
+export const practiceSymbolVisibleFor = ({
+  selected = false,
+  hovered = false,
+  success = false,
+} = {}) => selected || hovered || success;
+
+const drawPracticeTarget = (
+  ctx,
+  target,
+  point,
+  radius,
+  { alpha = 1, showSymbol = false } = {},
+) => {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = target.color;
+  ctx.shadowColor = target.color;
+  ctx.shadowBlur = showSymbol ? radius * 2.8 : radius * 1.35;
+  ctx.beginPath();
+  ctx.arc(point.x, point.y, radius * 0.62, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = target.color;
+  ctx.lineWidth = Math.max(1.3, radius * 0.12);
+  drawDisplayShape(ctx, {
+    shape: practiceDisplayShapeFor(target),
+    x: point.x,
+    y: point.y,
+    radius: radius * 0.98,
+  });
+  ctx.stroke();
+  drawDisplayPetalHalo(ctx, point.x, point.y, radius, target.color, showSymbol, alpha);
+  if (showSymbol && target.symbol) {
+    ctx.fillStyle = "rgba(4, 9, 23, 0.82)";
+    ctx.font = `${Math.max(14, radius * 1.1)}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(target.symbol, point.x, point.y + 1);
+  }
+  ctx.restore();
+};
 
 export const practiceStageDurationsFor = (durationSeconds = PRACTICE_SECONDS) => {
   const total = Math.max(10, Math.min(20, Math.trunc(finite(durationSeconds))));
@@ -728,23 +780,6 @@ export class TutorialController {
     gradient.addColorStop(1, "#120b28");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, logicalWidth, logicalHeight);
-    ctx.save();
-    ctx.globalAlpha = 0.2;
-    ctx.strokeStyle = "#8ca6e8";
-    ctx.lineWidth = 1;
-    for (let x = logicalWidth / 4; x < logicalWidth; x += logicalWidth / 4) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, logicalHeight);
-      ctx.stroke();
-    }
-    for (let y = logicalHeight / 3; y < logicalHeight; y += logicalHeight / 3) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(logicalWidth, y);
-      ctx.stroke();
-    }
-    ctx.restore();
 
     if (this.selectedIds.length > 1) {
       ctx.save();
@@ -775,21 +810,7 @@ export class TutorialController {
         const point = toCanvas(target);
         const scale = Math.min(logicalWidth / this.rules.boardWidth, logicalHeight / this.rules.boardHeight);
         const radius = displayEntityRadius(scale, this.rules);
-        ctx.save();
-        ctx.globalAlpha = 0.46;
-        ctx.fillStyle = target.color;
-        ctx.shadowColor = target.color;
-        ctx.shadowBlur = radius;
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = "rgba(4, 9, 23, 0.78)";
-        ctx.font = `${Math.max(14, radius * 1.1)}px sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(target.symbol, point.x, point.y + 1);
-        ctx.restore();
+        drawPracticeTarget(ctx, target, point, radius, { alpha: 0.46 });
       }
     }
 
@@ -800,19 +821,12 @@ export class TutorialController {
       const scale = Math.min(logicalWidth / this.rules.boardWidth, logicalHeight / this.rules.boardHeight);
       const radius = displayEntityRadius(scale, this.rules);
       ctx.save();
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = target.color;
-      ctx.shadowColor = target.color;
-      ctx.shadowBlur = isSelected || isHovered ? radius * 2.2 : radius;
-      ctx.beginPath();
-      ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = "rgba(4, 9, 23, 0.78)";
-      ctx.font = `${Math.max(14, radius * 1.1)}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(target.symbol, point.x, point.y + 1);
+      const showSymbol = practiceSymbolVisibleFor({
+        selected: isSelected,
+        hovered: isHovered,
+        success: this.state === "success",
+      });
+      drawPracticeTarget(ctx, target, point, radius, { showSymbol });
       if (isSelected || this.state === "success") {
         ctx.strokeStyle = this.state === "success" ? "#75f0bb" : "#f8fcff";
         ctx.lineWidth = Math.max(2, radius * 0.12);
@@ -845,20 +859,11 @@ export class TutorialController {
       const point = toCanvas(chainTarget);
       const scale = Math.min(logicalWidth / this.rules.boardWidth, logicalHeight / this.rules.boardHeight);
       const radius = displayEntityRadius(scale, this.rules);
+      drawPracticeTarget(ctx, chainTarget, point, radius, {
+        alpha: this.chainCaptured ? 1 : 0.82,
+        showSymbol: practiceSymbolVisibleFor({ success: this.chainCaptured }),
+      });
       ctx.save();
-      ctx.globalAlpha = this.chainCaptured ? 1 : 0.82;
-      ctx.fillStyle = chainTarget.color;
-      ctx.shadowColor = chainTarget.color;
-      ctx.shadowBlur = this.chainCaptured ? radius * 2.4 : radius * 1.5;
-      ctx.beginPath();
-      ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = "rgba(4, 9, 23, 0.8)";
-      ctx.font = `${Math.max(14, radius * 1.05)}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(chainTarget.symbol, point.x, point.y + 1);
       ctx.setLineDash([4, 4]);
       ctx.strokeStyle = this.chainCaptured ? "#75f0bb" : "rgba(255, 209, 102, 0.92)";
       ctx.lineWidth = Math.max(2, radius * 0.12);

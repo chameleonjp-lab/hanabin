@@ -19,6 +19,8 @@
 
 > 2026年9月7日追記（後続Draft PR）: 通常時の花火対象を発光コアと色ごとの外形（円・ひし形・三角・四角）で表示し、照準中・選択中だけ中央記号を強調する処理を追加した。判定・得点・入力記録・保存形式は変更していない。形状対応と表示切替はNode単体で確認し、ブラウザCI、画面撮影、色覚特性、iPhone 17 Pro実機、初見5人の理解度は未確認である。
 
+> 2026年9月7日追記（後続Draft PR）: 練習画面の固定対象・デコイ・巻き込み対象を、本番と同じ外形（円・ひし形・三角・四角）と発光コアで表示するようそろえた。通常時の中央記号と練習盤面の格子を外し、照準中・選択中・成功時だけ補助記号を表示する。ルール版・得点・入力記録・保存形式は変更していない。Node単体と全体テストで確認したが、ブラウザ実体、画面撮影、色覚特性、iPhone 17 Pro実機、初見5人の理解度は未確認である。
+
 > 2026年8月29日追記: 直近の敵対的検証と追加要件を統合した追補はPR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)で`main`へマージ済みである。選択肢保証、一時停止、名前必須、結果画面のホーム／実験場／端末内TOP10、PCマウス操作、縦画面の時計回り論理表示を含む。マージ後の[CI Core #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047169)、[CI Browser #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047156)、[Deploy GitHub Pages #24](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047185)、[Public Release Smoke #19](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256066052)は成功した。高速なぞりの経路補間、Pointer Capture失敗時のwindowフォールバック、Pages ActionsのSHA固定、予告・連鎖の視覚フィードバックは後続PRで実装済みである。実機iPhone 17 Pro、初見5人、後続変更の公開後確認は未完了である。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)を正本とする。
 
 > 2026年8月23日のスマホ操作、PC/touch演出、SE、得点表示、予告バランスの後続修正はPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、GitHub Pagesへ公開済みである。マージ後のCI Core #78、CI Browser #78、Deploy GitHub Pages #23、Public Release Smoke #18はすべて成功した。iPhone 17 Pro / Safari実機と初見5人の試遊は未確認であり、M7受入は6/7のままとする。
