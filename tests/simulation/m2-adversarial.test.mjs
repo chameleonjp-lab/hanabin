@@ -3,8 +3,10 @@ import { test } from "node:test";
 
 import {
   DEFAULT_RULES,
+  PLAY_CURVE_BANDS,
   STRATEGY_NAMES,
   advanceGame,
+  comparePlayCurve,
   compareStrategies,
   createGame,
   detonate,
@@ -242,6 +244,52 @@ test("comparison scores come from the same unskipped 3600-tick strategy run", ()
     });
     assert.equal(comparison.byStrategy[strategy].scoreSum, direct.score, strategy);
     assert.equal(direct.processedTicks, 3_600, strategy);
+  }
+});
+
+test("play-curve instrumentation keeps the deterministic outcome unchanged", () => {
+  const plain = runSimulation(17, { strategy: "shortest-five" });
+  const instrumented = runSimulation(17, {
+    strategy: "shortest-five",
+    collectPlayCurve: true,
+  });
+
+  assert.equal(instrumented.score, plain.score);
+  assert.deepEqual(instrumented.state, plain.state);
+  assert.deepEqual(
+    instrumented.playCurve.bands.map(({ id, label, startTick, endTick }) => ({
+      id,
+      label,
+      startTick,
+      endTick,
+    })),
+    PLAY_CURVE_BANDS,
+  );
+  assert.equal(
+    instrumented.playCurve.bands.reduce((sum, band) => sum + band.directTargets, 0),
+    instrumented.state.stats.directTargets,
+  );
+  assert.equal(
+    instrumented.playCurve.bands.reduce((sum, band) => sum + band.chainTargets, 0),
+    instrumented.state.stats.chainTargets,
+  );
+  assert.ok(instrumented.playCurve.bands.every((band) => band.largestSelectableGroupSamples === 3));
+});
+
+test("play-curve comparison reports five fixed bands with complete choice samples", () => {
+  const comparison = comparePlayCurve({
+    seedCount: 2,
+    startSeed: 17,
+    strategies: ["random", "shortest-five"],
+  });
+
+  assert.equal(comparison.ok, true);
+  for (const summary of Object.values(comparison.byStrategy)) {
+    assert.equal(summary.playCurve.processedRuns, 2);
+    assert.equal(summary.playCurve.bands.length, 5);
+    assert.ok(summary.playCurve.bands.every((band) =>
+      band.largestSelectableGroupSampleCoverage === 1,
+    ));
   }
 });
 

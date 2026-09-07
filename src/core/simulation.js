@@ -5,9 +5,15 @@ import {
   applyAction,
   applyInputFrame,
   createGame,
+  playableChoiceCount,
   snapshotGame,
   validateGame,
 } from "./engine.js";
+import {
+  PLAY_CURVE_BANDS,
+  playCurveSampleTicks,
+  summarizePlayCurve,
+} from "./play-curve.js";
 import { normalizeSeed } from "./rng.js";
 import {
   createStrategyContext,
@@ -168,8 +174,29 @@ export const runSimulation = (seedOrOptions = 1, optionsArg = {}) => {
   let decisionCount = 0;
   let frontHalfActionCount = 0;
   let continuationActionCount = 0;
+  const collectPlayCurve = options.collectPlayCurve === true;
+  const playCurveSampleTickSet = collectPlayCurve
+    ? new Set(playCurveSampleTicks(rules.maxTicks))
+    : null;
+  const playCurveChoiceSamples = [];
+  const playCurveDetonationTicks = [];
+  let observedDetonationCount = 0;
 
   const state = createGame(seed, rules);
+
+  const collectPlayCurveSignals = (fallbackTick) => {
+    if (!collectPlayCurve) return;
+    while (observedDetonationCount < state.stats.detonationCount) {
+      playCurveDetonationTicks.push(state.lastDetonationTick ?? fallbackTick);
+      observedDetonationCount += 1;
+    }
+    if (playCurveSampleTickSet.has(fallbackTick)) {
+      playCurveChoiceSamples.push({
+        tick: fallbackTick,
+        largestSelectableGroup: playableChoiceCount(state, rules),
+      });
+    }
+  };
 
   // A replay has exactly one pressed+x+y frame for every session tick. The
   // first `decisionLimit` ticks are strategy-controlled; the remaining ticks
@@ -188,6 +215,7 @@ export const runSimulation = (seedOrOptions = 1, optionsArg = {}) => {
     } else {
       applyAction(state, frame.type, frame, rules);
     }
+    if (collectPlayCurve) collectPlayCurveSignals(tick);
     if (action) {
       decisionCount += 1;
       if (tick < Math.floor(rules.maxTicks / 2)) frontHalfActionCount += 1;
@@ -197,6 +225,7 @@ export const runSimulation = (seedOrOptions = 1, optionsArg = {}) => {
   }
 
   if (!state.simulationFault && state.tick < rules.maxTicks) advanceGame(state, rules.maxTicks, rules);
+  if (collectPlayCurve) collectPlayCurveSignals(rules.maxTicks);
   const snapshot = summaryOnly
     ? { stats: { ...state.stats }, tick: state.tick, score: state.score }
     : snapshotGame(state);
@@ -215,6 +244,14 @@ export const runSimulation = (seedOrOptions = 1, optionsArg = {}) => {
   const forecastQualifiedTargets = (state.scoreEvents ?? [])
     .filter((event) => (event.forecastPlanAmount ?? 0) > 0).length;
   const forecast = forecastEvidence(state);
+  const playCurve = collectPlayCurve
+    ? summarizePlayCurve({
+      state,
+      rules,
+      choiceSamples: playCurveChoiceSamples,
+      detonationTicks: playCurveDetonationTicks,
+    })
+    : null;
   const replay = summaryOnly || state.simulationFault
     ? null
     : createStrategyReplayLog({ seed, rules, frames: state.inputFrames });
@@ -255,8 +292,28 @@ export const runSimulation = (seedOrOptions = 1, optionsArg = {}) => {
     forecastChainBonusSum,
     forecastQualifiedTargets,
     forecastScoreSum: forecastPlanBonusSum + forecastChainBonusSum,
+    playCurve,
   };
 };
+
+const createPlayCurveAggregate = () => ({
+  processedRuns: 0,
+  bands: PLAY_CURVE_BANDS.map((band) => ({
+    id: band.id,
+    label: band.label,
+    startTick: band.startTick,
+    endTick: band.endTick,
+    scoreGainedSum: 0,
+    detonationsSum: 0,
+    directTargetsSum: 0,
+    chainTargetsSum: 0,
+    maxChainGenerationSum: 0,
+    maxCapturedTargetsSum: 0,
+    waveSpawnsSum: 0,
+    largestSelectableGroupSum: 0,
+    largestSelectableGroupSamples: 0,
+  })),
+});
 
 const addSummary = (summary, result) => {
   summary.processedSeeds += 1;
@@ -301,6 +358,23 @@ const addSummary = (summary, result) => {
   }
   for (const [kind, count] of Object.entries(result.waveCounts ?? {})) {
     summary.waveCounts[kind] = (summary.waveCounts[kind] ?? 0) + count;
+  }
+  if (result.playCurve) {
+    summary.playCurve ??= createPlayCurveAggregate();
+    summary.playCurve.processedRuns += 1;
+    for (const [index, band] of result.playCurve.bands.entries()) {
+      const target = summary.playCurve.bands[index];
+      if (!target) continue;
+      target.scoreGainedSum += band.scoreGained;
+      target.detonationsSum += band.detonations;
+      target.directTargetsSum += band.directTargets;
+      target.chainTargetsSum += band.chainTargets;
+      target.maxChainGenerationSum += band.maxChainGeneration;
+      target.maxCapturedTargetsSum += band.maxCapturedTargets;
+      target.waveSpawnsSum += band.waveSpawns;
+      target.largestSelectableGroupSum += band.largestSelectableGroupSum;
+      target.largestSelectableGroupSamples += band.largestSelectableGroupSamples;
+    }
   }
 };
 
@@ -442,6 +516,7 @@ export const compareStrategies = (options = {}) => {
         strategy: name,
         rules,
         summaryOnly: true,
+        collectPlayCurve: options.collectPlayCurve === true,
       });
       addSummary(byStrategy[name], result);
     }
@@ -518,6 +593,41 @@ export const compareStrategies = (options = {}) => {
     summary.p90Score = percentile(0.9);
     if (summary.minScore === Number.POSITIVE_INFINITY) summary.minScore = 0;
     summary.ok = summary.faults === 0 && summary.invalidStates === 0;
+    if (summary.playCurve) {
+      summary.playCurve.bands = summary.playCurve.bands.map((band) => ({
+        id: band.id,
+        label: band.label,
+        startTick: band.startTick,
+        endTick: band.endTick,
+        averageScoreGained: summary.playCurve.processedRuns
+          ? band.scoreGainedSum / summary.playCurve.processedRuns
+          : 0,
+        averageDetonations: summary.playCurve.processedRuns
+          ? band.detonationsSum / summary.playCurve.processedRuns
+          : 0,
+        averageDirectTargets: summary.playCurve.processedRuns
+          ? band.directTargetsSum / summary.playCurve.processedRuns
+          : 0,
+        averageChainTargets: summary.playCurve.processedRuns
+          ? band.chainTargetsSum / summary.playCurve.processedRuns
+          : 0,
+        averageMaxChainGeneration: summary.playCurve.processedRuns
+          ? band.maxChainGenerationSum / summary.playCurve.processedRuns
+          : 0,
+        averageMaxCapturedTargets: summary.playCurve.processedRuns
+          ? band.maxCapturedTargetsSum / summary.playCurve.processedRuns
+          : 0,
+        averageWaveSpawns: summary.playCurve.processedRuns
+          ? band.waveSpawnsSum / summary.playCurve.processedRuns
+          : 0,
+        averageLargestSelectableGroup: band.largestSelectableGroupSamples
+          ? band.largestSelectableGroupSum / band.largestSelectableGroupSamples
+          : 0,
+        largestSelectableGroupSampleCoverage: summary.playCurve.processedRuns
+          ? band.largestSelectableGroupSamples / (summary.playCurve.processedRuns * 3)
+          : 0,
+      }));
+    }
     delete summary.scoreHistogram;
   }
   const winner = [...Object.values(byStrategy)].sort((left, right) =>
@@ -536,6 +646,12 @@ export const compareStrategies = (options = {}) => {
     ok: Object.values(byStrategy).every((summary) => summary.ok),
   };
 };
+
+/** Compare the deterministic strategies with the optional play-curve metrics. */
+export const comparePlayCurve = (options = {}) => compareStrategies({
+  ...options,
+  collectPlayCurve: true,
+});
 
 /** Compatibility wrapper around the real generated-game safety sweep. */
 export const runSafetyInspection = (options = {}) => {
