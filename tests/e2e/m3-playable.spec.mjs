@@ -197,10 +197,13 @@ test("M3 portrait viewport keeps a playable board with clockwise logical mapping
   await expect(page.locator("#game-canvas")).toHaveAttribute("data-orientation", "portrait");
   await expect(page.locator("#game-hud")).toHaveAttribute("data-orientation", "portrait");
   const forecastPositions = await page.locator("#hud-forecast-items .forecast-item").evaluateAll((items) =>
-    items.map((item) => ({
-      logical: item.dataset.wavePosition,
-      label: item.querySelector(".forecast-position")?.textContent ?? "",
-    })),
+    items.map((item) => {
+      const position = item.querySelector(".forecast-position");
+      return {
+        logical: position?.dataset.wavePosition ?? "",
+        label: position?.textContent ?? "",
+      };
+    }),
   );
   expect(forecastPositions.length).toBeGreaterThan(0);
   for (const forecast of forecastPositions) {
