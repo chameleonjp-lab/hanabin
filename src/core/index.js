@@ -3,6 +3,7 @@ export * from "./input-frame.js";
 export * from "./rng.js";
 export * from "./replay.js";
 export * from "./simulation.js";
+export * from "./play-curve.js";
 export * from "./scoring.js";
 export * from "./chain.js";
 export * from "./state.js";

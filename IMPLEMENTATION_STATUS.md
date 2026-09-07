@@ -1,6 +1,6 @@
 # HANABIN 実装進捗
 
-- 更新日: 2026年8月29日
+- 更新日: 2026年9月7日
 - 実装状態: **7/7**（M1〜M7のコードは`main`へマージ済み）
 - MVP受入: **6/7**（M7は不合格のまま）
 - 公開URL: [HANABIN](https://chameleonjp-lab.github.io/hanabin/)
@@ -13,7 +13,9 @@
 
 > 2026年9月5日追記（後続Draft PR）: 直接爆発・浅い連鎖・深い連鎖で輪の色、太さ、内外構成を変え、5・10・20・30連鎖の節目を1〜4重のパルスで表示する処理を追加した。低品質でも最新の得点ラベルを1つ残す。ルール版・得点・入力記録・保存形式は変更していない。M5単体と構文検査は確認済みだが、ブラウザ実体、iPhone 17 Pro、初見5人の成功感は未確認である。
 
-> 2026年8月29日追記: 直近の敵対的検証と追加要件を統合した追補はPR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)で`main`へマージ済みである。選択肢保証、一時停止、名前必須、結果画面のホーム／実験場／端末内TOP10、PCマウス操作、縦画面の時計回り論理表示を含む。マージ後の[CI Core #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047169)、[CI Browser #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047156)、[Deploy GitHub Pages #24](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047185)、[Public Release Smoke #19](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256066052)は成功した。現在は敵対的検証で見つかった高速なぞりの経路補間、Pointer Capture失敗時のwindowフォールバック、Pages ActionsのSHA固定を後続Draft PRで対応中である。実機iPhone 17 Pro、初見5人、後続変更の公開後確認は未完了である。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)を正本とする。
+> 2026年9月7日追記（PR #41マージ後の後続Draft PR）: 60秒を0〜10秒、10〜25秒、25〜45秒、45〜55秒、55〜60秒の5帯に分け、同じseed・同じ戦略の結果を時間帯別に集計する開発用プレイ曲線レポートを追加した。ルール版・得点・入力記録・保存形式は変更していない。計測値は自動戦略の比較材料であり、iPhone 17 Proや初見5人の人間受入を代替しない。
+
+> 2026年8月29日追記: 直近の敵対的検証と追加要件を統合した追補はPR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)で`main`へマージ済みである。選択肢保証、一時停止、名前必須、結果画面のホーム／実験場／端末内TOP10、PCマウス操作、縦画面の時計回り論理表示を含む。マージ後の[CI Core #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047169)、[CI Browser #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047156)、[Deploy GitHub Pages #24](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047185)、[Public Release Smoke #19](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256066052)は成功した。高速なぞりの経路補間、Pointer Capture失敗時のwindowフォールバック、Pages ActionsのSHA固定、予告・連鎖の視覚フィードバックは後続PRで実装済みである。実機iPhone 17 Pro、初見5人、後続変更の公開後確認は未完了である。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)を正本とする。
 
 > 2026年8月23日のスマホ操作、PC/touch演出、SE、得点表示、予告バランスの後続修正はPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、GitHub Pagesへ公開済みである。マージ後のCI Core #78、CI Browser #78、Deploy GitHub Pages #23、Public Release Smoke #18はすべて成功した。iPhone 17 Pro / Safari実機と初見5人の試遊は未確認であり、M7受入は6/7のままとする。
 
@@ -96,7 +98,8 @@
 
 ## 次の作業
 
-1. 後続Draft PRで高速なぞり、Pointer Captureフォールバック、Pages SHA固定のCIを完了する。
+1. 時間帯別プレイ曲線を同じseed・8戦略で計測し、前半・中盤・終盤の差を確認する。計測だけではMVP受入を7/7へ更新しない。
 2. iPhone 17 Proで横・縦画面、入力境界、停止、結果導線を実機確認する。
 3. 初見5人の試遊を記録する。
-4. すべて合格した場合だけMVP受入を7/7へ更新する。
+4. ルール数値を変更する場合は、人間の実測後に別の`ruleVersion`更新として扱う。
+5. すべて合格した場合だけMVP受入を7/7へ更新する。

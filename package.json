@@ -13,6 +13,7 @@
     "test:release": "node scripts/check-release.mjs",
     "test:pages-source": "node scripts/check-pages-source.mjs",
     "test:m2:simulation": "node scripts/run-simulations.mjs",
+    "test:m2:play-curve": "node scripts/run-play-curve.mjs",
     "test:browser": "playwright test",
     "test:public": "playwright test --config=playwright.public.config.mjs",
     "test:all": "npm run test:syntax && npm run test:release && npm test && npm run test:browser",
