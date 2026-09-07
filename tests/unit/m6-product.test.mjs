@@ -18,7 +18,11 @@ import {
 } from "../../src/ui/result.js";
 import { DEFAULT_RULES } from "../../src/config/rules.js";
 import { explosionRangeRows, scoreGuideModel } from "../../src/ui/rules-guide.js";
-import { inputFailureMessageFor, updatePlayMessage } from "../../src/ui/hud.js";
+import {
+  inputFailureMessageFor,
+  selectionBlastCueFor,
+  updatePlayMessage,
+} from "../../src/ui/hud.js";
 import {
   findPracticeCandidate,
   normalizePracticePoint,
@@ -562,6 +566,25 @@ test("play feedback explains an incomplete tap and the remaining target count", 
   assert.match(element.textContent, /3個未満のため取消/);
   updatePlayMessage(element, { selectedIds: [1, 2, 3], lastAction: { type: "select" } });
   assert.equal(element.textContent, "指を離すか2.5秒で自動起爆");
+});
+
+test("play feedback explains when a smaller selection already reaches a nearby firework", () => {
+  const state = {
+    selectedIds: ["selected-1", "selected-2", "selected-3"],
+    fireworks: [
+      { id: "selected-1", status: "active", visible: true, x: 1_000, y: 1_000 },
+      { id: "selected-2", status: "active", visible: true, x: 4_000, y: 1_000 },
+      { id: "selected-3", status: "active", visible: true, x: 7_000, y: 1_000 },
+      { id: "nearby", status: "active", visible: true, x: 2_200, y: 1_000 },
+      { id: "far", status: "active", visible: true, x: 12_000, y: 1_000 },
+    ],
+    lastAction: { type: "select" },
+    pointerPressed: true,
+  };
+  assert.equal(selectionBlastCueFor(state), "この位置なら3個でも近くの花火に届きます");
+  const element = { textContent: "" };
+  updatePlayMessage(element, state);
+  assert.equal(element.textContent, "この位置なら3個でも近くの花火に届きます");
 });
 
 test("play feedback names the reason a held pointer did not acquire a target", () => {
