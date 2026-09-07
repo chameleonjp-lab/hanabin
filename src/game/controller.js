@@ -913,6 +913,7 @@ export class GameController {
         phase,
         rules: this.session.rules,
         remainingSeconds: this.session.getRemainingSeconds(),
+        orientation: this.orientation,
       });
       updatePlayMessage(this.playMessage, state, phase);
       if (this.playMessage && this.pointerHintText && nowMs() < this.pointerHintUntilMs) {
