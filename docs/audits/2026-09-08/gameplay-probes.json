@@ -1,0 +1,1231 @@
+{
+  "mouse": [
+    {
+      "targetId": 1,
+      "deltaY": -900,
+      "candidates": []
+    },
+    {
+      "targetId": 2,
+      "deltaY": -900,
+      "candidates": []
+    },
+    {
+      "targetId": 3,
+      "deltaY": -900,
+      "candidates": []
+    }
+  ],
+  "practiceAfterFailedRelease": {
+    "ids": [],
+    "records": [
+      "practice-red-1"
+    ],
+    "since": 2
+  },
+  "practiceAfterRetry": {
+    "ids": [
+      "practice-red-2",
+      "practice-red-3"
+    ],
+    "records": [
+      "practice-red-1",
+      "practice-red-2",
+      "practice-red-3"
+    ]
+  },
+  "practiceNewPressAfterIdle": {
+    "hover": 0,
+    "failure": "selection-timeout",
+    "ids": []
+  },
+  "runs": [
+    {
+      "seed": 1,
+      "name": "four",
+      "score": 12852,
+      "reserveScore": 3560,
+      "reserveSpawned": 36,
+      "detonations": 16,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": {
+        "bands": [
+          {
+            "id": "opening",
+            "label": "0-10s",
+            "startTick": 0,
+            "endTick": 600,
+            "scoreGained": 8868,
+            "detonations": 10,
+            "directTargets": 39,
+            "chainTargets": 18,
+            "maxChainGeneration": 3,
+            "maxCapturedTargets": 11,
+            "waveSpawns": 4,
+            "largestSelectableGroupSum": 22,
+            "largestSelectableGroupSamples": 3
+          },
+          {
+            "id": "discovery",
+            "label": "10-25s",
+            "startTick": 600,
+            "endTick": 1500,
+            "scoreGained": 3984,
+            "detonations": 6,
+            "directTargets": 24,
+            "chainTargets": 3,
+            "maxChainGeneration": 3,
+            "maxCapturedTargets": 7,
+            "waveSpawns": 5,
+            "largestSelectableGroupSum": 27,
+            "largestSelectableGroupSamples": 3
+          },
+          {
+            "id": "decision",
+            "label": "25-45s",
+            "startTick": 1500,
+            "endTick": 2700,
+            "scoreGained": 0,
+            "detonations": 0,
+            "directTargets": 0,
+            "chainTargets": 0,
+            "maxChainGeneration": 0,
+            "maxCapturedTargets": 0,
+            "waveSpawns": 6,
+            "largestSelectableGroupSum": 28,
+            "largestSelectableGroupSamples": 3
+          },
+          {
+            "id": "surge",
+            "label": "45-55s",
+            "startTick": 2700,
+            "endTick": 3300,
+            "scoreGained": 0,
+            "detonations": 0,
+            "directTargets": 0,
+            "chainTargets": 0,
+            "maxChainGeneration": 0,
+            "maxCapturedTargets": 0,
+            "waveSpawns": 4,
+            "largestSelectableGroupSum": 23,
+            "largestSelectableGroupSamples": 3
+          },
+          {
+            "id": "finale",
+            "label": "55-60s",
+            "startTick": 3300,
+            "endTick": 3600,
+            "scoreGained": 0,
+            "detonations": 0,
+            "directTargets": 0,
+            "chainTargets": 0,
+            "maxChainGeneration": 0,
+            "maxCapturedTargets": 0,
+            "waveSpawns": 1,
+            "largestSelectableGroupSum": 24,
+            "largestSelectableGroupSamples": 3
+          }
+        ],
+        "sampleTicksPerBand": 3,
+        "metricNotes": {
+          "largestSelectableGroup": "largest visible same-color connected group sampled at fixed quarter, midpoint, and three-quarter ticks",
+          "terminalResolution": "events after maxTicks are attributed to the final band"
+        }
+      },
+      "lateBonuses": []
+    },
+    {
+      "seed": 1,
+      "name": "five",
+      "score": 57352,
+      "reserveScore": 15580,
+      "reserveSpawned": 143,
+      "detonations": 65,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": {
+        "bands": [
+          {
+            "id": "opening",
+            "label": "0-10s",
+            "startTick": 0,
+            "endTick": 600,
+            "scoreGained": 10654,
+            "detonations": 8,
+            "directTargets": 37,
+            "chainTargets": 23,
+            "maxChainGeneration": 6,
+            "maxCapturedTargets": 17,
+            "waveSpawns": 4,
+            "largestSelectableGroupSum": 14,
+            "largestSelectableGroupSamples": 3
+          },
+          {
+            "id": "discovery",
+            "label": "10-25s",
+            "startTick": 600,
+            "endTick": 1500,
+            "scoreGained": 10854,
+            "detonations": 9,
+            "directTargets": 40,
+            "chainTargets": 22,
+            "maxChainGeneration": 6,
+            "maxCapturedTargets": 22,
+            "waveSpawns": 5,
+            "largestSelectableGroupSum": 21,
+            "largestSelectableGroupSamples": 3
+          },
+          {
+            "id": "decision",
+            "label": "25-45s",
+            "startTick": 1500,
+            "endTick": 2700,
+            "scoreGained": 20338,
+            "detonations": 29,
+            "directTargets": 120,
+            "chainTargets": 16,
+            "maxChainGeneration": 2,
+            "maxCapturedTargets": 15,
+            "waveSpawns": 6,
+            "largestSelectableGroupSum": 5,
+            "largestSelectableGroupSamples": 3
+          },
+          {
+            "id": "surge",
+            "label": "45-55s",
+            "startTick": 2700,
+            "endTick": 3300,
+            "scoreGained": 10766,
+            "detonations": 11,
+            "directTargets": 51,
+            "chainTargets": 14,
+            "maxChainGeneration": 3,
+            "maxCapturedTargets": 11,
+            "waveSpawns": 4,
+            "largestSelectableGroupSum": 10,
+            "largestSelectableGroupSamples": 3
+          },
+          {
+            "id": "finale",
+            "label": "55-60s",
+            "startTick": 3300,
+            "endTick": 3600,
+            "scoreGained": 4740,
+            "detonations": 8,
+            "directTargets": 33,
+            "chainTargets": 0,
+            "maxChainGeneration": 0,
+            "maxCapturedTargets": 5,
+            "waveSpawns": 1,
+            "largestSelectableGroupSum": 5,
+            "largestSelectableGroupSamples": 3
+          }
+        ],
+        "sampleTicksPerBand": 3,
+        "metricNotes": {
+          "largestSelectableGroup": "largest visible same-color connected group sampled at fixed quarter, midpoint, and three-quarter ticks",
+          "terminalResolution": "events after maxTicks are attributed to the final band"
+        }
+      },
+      "lateBonuses": []
+    },
+    {
+      "seed": 1,
+      "name": "forecast",
+      "score": 67082,
+      "reserveScore": 8700,
+      "reserveSpawned": 77,
+      "detonations": 39,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": {
+        "bands": [
+          {
+            "id": "opening",
+            "label": "0-10s",
+            "startTick": 0,
+            "endTick": 600,
+            "scoreGained": 12508,
+            "detonations": 5,
+            "directTargets": 24,
+            "chainTargets": 23,
+            "maxChainGeneration": 3,
+            "maxCapturedTargets": 17,
+            "waveSpawns": 4,
+            "largestSelectableGroupSum": 24,
+            "largestSelectableGroupSamples": 3
+          },
+          {
+            "id": "discovery",
+            "label": "10-25s",
+            "startTick": 600,
+            "endTick": 1500,
+            "scoreGained": 12502,
+            "detonations": 7,
+            "directTargets": 30,
+            "chainTargets": 20,
+            "maxChainGeneration": 3,
+            "maxCapturedTargets": 17,
+            "waveSpawns": 5,
+            "largestSelectableGroupSum": 10,
+            "largestSelectableGroupSamples": 3
+          },
+          {
+            "id": "decision",
+            "label": "25-45s",
+            "startTick": 1500,
+            "endTick": 2700,
+            "scoreGained": 24622,
+            "detonations": 17,
+            "directTargets": 74,
+            "chainTargets": 42,
+            "maxChainGeneration": 4,
+            "maxCapturedTargets": 14,
+            "waveSpawns": 6,
+            "largestSelectableGroupSum": 12,
+            "largestSelectableGroupSamples": 3
+          },
+          {
+            "id": "surge",
+            "label": "45-55s",
+            "startTick": 2700,
+            "endTick": 3300,
+            "scoreGained": 13950,
+            "detonations": 6,
+            "directTargets": 27,
+            "chainTargets": 25,
+            "maxChainGeneration": 4,
+            "maxCapturedTargets": 18,
+            "waveSpawns": 4,
+            "largestSelectableGroupSum": 16,
+            "largestSelectableGroupSamples": 3
+          },
+          {
+            "id": "finale",
+            "label": "55-60s",
+            "startTick": 3300,
+            "endTick": 3600,
+            "scoreGained": 3500,
+            "detonations": 4,
+            "directTargets": 17,
+            "chainTargets": 0,
+            "maxChainGeneration": 0,
+            "maxCapturedTargets": 5,
+            "waveSpawns": 1,
+            "largestSelectableGroupSum": 14,
+            "largestSelectableGroupSamples": 3
+          }
+        ],
+        "sampleTicksPerBand": 3,
+        "metricNotes": {
+          "largestSelectableGroup": "largest visible same-color connected group sampled at fixed quarter, midpoint, and three-quarter ticks",
+          "terminalResolution": "events after maxTicks are attributed to the final band"
+        }
+      },
+      "lateBonuses": [
+        {
+          "actionId": 3600,
+          "eventId": 319,
+          "fireTick": 3600,
+          "kind": "action-bonus",
+          "selectedCount": 5,
+          "preparationAmount": 240,
+          "detonationAmount": 0,
+          "comboAmount": 0,
+          "forecastPlanAmount": 1000,
+          "forecastWaveId": "wave-20",
+          "forecastWaveIndex": 20,
+          "forecastLeadTicks": 30,
+          "forecastBridgeCount": 5,
+          "amount": 1240
+        }
+      ]
+    },
+    {
+      "seed": 2,
+      "name": "four",
+      "score": 29832,
+      "reserveScore": 8880,
+      "reserveSpawned": 84,
+      "detonations": 38,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 2,
+      "name": "five",
+      "score": 66406,
+      "reserveScore": 22380,
+      "reserveSpawned": 201,
+      "detonations": 82,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 2,
+      "name": "forecast",
+      "score": 64934,
+      "reserveScore": 6160,
+      "reserveSpawned": 57,
+      "detonations": 35,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 3,
+      "name": "four",
+      "score": 17338,
+      "reserveScore": 4000,
+      "reserveSpawned": 36,
+      "detonations": 19,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 3,
+      "name": "five",
+      "score": 54280,
+      "reserveScore": 14440,
+      "reserveSpawned": 131,
+      "detonations": 59,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 3,
+      "name": "forecast",
+      "score": 66218,
+      "reserveScore": 6300,
+      "reserveSpawned": 55,
+      "detonations": 36,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 4,
+      "name": "four",
+      "score": 52932,
+      "reserveScore": 16220,
+      "reserveSpawned": 147,
+      "detonations": 69,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 4,
+      "name": "five",
+      "score": 57576,
+      "reserveScore": 15200,
+      "reserveSpawned": 136,
+      "detonations": 60,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 4,
+      "name": "forecast",
+      "score": 66378,
+      "reserveScore": 6400,
+      "reserveSpawned": 58,
+      "detonations": 37,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 5,
+      "name": "four",
+      "score": 40568,
+      "reserveScore": 11440,
+      "reserveSpawned": 108,
+      "detonations": 49,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 5,
+      "name": "five",
+      "score": 56352,
+      "reserveScore": 14340,
+      "reserveSpawned": 129,
+      "detonations": 53,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 5,
+      "name": "forecast",
+      "score": 64776,
+      "reserveScore": 5860,
+      "reserveSpawned": 54,
+      "detonations": 34,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 6,
+      "name": "four",
+      "score": 51878,
+      "reserveScore": 16440,
+      "reserveSpawned": 148,
+      "detonations": 70,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 6,
+      "name": "five",
+      "score": 57804,
+      "reserveScore": 16660,
+      "reserveSpawned": 150,
+      "detonations": 65,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 6,
+      "name": "forecast",
+      "score": 63956,
+      "reserveScore": 5480,
+      "reserveSpawned": 51,
+      "detonations": 33,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 7,
+      "name": "four",
+      "score": 46952,
+      "reserveScore": 13880,
+      "reserveSpawned": 127,
+      "detonations": 61,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 7,
+      "name": "five",
+      "score": 59702,
+      "reserveScore": 17660,
+      "reserveSpawned": 157,
+      "detonations": 67,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 7,
+      "name": "forecast",
+      "score": 64930,
+      "reserveScore": 8160,
+      "reserveSpawned": 73,
+      "detonations": 39,
+      "forecast": 9,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": [
+        {
+          "actionId": 3600,
+          "eventId": 314,
+          "fireTick": 3600,
+          "kind": "action-bonus",
+          "selectedCount": 5,
+          "preparationAmount": 240,
+          "detonationAmount": 0,
+          "comboAmount": 0,
+          "forecastPlanAmount": 1000,
+          "forecastWaveId": "wave-20",
+          "forecastWaveIndex": 20,
+          "forecastLeadTicks": 30,
+          "forecastBridgeCount": 5,
+          "amount": 1240
+        }
+      ]
+    },
+    {
+      "seed": 8,
+      "name": "four",
+      "score": 55364,
+      "reserveScore": 18000,
+      "reserveSpawned": 166,
+      "detonations": 72,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 8,
+      "name": "five",
+      "score": 65646,
+      "reserveScore": 22120,
+      "reserveSpawned": 198,
+      "detonations": 78,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 8,
+      "name": "forecast",
+      "score": 65246,
+      "reserveScore": 6000,
+      "reserveSpawned": 55,
+      "detonations": 35,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 9,
+      "name": "four",
+      "score": 21358,
+      "reserveScore": 4100,
+      "reserveSpawned": 44,
+      "detonations": 20,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 9,
+      "name": "five",
+      "score": 56292,
+      "reserveScore": 14160,
+      "reserveSpawned": 128,
+      "detonations": 55,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 9,
+      "name": "forecast",
+      "score": 64134,
+      "reserveScore": 5200,
+      "reserveSpawned": 49,
+      "detonations": 33,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 10,
+      "name": "four",
+      "score": 53780,
+      "reserveScore": 17820,
+      "reserveSpawned": 161,
+      "detonations": 71,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 10,
+      "name": "five",
+      "score": 59038,
+      "reserveScore": 17500,
+      "reserveSpawned": 161,
+      "detonations": 69,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 10,
+      "name": "forecast",
+      "score": 65444,
+      "reserveScore": 6560,
+      "reserveSpawned": 56,
+      "detonations": 33,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 11,
+      "name": "four",
+      "score": 41020,
+      "reserveScore": 11480,
+      "reserveSpawned": 108,
+      "detonations": 52,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 11,
+      "name": "five",
+      "score": 61782,
+      "reserveScore": 18800,
+      "reserveSpawned": 172,
+      "detonations": 72,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 11,
+      "name": "forecast",
+      "score": 62990,
+      "reserveScore": 7720,
+      "reserveSpawned": 69,
+      "detonations": 40,
+      "forecast": 9,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 12,
+      "name": "four",
+      "score": 49736,
+      "reserveScore": 13620,
+      "reserveSpawned": 123,
+      "detonations": 55,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 12,
+      "name": "five",
+      "score": 58220,
+      "reserveScore": 16620,
+      "reserveSpawned": 149,
+      "detonations": 65,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 12,
+      "name": "forecast",
+      "score": 66354,
+      "reserveScore": 6840,
+      "reserveSpawned": 60,
+      "detonations": 36,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 13,
+      "name": "four",
+      "score": 48508,
+      "reserveScore": 13960,
+      "reserveSpawned": 127,
+      "detonations": 61,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 13,
+      "name": "five",
+      "score": 57064,
+      "reserveScore": 15020,
+      "reserveSpawned": 135,
+      "detonations": 60,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 13,
+      "name": "forecast",
+      "score": 65138,
+      "reserveScore": 6100,
+      "reserveSpawned": 56,
+      "detonations": 35,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 14,
+      "name": "four",
+      "score": 45362,
+      "reserveScore": 13100,
+      "reserveSpawned": 123,
+      "detonations": 52,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 14,
+      "name": "five",
+      "score": 59044,
+      "reserveScore": 15780,
+      "reserveSpawned": 142,
+      "detonations": 58,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 14,
+      "name": "forecast",
+      "score": 64744,
+      "reserveScore": 5520,
+      "reserveSpawned": 50,
+      "detonations": 32,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 15,
+      "name": "four",
+      "score": 31134,
+      "reserveScore": 10360,
+      "reserveSpawned": 98,
+      "detonations": 40,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 15,
+      "name": "five",
+      "score": 58198,
+      "reserveScore": 16200,
+      "reserveSpawned": 144,
+      "detonations": 60,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 15,
+      "name": "forecast",
+      "score": 67666,
+      "reserveScore": 9460,
+      "reserveSpawned": 83,
+      "detonations": 42,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": [
+        {
+          "actionId": 3600,
+          "eventId": 326,
+          "fireTick": 3600,
+          "kind": "action-bonus",
+          "selectedCount": 5,
+          "preparationAmount": 240,
+          "detonationAmount": 0,
+          "comboAmount": 0,
+          "forecastPlanAmount": 1000,
+          "forecastWaveId": "wave-20",
+          "forecastWaveIndex": 20,
+          "forecastLeadTicks": 30,
+          "forecastBridgeCount": 5,
+          "amount": 1240
+        }
+      ]
+    },
+    {
+      "seed": 16,
+      "name": "four",
+      "score": 52840,
+      "reserveScore": 14800,
+      "reserveSpawned": 134,
+      "detonations": 60,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 16,
+      "name": "five",
+      "score": 59062,
+      "reserveScore": 16300,
+      "reserveSpawned": 147,
+      "detonations": 59,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 16,
+      "name": "forecast",
+      "score": 65040,
+      "reserveScore": 6180,
+      "reserveSpawned": 55,
+      "detonations": 34,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 17,
+      "name": "four",
+      "score": 44120,
+      "reserveScore": 11720,
+      "reserveSpawned": 113,
+      "detonations": 59,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 17,
+      "name": "five",
+      "score": 55264,
+      "reserveScore": 15840,
+      "reserveSpawned": 148,
+      "detonations": 64,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 17,
+      "name": "forecast",
+      "score": 65546,
+      "reserveScore": 7260,
+      "reserveSpawned": 63,
+      "detonations": 38,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": [
+        {
+          "actionId": 3600,
+          "eventId": 308,
+          "fireTick": 3600,
+          "kind": "action-bonus",
+          "selectedCount": 5,
+          "preparationAmount": 240,
+          "detonationAmount": 0,
+          "comboAmount": 0,
+          "forecastPlanAmount": 1000,
+          "forecastWaveId": "wave-20",
+          "forecastWaveIndex": 20,
+          "forecastLeadTicks": 30,
+          "forecastBridgeCount": 5,
+          "amount": 1240
+        }
+      ]
+    },
+    {
+      "seed": 18,
+      "name": "four",
+      "score": 51064,
+      "reserveScore": 16020,
+      "reserveSpawned": 149,
+      "detonations": 69,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 18,
+      "name": "five",
+      "score": 57150,
+      "reserveScore": 15840,
+      "reserveSpawned": 146,
+      "detonations": 63,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 18,
+      "name": "forecast",
+      "score": 65176,
+      "reserveScore": 5760,
+      "reserveSpawned": 54,
+      "detonations": 35,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 19,
+      "name": "four",
+      "score": 13044,
+      "reserveScore": 3320,
+      "reserveSpawned": 34,
+      "detonations": 13,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 19,
+      "name": "five",
+      "score": 58412,
+      "reserveScore": 17040,
+      "reserveSpawned": 153,
+      "detonations": 64,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 19,
+      "name": "forecast",
+      "score": 65086,
+      "reserveScore": 5280,
+      "reserveSpawned": 49,
+      "detonations": 34,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 20,
+      "name": "four",
+      "score": 37270,
+      "reserveScore": 7360,
+      "reserveSpawned": 72,
+      "detonations": 36,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 20,
+      "name": "five",
+      "score": 58074,
+      "reserveScore": 17100,
+      "reserveSpawned": 157,
+      "detonations": 68,
+      "forecast": 0,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    },
+    {
+      "seed": 20,
+      "name": "forecast",
+      "score": 64746,
+      "reserveScore": 4860,
+      "reserveSpawned": 48,
+      "detonations": 33,
+      "forecast": 10,
+      "fault": null,
+      "errors": [],
+      "curve": null,
+      "lateBonuses": []
+    }
+  ],
+  "schedule": [
+    {
+      "wave": 0,
+      "tick": 0
+    },
+    {
+      "wave": 1,
+      "tick": 180
+    },
+    {
+      "wave": 2,
+      "tick": 390
+    },
+    {
+      "wave": 3,
+      "tick": 540
+    },
+    {
+      "wave": 4,
+      "tick": 780
+    },
+    {
+      "wave": 5,
+      "tick": 900
+    },
+    {
+      "wave": 6,
+      "tick": 1080
+    },
+    {
+      "wave": 7,
+      "tick": 1260
+    },
+    {
+      "wave": 8,
+      "tick": 1470
+    },
+    {
+      "wave": 9,
+      "tick": 1620
+    },
+    {
+      "wave": 10,
+      "tick": 1860
+    },
+    {
+      "wave": 11,
+      "tick": 1980
+    },
+    {
+      "wave": 12,
+      "tick": 2160
+    },
+    {
+      "wave": 13,
+      "tick": 2340
+    },
+    {
+      "wave": 14,
+      "tick": 2550
+    },
+    {
+      "wave": 15,
+      "tick": 2700
+    },
+    {
+      "wave": 16,
+      "tick": 2940
+    },
+    {
+      "wave": 17,
+      "tick": 3060
+    },
+    {
+      "wave": 18,
+      "tick": 3240
+    },
+    {
+      "wave": 19,
+      "tick": 3420
+    },
+    {
+      "wave": 20,
+      "tick": 3630
+    },
+    {
+      "wave": 21,
+      "tick": 3780
+    }
+  ]
+}

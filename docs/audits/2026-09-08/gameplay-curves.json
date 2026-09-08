@@ -1,0 +1,110 @@
+{
+  "seedStart": 1,
+  "seeds": 20,
+  "strategies": {
+    "shortest-five": [
+      {
+        "band": "opening",
+        "seconds": 10,
+        "score": 9840.3,
+        "detonations": 169,
+        "chainTargets": 412,
+        "scorePerSecond": 984.03,
+        "detonationsPerSecond": 0.845,
+        "chainTargetsPerSecond": 2.06
+      },
+      {
+        "band": "discovery",
+        "seconds": 15,
+        "score": 14192.4,
+        "detonations": 325,
+        "chainTargets": 395,
+        "scorePerSecond": 946.16,
+        "detonationsPerSecond": 1.0833333333333333,
+        "chainTargetsPerSecond": 1.3166666666666667
+      },
+      {
+        "band": "decision",
+        "seconds": 20,
+        "score": 20366.4,
+        "detonations": 475,
+        "chainTargets": 554,
+        "scorePerSecond": 1018.32,
+        "detonationsPerSecond": 1.1875,
+        "chainTargetsPerSecond": 1.385
+      },
+      {
+        "band": "surge",
+        "seconds": 10,
+        "score": 10152.2,
+        "detonations": 244,
+        "chainTargets": 263,
+        "scorePerSecond": 1015.22,
+        "detonationsPerSecond": 1.22,
+        "chainTargetsPerSecond": 1.315
+      },
+      {
+        "band": "finale",
+        "seconds": 5,
+        "score": 4084.6,
+        "detonations": 73,
+        "chainTargets": 165,
+        "scorePerSecond": 816.92,
+        "detonationsPerSecond": 0.73,
+        "chainTargetsPerSecond": 1.65
+      }
+    ],
+    "forecast": [
+      {
+        "band": "opening",
+        "seconds": 10,
+        "score": 12519.7,
+        "detonations": 95,
+        "chainTargets": 470,
+        "scorePerSecond": 1251.97,
+        "detonationsPerSecond": 0.475,
+        "chainTargetsPerSecond": 2.35
+      },
+      {
+        "band": "discovery",
+        "seconds": 15,
+        "score": 13800.2,
+        "detonations": 182,
+        "chainTargets": 386,
+        "scorePerSecond": 920.0133333333334,
+        "detonationsPerSecond": 0.6066666666666667,
+        "chainTargetsPerSecond": 1.2866666666666666
+      },
+      {
+        "band": "decision",
+        "seconds": 20,
+        "score": 22218.4,
+        "detonations": 257,
+        "chainTargets": 655,
+        "scorePerSecond": 1110.92,
+        "detonationsPerSecond": 0.6425,
+        "chainTargetsPerSecond": 1.6375
+      },
+      {
+        "band": "surge",
+        "seconds": 10,
+        "score": 10783.7,
+        "detonations": 123,
+        "chainTargets": 411,
+        "scorePerSecond": 1078.3700000000001,
+        "detonationsPerSecond": 0.615,
+        "chainTargetsPerSecond": 2.055
+      },
+      {
+        "band": "finale",
+        "seconds": 5,
+        "score": 5957.2,
+        "detonations": 56,
+        "chainTargets": 196,
+        "scorePerSecond": 1191.44,
+        "detonationsPerSecond": 0.5599999999999999,
+        "chainTargetsPerSecond": 1.9600000000000002
+      }
+    ]
+  }
+}

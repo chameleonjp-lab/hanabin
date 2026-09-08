@@ -1,0 +1,99 @@
+{
+  "auditDateJst": "2026-09-08",
+  "productCommit": "5dca48f5a8c389c9fe591033ecd203c222672ee2",
+  "ruleVersion": "m4-gameplay-3",
+  "nodeVersion": "24.19.0",
+  "localChecks": {
+    "syntax": {
+      "status": "passed",
+      "files": 74
+    },
+    "releaseContract": {
+      "status": "passed"
+    },
+    "nodeTests": {
+      "status": "passed",
+      "total": 155,
+      "passed": 154,
+      "failed": 0,
+      "skipped": 1,
+      "durationMs": 157334.141956,
+      "skipReason": "Full 1000x8 / 10000-seed gate is opt-in and runs in a separate CI job"
+    },
+    "browserTests": {
+      "status": "not_verified",
+      "reason": "Chromium and WebKit executable files missing; process exited 1 before functional verification"
+    },
+    "pagesSource": {
+      "status": "not_verified",
+      "reason": "GitHub Pages settings API returned HTTP 404 in this environment; public site was accessible separately"
+    }
+  },
+  "publicChrome": {
+    "url": "https://chameleonjp-lab.github.io/hanabin/",
+    "screenshotDimensions": {
+      "width": 1348,
+      "height": 926
+    },
+    "observedFlow": [
+      "home",
+      "practice-start",
+      "practice-retry",
+      "practice-skip",
+      "countdown",
+      "play",
+      "pause",
+      "rules",
+      "retire",
+      "result"
+    ],
+    "choiceRectCssPx": {
+      "x": 1110.75,
+      "y": 204,
+      "width": 101.25,
+      "height": 43
+    },
+    "pauseRectCssPx": {
+      "x": 1119.984375,
+      "y": 204,
+      "width": 92.015625,
+      "height": 40
+    },
+    "gameFrameRectCssPx": {
+      "width": 1114,
+      "height": 626.625
+    },
+    "observation": "Pause button overlaps the choices display; button height is below 44 CSS px. Retired result states it is not recorded and shows an empty local ranking.",
+    "limitations": "No natural-input successful full run, phone viewport, audible sound evaluation, or real iPhone confirmation. Center-drag observation alone is not proof of the coordinate defect."
+  },
+  "notPerformed": [
+    "iPhone 17 Pro Safari acceptance",
+    "first-time five-person playtest",
+    "real-device audio interruption reproduction",
+    "phone sustained performance",
+    "fresh local full 10000/1000 simulation gate"
+  ],
+  "githubChecks": {
+    "productCommit": "5dca48f5a8c389c9fe591033ecd203c222672ee2",
+    "core": {
+      "status": "completed",
+      "conclusion": "success",
+      "runId": 34175351707
+    },
+    "browser": {
+      "status": "completed",
+      "conclusion": "success",
+      "runId": 34175351855
+    },
+    "pages": {
+      "status": "completed",
+      "conclusion": "success",
+      "runId": 34175351743
+    },
+    "publicSmoke": {
+      "status": "completed",
+      "conclusion": "success",
+      "runId": 34175371772
+    }
+  }
+}

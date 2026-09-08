@@ -1,0 +1,6 @@
+CONFIRMED: stale tab lowers persisted best 1000/10 -> 200 2
+CONFIRMED conditional future migration: profile best resets; unversioned ranking retains prior-rule score [
+  { name: 'Player', score: 200, maxChain: 2, createdAt: 1788830440814 }
+]
+CONFIRMED conditional replay mismatch: finished result with replayCheck.ok=false is still recorded { name: 'Player', score: 900, maxChain: 2, createdAt: 1788830440833 }
+CONFIRMED stub branch only; real iPhone NOT tested: unlock reports true in interrupted state without calling resume

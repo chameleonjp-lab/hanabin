@@ -1,0 +1,4 @@
+import fs from 'node:fs';import{runSimulation}from'../../../src/core/simulation.js';
+const out={seedStart:1,seeds:20,strategies:{}};
+for(const strategy of ['shortest-five','forecast']){const bands=[];for(let seed=1;seed<=20;seed++){const r=runSimulation(seed,{strategy,summaryOnly:true,collectPlayCurve:true});r.playCurve.bands.forEach((b,i)=>{bands[i]??={band:b.id,seconds:(b.endTick-b.startTick)/60,score:0,detonations:0,chainTargets:0};bands[i].score+=b.scoreGained;bands[i].detonations+=b.detonations;bands[i].chainTargets+=b.chainTargets;});}out.strategies[strategy]=bands.map(b=>({...b,score:b.score/20,scorePerSecond:b.score/20/b.seconds,detonationsPerSecond:b.detonations/20/b.seconds,chainTargetsPerSecond:b.chainTargets/20/b.seconds}));}
+fs.writeFileSync(new URL('./gameplay-curves.json', import.meta.url),JSON.stringify(out,null,2));console.log(JSON.stringify(out,null,2));
