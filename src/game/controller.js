@@ -5,7 +5,10 @@ import { CanvasRenderer } from "../render/canvas-renderer.js";
 import { SoundController } from "../audio/sound.js";
 import { detectPresentationExperience } from "../presentation/experience.js";
 import { createProfileStore, sanitizePlayerName } from "../storage/local-storage.js";
-import { createRankingStore } from "../storage/local-ranking.js";
+import {
+  createRankingStore,
+  migrateProfileBest,
+} from "../storage/local-ranking.js";
 import { EXPERIMENT_URL } from "../config/release.js";
 import { GameSession } from "./session.js";
 import { PresentationEventTracker } from "./presentation-events.js";
@@ -41,11 +44,30 @@ export const toScreenPhase = (phase) => {
   return phase;
 };
 
+/** A result is recordable only after the complete deterministic audit passes. */
+export const isRecordableResult = (state = {}, replayCheck = null) =>
+  state?.status === "finished" &&
+  state?.simulationFault == null &&
+  replayCheck?.ok === true;
+
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
 const nowMs = () => typeof performance !== "undefined" && Number.isFinite(performance.now())
   ? performance.now()
   : 0;
+
+let runIdentitySequence = 0;
+const createRunIdentity = (seed) => {
+  runIdentitySequence += 1;
+  try {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  } catch {
+    // Some WebKit contexts expose crypto but deny randomUUID. The local
+    // monotonic fallback still only identifies a storage write; it never
+    // enters deterministic game state or replay input.
+  }
+  return `run-${Date.now().toString(36)}-${runIdentitySequence.toString(36)}-${Number(seed) >>> 0}`;
+};
 
 /**
  * Connects DOM, Canvas, Pointer Events and the deterministic GameSession.
@@ -58,6 +80,9 @@ export class GameController {
     canvas,
     rules = DEFAULT_RULES,
     seed = 1,
+    storage = undefined,
+    profileStore = null,
+    rankingStore = null,
   } = {}) {
     if (!root || !canvas) throw new TypeError("GameController requires root and canvas");
     this.root = root;
@@ -65,13 +90,34 @@ export class GameController {
     this.rules = mergeRules(rules);
     this.defaultSeed = Number(seed) >>> 0 || 1;
     this.nextSeed = this.defaultSeed;
-    this.profileStore = createProfileStore();
-    this.rankingStore = createRankingStore();
+    this.runIdentity = createRunIdentity(this.defaultSeed);
+    this.profileStore = profileStore ?? createProfileStore(storage);
     this.profile = this.profileStore.load();
-    if (this.profile.bestRuleVersion !== this.rules.ruleVersion) {
+    this.rankingStore = rankingStore ?? createRankingStore(storage, {
+      ruleVersion: this.rules.ruleVersion,
+    });
+    // A profile's best is explicit only when bestRuleVersion is present. Move
+    // that value into its own version bucket before switching the profile to
+    // the current rule. The old v1 TOP10 area is intentionally untouched.
+    if (this.profile.bestRuleVersion) {
+      migrateProfileBest({
+        storage,
+        profile: this.profile,
+        migrationId: `${this.profileStore.key ?? "profile"}:best:${this.profile.bestRuleVersion}`,
+      });
+    }
+    const currentBest = this.rankingStore.best?.() ?? { score: 0, maxChain: 0 };
+    if (typeof this.profileStore.syncBest === "function") {
+      this.profile = this.profileStore.syncBest({
+        ruleVersion: this.rules.ruleVersion,
+        score: currentBest.score,
+        maxChain: currentBest.maxChain,
+      });
+    } else {
+      const sameRule = this.profile.bestRuleVersion === this.rules.ruleVersion;
       this.profile = this.profileStore.update({
-        bestScore: 0,
-        bestChain: 0,
+        bestScore: sameRule ? Math.max(this.profile.bestScore, currentBest.score) : currentBest.score,
+        bestChain: sameRule ? Math.max(this.profile.bestChain, currentBest.maxChain) : currentBest.maxChain,
         bestRuleVersion: this.rules.ruleVersion,
       });
     }
@@ -678,6 +724,7 @@ export class GameController {
     }
     const runSeed = this.nextSeed;
     this.nextSeed = (runSeed + 1) >>> 0 || 1;
+    this.runIdentity = createRunIdentity(runSeed);
     this.pointer.clear();
     this.clockPaused = false;
     this.userPaused = false;
@@ -859,23 +906,62 @@ export class GameController {
     const stats = state.stats ?? {};
     const score = Math.max(0, Math.trunc(state.finalScore ?? state.score ?? 0));
     const maxChain = Math.max(0, Math.trunc(stats.maxChain ?? 0));
-    const resultKey = `${state.seed}:${state.actionCount}:${score}:${maxChain}:${state.status}:${state.simulationFault?.code ?? "ok"}`;
+    const check = this.session.replayCheck;
+    // A result may legitimately have the same score and action count as a
+    // previous run. Keep a per-run opaque identity so that an equal replay in
+    // another session is still a distinct ranking record, while repeated
+    // result rendering within this run remains idempotent.
+    const resultKey = `${this.runIdentity ?? "run-unknown"}:${this.rules.ruleVersion}:${state.seed}:${state.actionCount}:${score}:${maxChain}:${state.status}:${state.simulationFault?.code ?? "ok"}:${check?.ok === true ? "replay-ok" : "replay-failed"}`;
     if (resultKey !== this.lastPersistedResultKey) {
-      const previousBest = this.profile.bestScore;
-      const recordable = !state.simulationFault && state.status === "finished";
+      const previousBest = this.rankingStore.best?.() ?? {
+        score: Math.max(0, Math.trunc(this.profile.bestScore ?? 0)),
+        maxChain: Math.max(0, Math.trunc(this.profile.bestChain ?? 0)),
+      };
+      const recordable = isRecordableResult(state, check);
       if (recordable) {
-        this.profile = this.profileStore.update({
-          bestScore: Math.max(this.profile.bestScore, score),
-          bestChain: Math.max(this.profile.bestChain, maxChain),
-          bestRuleVersion: this.rules.ruleVersion,
-        });
-        this.lastBestScore = score > previousBest;
-        this.updateHomeBest();
-        this.rankingStore.record({
-          name: this.profile.name,
+        const recorded = typeof this.rankingStore.recordRun === "function"
+          ? this.rankingStore.recordRun({
+            name: this.profile.name,
+            score,
+            maxChain,
+            // The controller may render a result more than once. A stable id
+            // keeps the shared store idempotent even when that happens in
+            // another presentation callback or tab.
+            runId: resultKey,
+          })
+          : {
+            entries: this.rankingStore.record({
+              name: this.profile.name,
+              score,
+              maxChain,
+            }),
+            best: this.rankingStore.best?.(),
+          };
+        const currentBest = recorded?.best ?? this.rankingStore.best?.() ?? {
           score,
           maxChain,
-        });
+        };
+        if (typeof this.profileStore.syncBest === "function") {
+          this.profile = this.profileStore.syncBest({
+            ruleVersion: this.rules.ruleVersion,
+            score: currentBest.score,
+            maxChain: currentBest.maxChain,
+          });
+        } else {
+          this.profile = this.profileStore.update({
+            bestScore: Math.max(this.profile.bestScore, currentBest.score),
+            bestChain: Math.max(this.profile.bestChain, currentBest.maxChain),
+            bestRuleVersion: this.rules.ruleVersion,
+          });
+        }
+        this.lastBestScore = score > previousBest.score;
+        this.updateHomeBest();
+        // The store owns the shared ranking merge. The fallback above only
+        // supports older injected stores used by callers outside the app.
+        if (recorded?.entries && this.rankingStore.list) {
+          // Force a fresh shared read before rendering the list below.
+          this.rankingStore.list();
+        }
       }
       this.lastPersistedResultKey = resultKey;
     }
@@ -888,7 +974,6 @@ export class GameController {
     });
     if (this.resultExperimentLink) this.resultExperimentLink.href = EXPERIMENT_URL;
     if (this.resultStatus) this.resultStatus.dataset.retired = state.status === "retired" ? "true" : "false";
-    const check = this.session.replayCheck;
     if (this.resultReplay) {
       this.resultReplay.dataset.fault = state.simulationFault ? "true" : "false";
       this.resultReplay.textContent = state.simulationFault

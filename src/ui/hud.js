@@ -7,6 +7,7 @@ import { colorName, colorValue, colorSymbol } from "../render/competitive-layer.
 import { forecastSuccessForAction } from "./forecast-feedback.js";
 import { playableChoiceCount } from "../core/engine.js";
 import { chainTargetsWithinDirectRadius } from "../core/chain-eligibility.js";
+import { isWaveWithinSession } from "../core/forecast-bounds.js";
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const byId = (root, id) => root?.querySelector?.(`#${id}`) ?? null;
@@ -29,7 +30,8 @@ const safeRuleCount = (value, fallback) => Math.max(1, Math.trunc(Number(value) 
  * helper only explains the same timing and selection conditions in the HUD.
  */
 export const forecastReadinessFor = (state = {}, rules = DEFAULT_RULES) => {
-  const nextWave = state?.upcomingWaves?.[0] ?? null;
+  const firstWave = state?.upcomingWaves?.[0] ?? null;
+  const nextWave = isWaveWithinSession(firstWave, rules) ? firstWave : null;
   const tick = Number(state?.tick);
   const fireTick = Number(nextWave?.fireTick);
   const leadTicks = Number.isFinite(tick) && Number.isFinite(fireTick)
@@ -89,7 +91,7 @@ const forecastCueTextFor = (readiness = {}) => {
   if (readiness.status === "wrong-color") return "予告色を選択";
   if (readiness.status !== "progress") return "";
   if (readiness.selectedCount > readiness.requiredSelectionCount) {
-    return `ちょうど${readiness.requiredSelectionCount}個に調整`;
+    return `予告は${readiness.requiredSelectionCount}個限定・今は通常起爆`;
   }
   const remaining = [];
   if (readiness.selectionRemaining > 0) remaining.push(`あと${readiness.selectionRemaining}個`);
@@ -166,7 +168,7 @@ export const forecastMarkup = (
     tick: currentTick,
   }, rules);
   const labels = orientation === "portrait" ? portraitPositionLabels : positionLabels;
-  return waves.slice(0, 2).map((wave, index) => {
+  return waves.filter((wave) => isWaveWithinSession(wave, rules)).slice(0, 2).map((wave, index) => {
     const color = colorName(wave.primaryColor);
     const value = colorValue(wave.primaryColor);
     const symbol = colorSymbol(wave.primaryColor);
