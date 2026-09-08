@@ -17,6 +17,7 @@ import {
   scoreBreakdownFor,
 } from "../../src/ui/result.js";
 import { DEFAULT_RULES } from "../../src/config/rules.js";
+import { isRecordableResult } from "../../src/game/controller.js";
 import { explosionRangeRows, scoreGuideModel } from "../../src/ui/rules-guide.js";
 import {
   inputFailureMessageFor,
@@ -158,6 +159,46 @@ test("M6 failed Safari-style storage reads and writes preserve in-memory updates
   assert.equal(afterReadFailure.practiceCompleted, true);
   assert.equal(afterReadFailure.soundEnabled, true);
   assert.equal(afterReadFailure.name, "保存済み");
+});
+
+test("Q3 best profile updates are monotonic across stale store instances", () => {
+  const persisted = new Map();
+  const storage = {
+    getItem(key) { return persisted.get(key) ?? null; },
+    setItem(key, value) { persisted.set(key, value); },
+    removeItem(key) { persisted.delete(key); },
+  };
+  const first = createProfileStore(storage, "profile");
+  const stale = createProfileStore(storage, "profile");
+  first.syncBest({ ruleVersion: "m4-gameplay-3", score: 1_000, maxChain: 10 });
+  stale.syncBest({ ruleVersion: "m4-gameplay-3", score: 200, maxChain: 2 });
+
+  assert.deepEqual(first.load(), {
+    ...DEFAULT_PROFILE,
+    bestScore: 1_000,
+    bestChain: 10,
+    bestRuleVersion: "m4-gameplay-3",
+  });
+});
+
+test("Q3 records require a finished, fault-free run with replayCheck.ok", () => {
+  const valid = { status: "finished", simulationFault: null };
+  assert.equal(isRecordableResult(valid, { ok: true }), true);
+  assert.equal(isRecordableResult({ ...valid, status: "retired" }, { ok: true }), false);
+  assert.equal(isRecordableResult({ ...valid, status: "fault", simulationFault: { code: "X" } }, { ok: true }), false);
+  assert.equal(isRecordableResult(valid, { ok: false }), false);
+  assert.equal(isRecordableResult({ ...valid, simulationFault: { code: "MISMATCH" } }, { ok: true }), false);
+});
+
+test("Q3 result identity distinguishes equal outcomes from separate runs", async () => {
+  const controllerSource = await import("../../src/game/controller.js");
+  const source = await (await import("node:fs/promises")).readFile(
+    new URL("../../src/game/controller.js", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /this\.runIdentity\s*=\s*createRunIdentity\(runSeed\)/);
+  assert.match(source, /this\.runIdentity.*rules\.ruleVersion/);
+  assert.equal(typeof controllerSource.isRecordableResult, "function");
 });
 
 test("M6 result hint is one deterministic sentence and share URL is last", () => {

@@ -109,10 +109,45 @@ export const createProfileStore = (storage = readGlobalStorage(), key = DEFAULT_
     return { ...memory };
   };
 
+  // Best values are a monotonic projection of completed runs. Read the
+  // shared profile immediately before merging so a stale tab cannot lower a
+  // best that another tab has already committed. `syncBest` is also used when
+  // a rule version changes: values from the previous version are replaced by
+  // the isolated version-scoped store, while values for the same version only
+  // move upward.
+  const syncBest = ({ ruleVersion = "", score = 0, maxChain = 0 } = {}) => {
+    const current = load();
+    const nextRuleVersion = typeof ruleVersion === "string" ? ruleVersion.slice(0, 64) : "";
+    const normalizedScore = finiteInteger(score);
+    const normalizedChain = finiteInteger(maxChain);
+    const sameRule = nextRuleVersion && current.bestRuleVersion === nextRuleVersion;
+    return save({
+      ...current,
+      bestScore: sameRule ? Math.max(current.bestScore, normalizedScore) : normalizedScore,
+      bestChain: sameRule ? Math.max(current.bestChain, normalizedChain) : normalizedChain,
+      bestRuleVersion: nextRuleVersion,
+    });
+  };
+
+  const updateBest = ({ ruleVersion = null, score = 0, maxChain = 0 } = {}) => {
+    const current = load();
+    const nextRuleVersion = ruleVersion === null || ruleVersion === undefined
+      ? current.bestRuleVersion
+      : typeof ruleVersion === "string" ? ruleVersion.slice(0, 64) : current.bestRuleVersion;
+    return save({
+      ...current,
+      bestScore: Math.max(current.bestScore, finiteInteger(score)),
+      bestChain: Math.max(current.bestChain, finiteInteger(maxChain)),
+      bestRuleVersion: nextRuleVersion,
+    });
+  };
+
   return {
     key,
     load,
     save,
+    syncBest,
+    updateBest,
     update(patch = {}) {
       return save({ ...load(), ...(patch && typeof patch === "object" ? patch : {}) });
     },
