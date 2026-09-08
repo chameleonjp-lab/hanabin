@@ -113,6 +113,19 @@ test("shared rule store merges stale tabs in either completion order", () => {
   assert.equal(first.list()[0].score, 1_000);
 });
 
+test("enumerated ranking IDs use exact record keys for idempotency", () => {
+  const storage = mapStorage();
+  const store = createRankingStore(storage, { ruleVersion: "id-prefix-rules", now: () => 3 });
+  const longId = store.recordRun({ name: "長いID", score: 100, runId: "abc-long" });
+  const shortId = store.recordRun({ name: "短いID", score: 200, runId: "abc" });
+  const duplicate = store.recordRun({ name: "重複", score: 999, runId: "abc" });
+
+  assert.equal(longId.duplicate, false);
+  assert.equal(shortId.duplicate, false);
+  assert.equal(duplicate.duplicate, true);
+  assert.deepEqual(store.list().map((entry) => entry.name), ["短いID", "長いID"]);
+});
+
 test("known profile best migrates once to its own rule bucket without creating TOP10", () => {
   const storage = mapStorage();
   const profile = {

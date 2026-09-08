@@ -169,33 +169,33 @@
             ></canvas>
             <div id="game-hud" class="game-hud" aria-live="off">
               <div class="hud-pill hud-pill--score">
-                <span class="hud-label">SCORE</span>
+                <span class="hud-label">得点</span>
                 <strong id="hud-score">0</strong>
               </div>
               <div class="hud-pill hud-pill--time">
-                <span class="hud-label">TIME</span>
+                <span class="hud-label">残り時間</span>
                 <strong id="hud-time">60.0</strong>
               </div>
               <div class="hud-pill hud-pill--combo">
-                <span class="hud-label">CHAIN</span>
+                <span class="hud-label">連鎖</span>
                 <strong id="hud-combo">0</strong>
               </div>
               <div class="hud-pill hud-pill--selection" id="hud-selection" data-selection-count="0">
-                <span class="hud-label">SELECTION</span>
+                <span class="hud-label">選択</span>
                 <span id="hud-selection-color" class="forecast-swatch" aria-hidden="true">—</span>
                 <strong id="hud-selection-count">0</strong>
                 <span id="hud-selection-time" class="hud-subvalue">—</span>
               </div>
               <div class="hud-pill hud-pill--blast" aria-label="現在の爆発範囲">
-                <span class="hud-label">RANGE</span>
+                <span class="hud-label">爆発範囲</span>
                 <strong id="hud-blast-range">3個で 1,800</strong>
               </div>
               <div class="hud-pill hud-pill--choices" aria-label="現在選べる同色グループ">
-                <span class="hud-label">CHOICES</span>
+                <span class="hud-label">選べる数</span>
                 <strong id="hud-choice-count" data-minimum="4">4</strong>
               </div>
               <div class="hud-forecast" id="hud-forecast" aria-label="次の2波の予告">
-                <span class="hud-label">NEXT WAVES</span>
+                <span class="hud-label">次の予告</span>
                 <span id="hud-forecast-items">—</span>
               </div>
             </div>
@@ -230,11 +230,12 @@
           <div class="finalizing-mark" aria-hidden="true"></div>
           <h2>連鎖を確定中</h2>
           <p>最後の花火が開いています…</p>
+          <p id="finalizing-summary" class="finalizing-summary" aria-live="polite">得点 0 / 最大連鎖 0</p>
         </section>
 
         <section id="result-screen" class="screen screen--result" data-screen="result" hidden aria-labelledby="result-title">
           <p class="home-kicker">RUN COMPLETE</p>
-          <h2 id="result-title">今回の結果</h2>
+          <h2 id="result-title" tabindex="-1">今回の結果</h2>
           <p id="result-player-name" class="result-player-name">ゲストプレイヤー</p>
           <p id="result-status" class="result-status">プレイ完了</p>
           <div class="result-score">
@@ -263,6 +264,7 @@
           <p id="result-best-mark" class="result-best-mark" hidden>自己ベスト更新</p>
           <div class="result-record"><span>端末内ベスト</span><strong><span id="result-best-score">0</span> / 連鎖 <span id="result-best-chain">0</span></strong></div>
           <p id="result-replay" class="result-replay" role="status">入力記録を検証しています…</p>
+          <p id="result-save-status" class="result-save-status" role="status" aria-live="polite" hidden></p>
           <p id="result-hint" class="result-hint">次の波の予告を使ってみましょう。</p>
           <section class="result-ranking" aria-labelledby="result-ranking-title">
             <div class="result-ranking__heading">
