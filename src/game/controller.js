@@ -915,7 +915,7 @@ export class GameController {
         remainingSeconds: this.session.getRemainingSeconds(),
         orientation: this.orientation,
       });
-      updatePlayMessage(this.playMessage, state, phase);
+      updatePlayMessage(this.playMessage, state, phase, this.rules);
       if (this.playMessage && this.pointerHintText && nowMs() < this.pointerHintUntilMs) {
         this.playMessage.textContent = this.pointerHintText;
       }

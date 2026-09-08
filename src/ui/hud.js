@@ -20,6 +20,9 @@ const portraitPositionLabels = Object.freeze({
 });
 const idKey = (value) => String(value);
 
+const distanceSquared = (left, right) =>
+  (left.x - right.x) ** 2 + (left.y - right.y) ** 2;
+
 const safeRuleCount = (value, fallback) => Math.max(1, Math.trunc(Number(value) || fallback));
 
 /**
@@ -114,6 +117,35 @@ const INPUT_FAILURE_MESSAGES = Object.freeze({
 });
 
 export const inputFailureMessageFor = (reason) => INPUT_FAILURE_MESSAGES[reason] ?? "花火の中心を狙います";
+
+/**
+ * Explain when the current selection already reaches another active firework.
+ * This is a display-only cue; the core still owns the collision and score.
+ */
+export const selectionBlastCueFor = (state = {}, rules = DEFAULT_RULES) => {
+  const selectedIds = Array.isArray(state?.selectedIds) ? state.selectedIds : [];
+  const minimumSelection = Math.max(1, Math.trunc(Number(rules.minSelection) || 3));
+  const largerSelection = Math.max(
+    minimumSelection + 1,
+    Math.trunc(Number(rules.forecastPlanSelectionCount) || 5),
+  );
+  if (selectedIds.length < minimumSelection || selectedIds.length >= largerSelection) return "";
+  const selectedKeys = new Set(selectedIds.map(idKey));
+  const active = (Array.isArray(state?.fireworks) ? state.fireworks : [])
+    .filter((entity) => entity?.status === "active" && entity.visible !== false);
+  const selectedEntities = active.filter((entity) => selectedKeys.has(idKey(entity.id)));
+  if (selectedEntities.length < minimumSelection) return "";
+  const directRadius = directExplosionRadiusForSelection(selectedIds.length, rules);
+  const radiusSquared = directRadius ** 2;
+  const reachesAnother = active
+    .filter((entity) => !selectedKeys.has(idKey(entity.id)))
+    .some((entity) => selectedEntities.some((selected) =>
+      distanceSquared(selected, entity) <= radiusSquared,
+    ));
+  return reachesAnother
+    ? `この位置なら${selectedIds.length}個でも近くの花火に届きます`
+    : "";
+};
 
 export const blastRangeForSelection = (count = 0, rules = DEFAULT_RULES) => {
   const selectedCount = Math.max(0, Math.trunc(Number(count) || 0));
@@ -269,7 +301,7 @@ export const updateHud = (root, state, {
   root.dataset.phase = phase;
 };
 
-export const updatePlayMessage = (element, state, phase = "playing") => {
+export const updatePlayMessage = (element, state, phase = "playing", rules = DEFAULT_RULES) => {
   if (!element) return;
   let message = "";
   if (phase === "finalizing") message = "最後の連鎖を確定中…";
@@ -287,7 +319,7 @@ export const updatePlayMessage = (element, state, phase = "playing") => {
       message = count > 0 ? `${count}個の連鎖` : "連鎖を探しましょう";
     }
   } else if (state?.selectedIds?.length >= 3) {
-    message = "指を離すか2.5秒で自動起爆";
+    message = selectionBlastCueFor(state, rules) || "指を離すか2.5秒で自動起爆";
   } else if (state?.selectedIds?.length === 2) {
     message = "あと1個つないで起爆";
   } else if (state?.selectedIds?.length === 1) {
