@@ -6,6 +6,7 @@ export * from "./simulation.js";
 export * from "./play-curve.js";
 export * from "./scoring.js";
 export * from "./chain.js";
+export * from "./chain-eligibility.js";
 export * from "./state.js";
 export * from "./strategies.js";
 export * from "./wave-generator.js";

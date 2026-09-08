@@ -19,6 +19,10 @@ import {
   scoreForDirect,
   scoreForPreparation,
 } from "./scoring.js";
+import {
+  isChainSourceEligible,
+  isChainTargetEligible,
+} from "./chain-eligibility.js";
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const finiteInteger = (value) => Number.isInteger(value) && Number.isFinite(value);
@@ -790,6 +794,7 @@ const scoreTarget = (state, target, sourceColor, event, rules) => {
     ? rules.forecastChainPerTarget
     : 0;
   const amount = baseAmount + inclusionAmount + forecastPlanAmount;
+  const chainable = isChainSourceEligible(target);
   target.status = "exploded";
   target.visible = false;
   target.scored = true;
@@ -832,7 +837,7 @@ const scoreTarget = (state, target, sourceColor, event, rules) => {
     radiusMultiplierPercent: event.radiusMultiplierPercent,
     durationMultiplierPercent: event.durationMultiplierPercent,
     kind: event.kind,
-    chainable: target.layout !== "choice-reserve",
+    chainable,
   });
   state.score += amount;
   state.stats.entitiesExploded += 1;
@@ -896,7 +901,7 @@ const collectActiveExplosionHits = (state, tick, rules) => {
     if (explosion.chainable === false) continue;
     for (const candidate of snapshot) {
       const candidateKey = idKey(candidate.id);
-      if (candidate.layout === "choice-reserve") continue;
+      if (!isChainTargetEligible(candidate)) continue;
       if (candidateKey === idKey(explosion.targetId) || unavailable.has(candidateKey)) continue;
       const ratio = candidate.color === explosion.sourceColor
         ? rules.sameColorRadius / 100
@@ -984,6 +989,9 @@ const processChainQueue = (state, tick, rules) => {
         x: entity.x,
         y: entity.y,
         depth: entity.depth,
+        layout: entity.layout,
+        status: entity.status,
+        visible: entity.visible,
       }))
       .sort((left, right) => compareIds(left.id, right.id));
     const snapshotById = new Map(snapshot.map((entity) => [idKey(entity.id), entity]));
@@ -998,10 +1006,12 @@ const processChainQueue = (state, tick, rules) => {
         return;
       }
       const targetKey = idKey(event.targetId);
-      if (!snapshotById.has(targetKey) || claimed.has(targetKey) ||
+      const targetSnapshot = snapshotById.get(targetKey);
+      if (!targetSnapshot || (event.kind === "chain" && !isChainTargetEligible(targetSnapshot)) ||
+          claimed.has(targetKey) ||
           state.scoredTargetIds.some((id) => idKey(id) === targetKey)) continue;
       claimed.add(targetKey);
-      confirmed.push({ event, target: snapshotById.get(targetKey) });
+      confirmed.push({ event, target: targetSnapshot });
     }
     if (state.chainEvents.length + confirmed.length > rules.maxChainEvents) {
       setFault(state, "CHAIN_EVENT_LIMIT", "chain event limit exceeded", { fireTick });
