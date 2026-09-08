@@ -6,12 +6,22 @@ import {
   selectionRadiusMultiplierPercent,
 } from "../config/rules.js";
 import { detonate } from "./engine.js";
+import {
+  isChainSourceEligible,
+  isChainTargetEligible,
+} from "./chain-eligibility.js";
 
 export { detonate };
 export {
   selectionDurationMultiplierPercent,
   selectionRadiusMultiplierPercent,
 };
+export {
+  CHAIN_INELIGIBLE_LAYOUT,
+  chainTargetsWithinDirectRadius,
+  isChainSourceEligible,
+  isChainTargetEligible,
+} from "./chain-eligibility.js";
 
 // Compatibility name kept for the M2 public surface. The argument is a
 // selection count, never wall-clock hold time.
@@ -79,10 +89,10 @@ export const resolveChain = (entities = [], options = {}) => {
     const proposals = [];
     for (const event of due) {
       const source = byId.get(String(event.targetId));
-      if (!source) continue;
+      if (!source || !isChainSourceEligible(source)) continue;
       for (const candidate of ordered) {
         const candidateId = String(candidate.id);
-        if (claimedTargets.has(candidateId)) continue;
+        if (claimedTargets.has(candidateId) || !isChainTargetEligible(candidate)) continue;
         const percent = candidate.color === source.color
           ? rules.sameColorRadius
           : rules.differentColorRadius;
