@@ -460,7 +460,7 @@ test("M6 resets an old-rule best while preserving player preferences", async ({ 
     name: "花子",
     bestScore: 0,
     bestChain: 0,
-    bestRuleVersion: "m4-gameplay-3",
+    bestRuleVersion: "m4-gameplay-4",
     quality: "medium",
     qualityManual: true,
     soundEnabled: true,
