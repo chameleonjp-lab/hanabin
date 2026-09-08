@@ -122,6 +122,10 @@ export class SoundController {
     this.compressorNode = null;
     this.activeVoices = new Set();
     this.lastPlayedAt = new Map();
+    // WebKit can report `interrupted` while an app switch or screen lock is
+    // in progress. Share one resume promise so several pointer gestures do
+    // not call AudioContext.resume() concurrently.
+    this.resumePromise = null;
   }
 
   setVariant(variant) {
@@ -172,13 +176,27 @@ export class SoundController {
 
   async resumeContext(context = this.context) {
     if (!context || context.state === "closed") return false;
-    if (context.state !== "suspended") return true;
+    // Test doubles and a few older implementations omit `state`; they are
+    // treated as already running. Real Web Audio contexts always expose it.
+    if (context.state === undefined || context.state === "running") return true;
+    if (!["suspended", "interrupted"].includes(context.state)) return false;
     if (typeof context.resume !== "function") return false;
+    if (this.resumePromise?.context === context) return this.resumePromise.promise;
+    const promise = (async () => {
+      try {
+        await context.resume();
+        return context.state === undefined || context.state === "running";
+      } catch {
+        return false;
+      }
+    })();
+    this.resumePromise = { context, promise };
     try {
-      await context.resume();
-      return context.state !== "suspended" && context.state !== "closed";
+      return await promise;
     } catch {
       return false;
+    } finally {
+      if (this.resumePromise?.promise === promise) this.resumePromise = null;
     }
   }
 
@@ -287,7 +305,13 @@ export class SoundController {
     if (timestamp - last < CUE_INTERVAL_MS[cue]) return false;
     const context = this.ensureContext();
     if (!context?.createOscillator || !context?.createGain || context.state === "closed") return false;
-    if (context.state === "suspended") void this.resumeContext(context);
+    if (context.state !== undefined && context.state !== "running") {
+      // Never schedule oscillators into a suspended/interrupted context: on
+      // iPhone this leaves stale voices that can all sound at once after
+      // returning from the background. The next user gesture retries unlock.
+      void this.resumeContext(context);
+      return false;
+    }
     const output = this.ensureOutput(context);
     if (!output) return false;
     const pitchMultiplier = pitchMultiplierFor(cue, options);

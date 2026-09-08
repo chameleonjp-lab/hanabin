@@ -502,6 +502,13 @@
   color: var(--muted);
 }
 
+.screen--finalizing .finalizing-summary {
+  min-height: 1.4em;
+  margin: 4px 0 0;
+  color: #e8f2ff;
+  font-variant-numeric: tabular-nums;
+}
+
 .game-frame {
   position: relative;
   --pause-control-width: clamp(96px, 10vw, 120px);
@@ -1035,6 +1042,20 @@
   margin: 0;
   color: var(--game-green);
   font-size: 0.7rem;
+}
+
+.result-save-status {
+  max-width: 42rem;
+  margin: 0;
+  color: var(--game-gold);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+#result-title:focus-visible {
+  outline: 2px solid var(--game-cyan);
+  outline-offset: 6px;
 }
 
 .result-actions {

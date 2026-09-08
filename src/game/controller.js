@@ -187,6 +187,9 @@ export class GameController {
     this.shareButton = root.querySelector("#share-button");
     this.shareStatus = root.querySelector("#share-status");
     this.resultStatus = root.querySelector("#result-status");
+    this.resultTitle = root.querySelector("#result-title");
+    this.resultSaveStatus = root.querySelector("#result-save-status");
+    this.finalizingSummary = root.querySelector("#finalizing-summary");
     this.resultExperimentLink = root.querySelector("#result-experiment-link");
     this.startButton = root.querySelector("#start-button");
     this.practiceButton = root.querySelector("#practice-button");
@@ -582,12 +585,15 @@ export class GameController {
     } else if (phase === "finalizing") {
       if (this.status) this.status.textContent = "連鎖を確定中…";
       this.finalizeOnFrame = true;
+      this.updateFinalizingSummary();
     } else if (phase === "result") {
       if (this.status) this.status.textContent = "プレイ結果";
       this.populateResult();
+      this.focusResultTitle();
     } else if (phase === "fault") {
       if (this.status) this.status.textContent = "判定エラー";
       this.populateResult();
+      this.focusResultTitle();
     }
     this.render();
   }
@@ -900,6 +906,25 @@ export class GameController {
       : display === 1 ? "あと少し…" : "最初の花火を探しましょう";
   }
 
+  updateFinalizingSummary() {
+    if (!this.finalizingSummary) return;
+    const state = this.session.state;
+    const score = Math.max(0, Math.trunc(state?.score ?? state?.finalScore ?? 0));
+    const maxChain = Math.max(0, Math.trunc(state?.stats?.maxChain ?? 0));
+    this.finalizingSummary.textContent = `得点 ${score.toLocaleString("ja-JP")} / 最大連鎖 ${maxChain}`;
+  }
+
+  focusResultTitle() {
+    this.resultTitle?.focus?.({ preventScroll: true });
+  }
+
+  setResultSaveStatus(message = "") {
+    if (!this.resultSaveStatus) return;
+    const text = String(message ?? "").trim();
+    this.resultSaveStatus.textContent = text;
+    this.resultSaveStatus.hidden = !text;
+  }
+
   populateResult() {
     const state = this.session.state;
     if (!state) return;
@@ -913,6 +938,7 @@ export class GameController {
     // result rendering within this run remains idempotent.
     const resultKey = `${this.runIdentity ?? "run-unknown"}:${this.rules.ruleVersion}:${state.seed}:${state.actionCount}:${score}:${maxChain}:${state.status}:${state.simulationFault?.code ?? "ok"}:${check?.ok === true ? "replay-ok" : "replay-failed"}`;
     if (resultKey !== this.lastPersistedResultKey) {
+      this.setResultSaveStatus("");
       const previousBest = this.rankingStore.best?.() ?? {
         score: Math.max(0, Math.trunc(this.profile.bestScore ?? 0)),
         maxChain: Math.max(0, Math.trunc(this.profile.bestChain ?? 0)),
@@ -937,6 +963,9 @@ export class GameController {
             }),
             best: this.rankingStore.best?.(),
           };
+        if (recorded?.persisted === false) {
+          this.setResultSaveStatus("この端末に結果を保存できませんでした（今回の結果はこの画面で確認できます）");
+        }
         const currentBest = recorded?.best ?? this.rankingStore.best?.() ?? {
           score,
           maxChain,
@@ -962,6 +991,12 @@ export class GameController {
           // Force a fresh shared read before rendering the list below.
           this.rankingStore.list();
         }
+      } else if (state.status !== "retired") {
+        this.setResultSaveStatus(
+          state.simulationFault
+            ? "無効なプレイのため結果を保存していません"
+            : "入力記録の検証に失敗したため結果を保存していません",
+        );
       }
       this.lastPersistedResultKey = resultKey;
     }
@@ -993,6 +1028,7 @@ export class GameController {
       this.playPresentationEvents(state);
     }
     if (phase === "playing" || phase === "finalizing") {
+      if (phase === "finalizing") this.updateFinalizingSummary();
       this.renderer.render(state, { pointer: this.pointer.position, phase, rules: this.rules });
       updateHud(this.hud, state, {
         phase,

@@ -369,6 +369,19 @@ test("sound unlock resumes WebKit-style suspended audio and survives off-on", as
   sound.destroy();
 });
 
+test("interrupted WebKit audio waits for a successful user unlock and shares resume work", async () => {
+  const { context, stats } = fakeAudioContext({ initialState: "interrupted" });
+  const sound = new SoundController({ enabled: true, contextFactory: () => context });
+  assert.equal(sound.tap(), false);
+  assert.equal(stats.oscillators, 0);
+  const [first, second] = await Promise.all([sound.unlock(), sound.unlock()]);
+  assert.equal(first, true);
+  assert.equal(second, true);
+  assert.equal(stats.resumes, 1);
+  assert.equal(sound.tap(), true);
+  sound.destroy();
+});
+
 test("desktop sound is layered while all sound variants obey their voice ceiling", () => {
   const touchAudio = fakeAudioContext();
   const desktopAudio = fakeAudioContext();
