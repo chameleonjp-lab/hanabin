@@ -40,40 +40,24 @@ export const displayEntityRadius = (scale, rules = DEFAULT_RULES) =>
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-/** Return an on-board reticle position with direction changing at the edges. */
+/** Return an on-board reticle position at the exact pointer coordinate. */
 export const getEdgeAwareReticlePosition = (
   x,
   y,
   width,
   height,
-  { edgeThreshold = 0.2, offset = null, margin = 13 } = {},
 ) => {
   const safeWidth = Math.max(1, Number(width) || 1);
   const safeHeight = Math.max(1, Number(height) || 1);
   const pointerX = clamp(Number(x) || 0, 0, safeWidth);
   const pointerY = clamp(Number(y) || 0, 0, safeHeight);
-  const normalizedX = pointerX / safeWidth;
-  const normalizedY = pointerY / safeHeight;
-  const safeOffset = Math.max(
-    1,
-    offset === null ? Math.min(safeWidth, safeHeight) * 0.1 : Number(offset) || 1,
-  );
-  let offsetX = 0;
-  let offsetY = -safeOffset;
-  // Aim above the finger by default. At the top edge, use the board's
-  // interior side instead; at the bottom edge, keep the upward direction.
-  if (pointerY - safeOffset < margin || normalizedY < edgeThreshold / 2) {
-    offsetY = 0;
-    offsetX = normalizedX <= 0.5 ? safeOffset : -safeOffset;
-  }
-  if (normalizedY > 1 - edgeThreshold / 2) offsetY = -safeOffset;
   return {
     pointerX,
     pointerY,
-    x: clamp(pointerX + offsetX, margin, safeWidth - margin),
-    y: clamp(pointerY + offsetY, margin, safeHeight - margin),
-    offsetX,
-    offsetY,
+    x: pointerX,
+    y: pointerY,
+    offsetX: 0,
+    offsetY: 0,
   };
 };
 
@@ -356,10 +340,9 @@ export const drawCompetitiveLayer = (ctx, {
       pointer.aimX ?? pointer.x ?? pointer.fingerX,
       pointer.aimY ?? pointer.y ?? pointer.fingerY,
     );
-    // PointerController has already applied the input-mode-specific aim:
-    // touch stays under the finger while mouse keeps its edge-aware offset.
-    // Drawing that exact point keeps the visible reticle and fixed-tick hit
-    // test identical without putting presentation fields in the replay.
+    // PointerController has already mapped the exact pointer position to the
+    // board. Drawing that same point keeps the visible reticle and fixed-tick
+    // hit test identical without putting presentation fields in the replay.
     drawLine(ctx, fingerPoint, aimPoint, "rgba(222, 243, 255, 0.7)", Math.max(1, width / 1300));
     ctx.save();
     ctx.strokeStyle = pointer.pressed ? "#f8fcff" : "rgba(121, 230, 255, 0.76)";

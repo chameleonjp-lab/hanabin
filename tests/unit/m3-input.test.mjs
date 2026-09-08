@@ -184,30 +184,25 @@ test("clientToBoard is based on CSS geometry, not backing-store DPR", () => {
   );
 });
 
-test("touch input uses the finger position instead of the mouse reticle offset", () => {
+test("touch, mouse, and pen input all use the exact pointer position", () => {
   withBrowserGlobals(() => {
     const element = makeEventTarget({ width: 200, height: 100 });
     const controller = new PointerController(element);
 
-    element.dispatch("pointerdown", {
-      pointerId: 1,
-      pointerType: "touch",
-      clientX: 100,
-      clientY: 50,
-    });
-    const touchPosition = controller.position;
-    assert.equal(touchPosition.x, touchPosition.fingerX);
-    assert.equal(touchPosition.y, touchPosition.fingerY);
-
-    controller.clear();
-    element.dispatch("pointerdown", {
-      pointerId: 2,
-      pointerType: "mouse",
-      clientX: 100,
-      clientY: 50,
-    });
-    const mousePosition = controller.position;
-    assert.notEqual(mousePosition.y, mousePosition.fingerY);
+    for (const [pointerId, pointerType] of [[1, "touch"], [2, "mouse"], [3, "pen"]]) {
+      element.dispatch("pointerdown", {
+        pointerId,
+        pointerType,
+        clientX: 100,
+        clientY: 50,
+      });
+      const position = controller.position;
+      assert.equal(position.x, 8_000);
+      assert.equal(position.y, 4_500);
+      assert.equal(position.x, position.fingerX);
+      assert.equal(position.y, position.fingerY);
+      controller.clear();
+    }
     controller.destroy();
   });
 });
@@ -220,7 +215,7 @@ test("clientToBoard returns null for a zero or invalid rect", () => {
   assert.equal(clientToBoard("10", 10, { left: 0, top: 0, width: 100, height: 100 }), null);
 });
 
-test("clientToBoard and the renderer keep edge-aware aims inside the board", () => {
+test("clientToBoard and the renderer keep the reticle on the pointer at every edge", () => {
   const rect = { left: 10, top: 20, width: 200, height: 100 };
   const topLeft = clientToBoard(rect.left, rect.top, rect);
   const topRight = clientToBoard(rect.left + rect.width, rect.top, rect);
@@ -230,11 +225,9 @@ test("clientToBoard and the renderer keep edge-aware aims inside the board", () 
   for (const point of [topLeft, topRight, bottomLeft, bottomRight]) {
     assert.ok(point.x >= 0 && point.x <= BOARD_WIDTH);
     assert.ok(point.y >= 0 && point.y <= BOARD_HEIGHT);
+    assert.equal(point.x, point.fingerX);
+    assert.equal(point.y, point.fingerY);
   }
-  assert.ok(topLeft.x > topLeft.fingerX);
-  assert.ok(topRight.x < topRight.fingerX);
-  assert.ok(bottomLeft.y < bottomLeft.fingerY);
-  assert.ok(bottomRight.y < bottomRight.fingerY);
 
   const renderTopLeft = getEdgeAwareReticlePosition(0, 0, 200, 100, {
     offset: 20,
@@ -249,13 +242,39 @@ test("clientToBoard and the renderer keep edge-aware aims inside the board", () 
     margin: 5,
   });
 
-  assert.ok(renderTopLeft.x > renderTopLeft.pointerX);
-  assert.ok(renderTopRight.x < renderTopRight.pointerX);
-  assert.ok(renderBottom.y < renderBottom.pointerY);
+  assert.equal(renderTopLeft.x, renderTopLeft.pointerX);
+  assert.equal(renderTopLeft.y, renderTopLeft.pointerY);
+  assert.equal(renderTopRight.x, renderTopRight.pointerX);
+  assert.equal(renderTopRight.y, renderTopRight.pointerY);
+  assert.equal(renderBottom.x, renderBottom.pointerX);
+  assert.equal(renderBottom.y, renderBottom.pointerY);
   for (const point of [renderTopLeft, renderTopRight, renderBottom]) {
-    assert.ok(point.x >= 5 && point.x <= 195);
-    assert.ok(point.y >= 5 && point.y <= 95);
+    assert.ok(point.x >= 0 && point.x <= 200);
+    assert.ok(point.y >= 0 && point.y <= 100);
+    assert.equal(point.offsetX, 0);
+    assert.equal(point.offsetY, 0);
   }
+});
+
+test("legacy aim offset options cannot move the pointer away from its target", () => {
+  const point = clientToBoard(150, 75, {
+    left: 0,
+    top: 0,
+    width: 200,
+    height: 100,
+  }, {
+    aimOffsetRatio: 0.1,
+  });
+  assert.equal(point.x, point.fingerX);
+  assert.equal(point.y, point.fingerY);
+  assert.deepEqual(point, {
+    x: 12_000,
+    y: 6_750,
+    aimX: 12_000,
+    aimY: 6_750,
+    fingerX: 12_000,
+    fingerY: 6_750,
+  });
 });
 
 test("the input surface blocks Safari scrolling, selection, callout, and context menus", () => {

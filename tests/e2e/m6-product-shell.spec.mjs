@@ -56,7 +56,7 @@ const pointForTarget = (target, box) => ({
   x: Math.min(box.x + box.width - 2, Math.max(box.x + 2, box.x + target.x / BOARD_WIDTH * box.width)),
   y: Math.min(
     box.y + box.height - 2,
-    Math.max(box.y + 2, box.y + target.y / BOARD_HEIGHT * box.height + Math.min(box.width, box.height) * 0.1),
+    Math.max(box.y + 2, box.y + target.y / BOARD_HEIGHT * box.height),
   ),
 });
 
@@ -64,12 +64,11 @@ const practicePoints = async (canvas) => {
   const box = await canvas.boundingBox();
   expect(box).not.toBeNull();
   const encodedTargets = await canvas.getAttribute("data-practice-targets");
-  const mouseAimOffset = Math.min(box.width, box.height) * 0.1;
   return encodedTargets.split("|").map((value) => {
     const [x, y] = value.split(",").map(Number);
     return {
       x: box.x + x * box.width,
-      y: box.y + y * box.height + mouseAimOffset,
+      y: box.y + y * box.height,
     };
   });
 };
@@ -358,10 +357,7 @@ test("M6 forecast success is announced during play and counted in the result", a
   expect(box).not.toBeNull();
   const pointForTarget = (target) => ({
     x: box.x + target.x / BOARD_WIDTH * box.width,
-    y: Math.min(
-      box.y + box.height - 2,
-      box.y + target.y / BOARD_HEIGHT * box.height + Math.min(box.width, box.height) * 0.1,
-    ),
+    y: box.y + target.y / BOARD_HEIGHT * box.height,
   });
   const targetIds = targets.map((target) => target.id);
   await page.mouse.move(pointForTarget(targets[0]).x, pointForTarget(targets[0]).y);

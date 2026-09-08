@@ -504,14 +504,20 @@
 
 .game-frame {
   position: relative;
+  --pause-control-width: clamp(96px, 10vw, 120px);
   width: 100%;
   max-width: 1120px;
   margin: 0 auto;
   overflow: hidden;
-  border: 1px solid rgba(121, 230, 255, 0.34);
+  /* Keep the visible frame stroke out of layout so the canvas retains the
+     exact same aspect ratio as the logical board. */
+  border: 0;
   border-radius: clamp(12px, 2vw, 22px);
   background: #05091a;
-  box-shadow: 0 22px 56px rgba(0, 0, 0, 0.38), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  box-shadow:
+    0 22px 56px rgba(0, 0, 0, 0.38),
+    inset 0 0 0 1px rgba(121, 230, 255, 0.34),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.04);
   isolation: isolate;
   aspect-ratio: 16 / 9;
   touch-action: none;
@@ -535,7 +541,9 @@
 .game-hud {
   position: absolute;
   top: clamp(8px, 1.6vw, 18px);
-  right: clamp(8px, 1.6vw, 18px);
+  /* Reserve an explicit column for the pause control. This keeps every HUD
+     pill, including the forecast row, outside the button hit area. */
+  right: calc(clamp(8px, 1.6vw, 18px) + var(--pause-control-width) + 8px);
   left: clamp(8px, 1.6vw, 18px);
   z-index: 2;
   display: flex;
@@ -549,6 +557,7 @@
 .hud-forecast {
   display: inline-flex;
   align-items: baseline;
+  min-width: 0;
   gap: 7px;
   min-height: 34px;
   padding: 6px 10px;
@@ -591,6 +600,7 @@
 
 .hud-forecast {
   flex-basis: 100%;
+  max-width: 100%;
   align-items: center;
   gap: 10px;
   padding-top: 5px;
@@ -717,10 +727,13 @@
   top: clamp(8px, 1.6vw, 18px);
   right: clamp(8px, 1.6vw, 18px);
   z-index: 4;
-  min-height: 38px;
-  padding: 7px 13px;
+  width: var(--pause-control-width);
+  min-width: 44px;
+  min-height: 44px;
+  padding: 7px 8px;
   color: #eef5ff;
   background: rgba(6, 12, 31, 0.86);
+  white-space: nowrap;
   pointer-events: auto;
 }
 
@@ -1166,8 +1179,12 @@
   }
 
   .app-shell[data-screen="play"] .game-frame {
-    width: min(100%, calc((100dvh - var(--safe-top) - var(--safe-bottom) - 142px) * 9 / 16));
-    height: min(calc(100dvh - var(--safe-top) - var(--safe-bottom) - 142px), 900px);
+    --portrait-board-height: min(
+      calc(100dvh - var(--safe-top) - var(--safe-bottom) - 142px),
+      900px
+    );
+    width: min(100%, calc(var(--portrait-board-height) * 9 / 16));
+    height: auto;
     aspect-ratio: 9 / 16;
   }
 

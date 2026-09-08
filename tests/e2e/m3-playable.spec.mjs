@@ -22,6 +22,13 @@ const viewports = [
   { name: "1024x768 centered", width: 1024, height: 768 },
 ];
 
+const portraitViewports = [
+  { name: "375x667 portrait", width: 375, height: 667 },
+  { name: "393x852 portrait", width: 393, height: 852 },
+  { name: "430x932 portrait", width: 430, height: 932 },
+  { name: "320x900 portrait", width: 320, height: 900 },
+];
+
 const diagnosticsFor = (page) => {
   const diagnostics = {
     consoleErrors: [],
@@ -97,9 +104,8 @@ const canvasBox = async (page) => {
 };
 
 const pointForAim = (target, box) => {
-  const offset = Math.max(1, Math.min(box.width, box.height) * 0.1);
   const x = box.left + target.x / BOARD_WIDTH * box.width;
-  const y = box.top + target.y / BOARD_HEIGHT * box.height + offset;
+  const y = box.top + target.y / BOARD_HEIGHT * box.height;
   return {
     x: Math.min(box.right - 2, Math.max(box.left + 2, x)),
     y: Math.min(box.bottom - 2, Math.max(box.top + 2, y)),
@@ -189,7 +195,7 @@ for (const viewport of viewports) {
 }
 
 test("M3 portrait viewport keeps a playable board with clockwise logical mapping", async ({ page }) => {
-  const viewport = { width: 375, height: 667 };
+  const viewport = portraitViewports[0];
   const diagnostics = await openPage(page, viewport);
   await expect(page.locator("#orientation-guide")).toBeVisible();
   await beginPlaying(page);
@@ -215,8 +221,12 @@ test("M3 portrait viewport keeps a playable board with clockwise logical mapping
     expect(forecast.label).toBe(expected);
   }
   const frame = await page.locator("#game-frame").boundingBox();
+  const canvas = await page.locator("#game-canvas").boundingBox();
   expect(frame).not.toBeNull();
+  expect(canvas).not.toBeNull();
   expect(frame.width / frame.height).toBeCloseTo(9 / 16, 2);
+  expect(canvas.width / canvas.height).toBeCloseTo(9 / 16, 2);
+  expect(canvas.width / canvas.height).toBeCloseTo(frame.width / frame.height, 3);
   const before = await callApi(page, "snapshot");
   await callApi(page, "advanceTicks", 10);
   const after = await callApi(page, "snapshot");
@@ -225,11 +235,70 @@ test("M3 portrait viewport keeps a playable board with clockwise logical mapping
   assertClean(diagnostics);
 });
 
+for (const viewport of portraitViewports.slice(1)) {
+  test(`M3 portrait canvas keeps one board ratio at ${viewport.name}`, async ({ page }) => {
+    const diagnostics = await openPage(page, viewport);
+    await beginPlaying(page);
+    const frame = await page.locator("#game-frame").boundingBox();
+    const canvas = await page.locator("#game-canvas").boundingBox();
+    expect(frame).not.toBeNull();
+    expect(canvas).not.toBeNull();
+    expect(frame.width / frame.height).toBeCloseTo(9 / 16, 2);
+    expect(canvas.width / canvas.height).toBeCloseTo(9 / 16, 2);
+    expect(canvas.width / canvas.height).toBeCloseTo(frame.width / frame.height, 3);
+    expect(canvas.x).toBeGreaterThanOrEqual(frame.x - 1);
+    expect(canvas.y).toBeGreaterThanOrEqual(frame.y - 1);
+    expect(canvas.x + canvas.width).toBeLessThanOrEqual(frame.x + frame.width + 1);
+    expect(canvas.y + canvas.height).toBeLessThanOrEqual(frame.y + frame.height + 1);
+    const model = await callApi(page, "renderModel");
+    expect(Number(model.canvas.dataset.cssWidth)).toBeCloseTo(canvas.width, 0);
+    expect(Number(model.canvas.dataset.cssHeight)).toBeCloseTo(canvas.height, 0);
+    expect(Number(model.canvas.dataset.displayEntityRadius)).toBeGreaterThan(0);
+    assertClean(diagnostics);
+  });
+}
+
 test("M3 mouse input selects and detonates through the browser adapter", async ({ page }) => {
   const diagnostics = await openPage(page, viewports[0]);
   await beginPlaying(page);
   const snapshot = await playFirstSelection(page);
 
+  expect(snapshot.score).toBeGreaterThan(0);
+  expect(snapshot.stats.detonationCount).toBeGreaterThanOrEqual(1);
+  expect(snapshot.simulationFault).toBeNull();
+  assertClean(diagnostics);
+});
+
+test("M3 pen input selects and detonates without a cursor offset", async ({ page }) => {
+  const diagnostics = await openPage(page, viewports[0]);
+  await beginPlaying(page);
+  const box = await canvasBox(page);
+  const targets = await firstThreeTargets(page);
+  const pointerId = 909;
+  const points = targets.map((target) => pointForAim(target, box));
+
+  await dispatchPointer(page, "pointerdown", {
+    pointerId,
+    clientX: points[0].x,
+    clientY: points[0].y,
+    pointerType: "pen",
+  });
+  for (const point of points) {
+    await dispatchPointer(page, "pointermove", {
+      pointerId,
+      clientX: point.x,
+      clientY: point.y,
+      pointerType: "pen",
+    });
+    await callApi(page, "advanceTicks", 3);
+  }
+  await dispatchPointer(page, "pointerup", {
+    pointerId,
+    clientX: points.at(-1).x,
+    clientY: points.at(-1).y,
+    pointerType: "pen",
+  });
+  const snapshot = await callApi(page, "advanceTicks", 1).then(() => callApi(page, "snapshot"));
   expect(snapshot.score).toBeGreaterThan(0);
   expect(snapshot.stats.detonationCount).toBeGreaterThanOrEqual(1);
   expect(snapshot.simulationFault).toBeNull();
@@ -494,7 +563,7 @@ test("M3 landscape-to-landscape orientationchange interrupts once and resumes", 
   assertClean(diagnostics);
 });
 
-test("M3 edge-aware reticle stays on-canvas and changes direction at edges", async ({ page }) => {
+test("M3 reticle stays exactly under a mouse pointer at every edge", async ({ page }) => {
   const diagnostics = await openPage(page, viewports[1]);
   await beginPlaying(page);
   const box = await canvasBox(page);
@@ -558,10 +627,14 @@ test("M3 edge-aware reticle stays on-canvas and changes direction at edges", asy
     expect(point.reticleY).toBeGreaterThanOrEqual(0);
     expect(point.reticleY).toBeLessThanOrEqual(point.height);
   }
-  expect(leftTop.reticleX).toBeGreaterThan(leftTop.pointerX);
-  expect(rightTop.reticleX).toBeLessThan(rightTop.pointerX);
-  expect(leftBottom.reticleY).toBeLessThan(leftBottom.pointerY);
-  expect(rightBottom.reticleY).toBeLessThan(rightBottom.pointerY);
+  expect(leftTop.reticleX).toBe(leftTop.pointerX);
+  expect(leftTop.reticleY).toBe(leftTop.pointerY);
+  expect(rightTop.reticleX).toBe(rightTop.pointerX);
+  expect(rightTop.reticleY).toBe(rightTop.pointerY);
+  expect(leftBottom.reticleX).toBe(leftBottom.pointerX);
+  expect(leftBottom.reticleY).toBe(leftBottom.pointerY);
+  expect(rightBottom.reticleX).toBe(rightBottom.pointerX);
+  expect(rightBottom.reticleY).toBe(rightBottom.pointerY);
   assertClean(diagnostics);
 });
 
@@ -594,6 +667,44 @@ test("M3 touch reticle renders the exact touch aim sampled by the game", async (
   await page.mouse.up();
   assertClean(diagnostics);
 });
+
+for (const viewport of [viewports[0], { name: "393x852 portrait", width: 393, height: 852 }]) {
+  test(`M3 reserves a separate 44px pause target from HUD at ${viewport.name}`, async ({ page }) => {
+    const diagnostics = await openPage(page, viewport);
+    await beginPlaying(page);
+    const geometry = await page.evaluate(() => {
+      const rect = (element) => {
+        const box = element.getBoundingClientRect();
+        return {
+          left: box.left,
+          top: box.top,
+          right: box.right,
+          bottom: box.bottom,
+          width: box.width,
+          height: box.height,
+        };
+      };
+      const pause = rect(document.querySelector("#pause-button"));
+      const hud = [...document.querySelectorAll("#game-hud > .hud-pill, #game-hud > .hud-forecast")]
+        .map((element) => ({ id: element.id || element.className, box: rect(element) }));
+      return { pause, hud };
+    });
+    expect(geometry.pause.width).toBeGreaterThanOrEqual(44);
+    expect(geometry.pause.height).toBeGreaterThanOrEqual(44);
+    for (const item of geometry.hud) {
+      const overlapWidth = Math.max(
+        0,
+        Math.min(geometry.pause.right, item.box.right) - Math.max(geometry.pause.left, item.box.left),
+      );
+      const overlapHeight = Math.max(
+        0,
+        Math.min(geometry.pause.bottom, item.box.bottom) - Math.max(geometry.pause.top, item.box.top),
+      );
+      expect(overlapWidth * overlapHeight, `${item.id} overlaps pause target`).toBe(0);
+    }
+    assertClean(diagnostics);
+  });
+}
 
 test("M3 rejects pointer input after the 3,600-tick boundary", async ({ page }) => {
   const diagnostics = await openPage(page, viewports[0]);
