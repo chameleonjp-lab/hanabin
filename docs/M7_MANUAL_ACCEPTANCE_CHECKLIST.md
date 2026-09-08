@@ -6,6 +6,8 @@
 - 公開URL: [HANABIN](https://chameleonjp-lab.github.io/hanabin/)
 - この文書の役割: 自動検査で確認できないiPhone 17 Pro（横・縦画面追補）の実機、初見試遊、GitHub Pages設定を、実際の証跡で記録する。追加要件の一覧は`POST_MVP_HARDENING_PLAN.md`を参照する
 
+2026年9月8日追記: Q1〜Q6の品質改善はDraft PR #48〜#53で自動検査まで完了しているが、mainへのマージ・Pages公開・iPhone 17 Pro・初見5人の受入は未完了である。公開前の判定はこのチェックリストで行う。
+
 > 2026年8月23日の操作・演出・音・バランス変更はPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、Pagesへ再配備済みである。追加要件（選択肢保証、一時停止、名前必須、結果導線、PC操作、縦画面、端末内TOP10）はPull Request [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)で`main`へマージされた。#36のマージ後も[Deploy GitHub Pages #24](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047185)と[Public Release Smoke #19](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256066052)が成功している。以下の実機項目は公開URLをiPhone 17 Pro / Safariで確認し、自動検査を実機合格の証跡へ流用しない。
 
 ## 1. 記録のルール

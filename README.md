@@ -2,7 +2,7 @@
 
 同色の花火を選び、起爆位置と時刻を考えて連鎖を伸ばす、スマートフォン向け60秒スコアアタックゲームです。
 
-2026年9月8日、PR #46までのmainを対象に、[Astra Highのゲーム品質監査・改善実装計画](./docs/ASTRA_QUALITY_AUDIT_PLAN_2026-09-08.md)を作成しました。再現できた問題、条件付きの課題、試遊で判断する案を分け、6件の改善PRと完了条件を定めています。今回の変更は文書と監査証跡のみで、製品の修正は未着手です。
+2026年9月8日、PR #46までのmainを対象に、[Astra Highのゲーム品質監査・改善実装計画](./docs/ASTRA_QUALITY_AUDIT_PLAN_2026-09-08.md)を作成しました。再現できた問題、条件付きの課題、試遊で判断する案を分け、6件の改善PRと完了条件を定めています。計画に沿う製品修正はDraft PR [#48〜#53](https://github.com/chameleonjp-lab/hanabin/pulls?q=is%3Apr+is%3Aopen+draft%3Atrue)で実装中です。mainへ未反映の統合ブランチでは、構文・全量シミュレーション・プレイ曲線・公開成果物検査まで確認済みです。
 
 M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未完了で、公開URL専用の実時間終端検査とGitHub Pagesの公開元修正は完了していますが、iPhone 17 Proの実機確認と初見5人の試遊が残っています。追加要件（選択肢保証、一時停止、名前必須、結果導線、PC操作、縦画面、端末内TOP10）はPR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)で`main`へマージ済みです。高速なぞり、Pointer Capture失敗時のwindowフォールバック、Pages ActionsのSHA固定、予告・連鎖の視覚フィードバック、時間帯別プレイ曲線計測はPR [#42](https://github.com/chameleonjp-lab/hanabin/pull/42)まで`main`へ反映済みです。現在はルール数値を変えずに、縦画面の予告位置表示と、iPhone 17 Pro／初見5人の受入へ進んでいます。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)へ整理しています。
 
