@@ -1,0 +1,46 @@
+{
+  "misleading": {
+    "tick": 355,
+    "cue": "この位置なら3個でも近くの花火に届きます",
+    "chainTargetsAdded": 0,
+    "sourceLayouts": [
+      {
+        "targetId": 1000100,
+        "kind": "direct"
+      },
+      {
+        "targetId": 1000101,
+        "kind": "direct"
+      },
+      {
+        "targetId": 1000102,
+        "kind": "direct"
+      }
+    ]
+  },
+  "lateReadiness": {
+    "tick": 3570,
+    "readiness": {
+      "status": "ready",
+      "windowOpen": true,
+      "ready": true,
+      "waveId": "wave-20",
+      "waveIndex": 20,
+      "forecastColor": "red",
+      "leadTicks": 60,
+      "selectedCount": 5,
+      "requiredSelectionCount": 5,
+      "bridgeCount": 5,
+      "requiredBridgeCount": 3,
+      "selectionRemaining": 0,
+      "bridgeRemaining": 0
+    }
+  },
+  "practiceChainGeometry": {
+    "minDist": 1232.000405844089,
+    "maxDist": 1650.9709264550968,
+    "radius": 1800,
+    "maxMovingStep": 12.649110640673518,
+    "pressureStep": 299.0468190768797
+  }
+}
