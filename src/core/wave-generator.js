@@ -9,6 +9,7 @@ import {
   waveTickAt,
 } from "../config/rules.js";
 import { createRng, hashSeed } from "./rng.js";
+import { isWaveWithinSession } from "./forecast-bounds.js";
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const roundInt = (value) => Math.round(Number.isFinite(value) ? value : 0);
@@ -288,13 +289,17 @@ export const generateWave = (seedOrOptions, waveIndexArg, rulesArg) => {
   );
   const previewSpreadX = Math.max(1, Math.round(spreadX * 1.25));
   const previewSpreadY = Math.max(1, Math.round(spreadY * 0.45));
+  // Preserve the five targets and their geometry in the final wave, but do
+  // not mark them as bridges to a wave that this session cannot spawn.
+  const hasNextWave = plan.waveIndex + 1 < normalizedRules.maxWaves &&
+    isWaveWithinSession({ fireTick: waveTickAt(plan.waveIndex + 1, normalizedRules) }, normalizedRules);
   for (let index = 0; index < 5; index += 1) {
     add({
       color: plan.nextPrimaryColor,
       x: previewAnchorX + (index - 2) * previewSpreadX,
       y: previewAnchorY + ((index + 1) % 2 === 0 ? -previewSpreadY : previewSpreadY),
       depth: 520 + index * 18,
-      forecastForWaveIndex: plan.waveIndex + 1,
+      forecastForWaveIndex: hasNextWave ? plan.waveIndex + 1 : null,
       lifetimeOverride: normalizedRules.lifetimeMaxTicks,
     });
   }
@@ -312,7 +317,9 @@ export const generateUpcomingWaves = (seed, nextWaveIndex, rules = DEFAULT_RULES
   for (let offset = 0; offset < limit; offset += 1) {
     const waveIndex = Math.max(0, Math.trunc(nextWaveIndex) + offset);
     if (waveIndex >= normalizedRules.maxWaves) break;
-    result.push(createWavePlan(seed, waveIndex, normalizedRules));
+    const plan = createWavePlan(seed, waveIndex, normalizedRules);
+    if (!isWaveWithinSession(plan, normalizedRules)) break;
+    result.push(plan);
   }
   return result.map((plan) => ({
     waveId: plan.waveId,

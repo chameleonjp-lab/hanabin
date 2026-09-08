@@ -104,7 +104,10 @@ export const strategyForecast = (state, context = {}) => {
   const rules = context.rules ?? DEFAULT_RULES;
   const nextWave = state.upcomingWaves?.[0];
   const leadTicks = nextWave ? nextWave.fireTick - state.tick : null;
-  if (!nextWave || !Number.isInteger(leadTicks)) return releaseAction(state);
+  // Once the last real wave has arrived, keep playing the visible board.
+  // A forecast strategy must not idle or chase a nonexistent next wave.
+  if (!nextWave) return strategyFiveThenDetonate(state, context);
+  if (!Number.isInteger(leadTicks)) return releaseAction(state);
 
   const explosionDurationTicks = Math.round(
     rules.baseExplosionDurationTicks *
