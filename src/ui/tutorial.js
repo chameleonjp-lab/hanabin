@@ -96,6 +96,37 @@ const finite = (value, fallback = PRACTICE_SECONDS) => Number.isFinite(Number(va
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
+/**
+ * Reset all transient practice gesture state at one explicit boundary.
+ * Successful-stage presentation may keep a cloned selection snapshot while
+ * cancel, timeout, transition retry, and a failed release start empty.
+ */
+export const practiceGestureStateAfterBoundary = (
+  state = {},
+  { preserveSelection = false, clearSelection = undefined } = {},
+) => {
+  const keepSelection = clearSelection === undefined
+    ? preserveSelection === true
+    : clearSelection !== true;
+  return {
+    ...state,
+    gesturePressed: false,
+    hoverCandidateId: null,
+    hoverTicks: 0,
+    selectionSinceTick: null,
+    tracePoint: null,
+    traceDistanceCarry: 0,
+    selectedIds: keepSelection
+      ? (Array.isArray(state.selectedIds) ? [...state.selectedIds] : [])
+      : [],
+    selectedRecords: keepSelection
+      ? (Array.isArray(state.selectedRecords)
+        ? state.selectedRecords.map((record) => ({ ...record }))
+        : [])
+      : [],
+  };
+};
+
 export const practiceDisplayShapeFor = (target) => target?.shape ?? "circle";
 
 export const practiceSymbolVisibleFor = ({
@@ -405,17 +436,25 @@ export class TutorialController {
     return changed;
   }
 
-  resetGesture({ clearSelection = true } = {}) {
-    this.gesturePressed = false;
-    this.hoverCandidateId = null;
-    this.hoverTicks = 0;
-    this.selectionSinceTick = null;
-    this.tracePoint = null;
-    this.traceDistanceCarry = 0;
-    if (clearSelection) {
-      this.selectedIds = [];
-      this.selectedRecords = [];
-    }
+  resetGesture(options = {}) {
+    const next = practiceGestureStateAfterBoundary({
+      gesturePressed: this.gesturePressed,
+      hoverCandidateId: this.hoverCandidateId,
+      hoverTicks: this.hoverTicks,
+      selectionSinceTick: this.selectionSinceTick,
+      tracePoint: this.tracePoint,
+      traceDistanceCarry: this.traceDistanceCarry,
+      selectedIds: this.selectedIds,
+      selectedRecords: this.selectedRecords,
+    }, options);
+    this.gesturePressed = next.gesturePressed;
+    this.hoverCandidateId = next.hoverCandidateId;
+    this.hoverTicks = next.hoverTicks;
+    this.selectionSinceTick = next.selectionSinceTick;
+    this.tracePoint = next.tracePoint;
+    this.traceDistanceCarry = next.traceDistanceCarry;
+    this.selectedIds = next.selectedIds;
+    this.selectedRecords = next.selectedRecords;
   }
 
   show() {
@@ -520,7 +559,7 @@ export class TutorialController {
   completeStageOne() {
     if (this.stage !== 1 || this.state !== "running") return this.snapshot();
     this.stopSuccessTimer();
-    this.resetGesture({ clearSelection: false });
+    this.resetGesture({ preserveSelection: true });
     this.successTargets = this.practiceTargets(this.inputTick);
     this.state = "stage-transition";
     this.lastFailureReason = "";
@@ -571,7 +610,7 @@ export class TutorialController {
       if (wasPressed && this.selectedIds.length >= this.rules.minSelection) {
         this.completeSelection();
       } else if (wasPressed || this.selectedIds.length) {
-        this.selectedIds = [];
+        this.resetGesture();
         this.lastFailureReason = "release-below-minimum";
         this.sound?.cancel?.({ reason: this.lastFailureReason });
       }
@@ -699,7 +738,7 @@ export class TutorialController {
     this.stopTimer();
     this.stopSuccessTimer();
     this.pointer.clear();
-    this.resetGesture({ clearSelection: false });
+    this.resetGesture({ preserveSelection: true });
     this.remainingSeconds = Math.max(0, this.remainingSeconds);
     this.state = "success";
     this.sound?.detonation?.({ count: this.selectedIds.length });

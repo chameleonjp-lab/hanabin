@@ -6,6 +6,7 @@ import {
 import { colorName, colorValue, colorSymbol } from "../render/competitive-layer.js";
 import { forecastSuccessForAction } from "./forecast-feedback.js";
 import { playableChoiceCount } from "../core/engine.js";
+import { chainTargetsWithinDirectRadius } from "../core/chain-eligibility.js";
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const byId = (root, id) => root?.querySelector?.(`#${id}`) ?? null;
@@ -19,9 +20,6 @@ const portraitPositionLabels = Object.freeze({
   right: "画面下側",
 });
 const idKey = (value) => String(value);
-
-const distanceSquared = (left, right) =>
-  (left.x - right.x) ** 2 + (left.y - right.y) ** 2;
 
 const safeRuleCount = (value, fallback) => Math.max(1, Math.trunc(Number(value) || fallback));
 
@@ -135,13 +133,12 @@ export const selectionBlastCueFor = (state = {}, rules = DEFAULT_RULES) => {
     .filter((entity) => entity?.status === "active" && entity.visible !== false);
   const selectedEntities = active.filter((entity) => selectedKeys.has(idKey(entity.id)));
   if (selectedEntities.length < minimumSelection) return "";
-  const directRadius = directExplosionRadiusForSelection(selectedIds.length, rules);
-  const radiusSquared = directRadius ** 2;
-  const reachesAnother = active
-    .filter((entity) => !selectedKeys.has(idKey(entity.id)))
-    .some((entity) => selectedEntities.some((selected) =>
-      distanceSquared(selected, entity) <= radiusSquared,
-    ));
+  const reachesAnother = chainTargetsWithinDirectRadius({
+    selectedEntities,
+    candidateEntities: active,
+    selectionCount: selectedIds.length,
+    rules,
+  }).length > 0;
   return reachesAnother
     ? `この位置なら${selectedIds.length}個でも近くの花火に届きます`
     : "";
