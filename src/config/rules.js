@@ -8,10 +8,9 @@
  */
 
 export const GAME_VERSION = "M4";
-// Choice guarantees are part of the deterministic gameplay contract. Keep a
-// new rule fingerprint so old replays and cached best scores cannot be mixed
-// with runs that can receive a runtime choice reserve.
-export const RULE_VERSION = "m4-gameplay-3";
+// Forecasts and bonuses only reference waves that can spawn in this session.
+// This changes terminal scoring; preserve old records in their rule namespace.
+export const RULE_VERSION = "m4-gameplay-4";
 export const INPUT_SCHEMA_VERSION = "m2-input-1";
 
 export const COLORS = Object.freeze(["red", "blue", "green", "yellow"]);
