@@ -69,6 +69,27 @@ const pointerIdOf = (event) => Number.isInteger(event?.pointerId) && event.point
   ? event.pointerId
   : null;
 
+// Safari normally exposes Pointer Events, but a few embedded/webview paths
+// still deliver only Touch Events. Keep the fallback id outside the browser's
+// usual pointer-id range so a native pointer cannot be confused with it.
+const TOUCH_FALLBACK_POINTER_ID_BASE = 1_000_000;
+
+const firstTouch = (event, identifier = null) => {
+  const changed = Array.from(event?.changedTouches ?? []);
+  const active = Array.from(event?.touches ?? []);
+  const candidates = [...changed, ...active];
+  return candidates.find((touch) => identifier === null || touch?.identifier === identifier) ?? null;
+};
+
+// A touchend/touchcancel can contain another finger in `touches` while the
+// owned finger is still down. Terminal handlers must only inspect
+// changedTouches so a secondary finger cannot release the game's gesture.
+const terminalTouch = (event, identifier, fallback = null) => {
+  const changed = Array.from(event?.changedTouches ?? []);
+  if (changed.length > 0) return changed.find((touch) => touch?.identifier === identifier) ?? null;
+  return fallback;
+};
+
 /**
  * Browser-only adapter for M2's fixed-tick pointer sampler.
  *
@@ -99,6 +120,10 @@ export class PointerController {
     this.pendingRelease = false;
     this.deferredPointer = null;
     this.captureMode = "none";
+    this.touchFallbackPointerId = null;
+    this.touchFallbackIdentifier = null;
+    this.touchFallbackClientX = null;
+    this.touchFallbackClientY = null;
     this.onChange = typeof onChange === "function" ? onChange : null;
     this.onInterrupt = typeof onInterrupt === "function" ? onInterrupt : null;
     this.onLifecycle = typeof onLifecycle === "function" ? onLifecycle : null;
@@ -109,6 +134,10 @@ export class PointerController {
       pointermove: (event) => this.handlePointerMove(event),
       pointerup: (event) => this.handlePointerUp(event),
       pointercancel: (event) => this.handlePointerCancel(event),
+      touchstart: (event) => this.handleTouchStart(event),
+      touchmove: (event) => this.handleTouchMove(event),
+      touchend: (event) => this.handleTouchEnd(event),
+      touchcancel: (event) => this.handleTouchCancel(event),
       lostpointercapture: (event) => this.handleLostPointerCapture(event),
       contextmenu: (event) => {
         if (event.cancelable) event.preventDefault();
@@ -123,6 +152,12 @@ export class PointerController {
       fallbackPointerCancel: (event) => this.handleFallbackPointerEvent(event),
     };
     for (const type of ["pointerdown", "pointermove", "pointerup", "pointercancel"]) {
+      element.addEventListener(type, this.handlers[type], { passive: false });
+    }
+    // Touch Events are a compatibility path for WebKit containers that do
+    // not emit Pointer Events. On browsers that emit both, the native pointer
+    // owns the sampler first and these handlers remain no-ops.
+    for (const type of ["touchstart", "touchmove", "touchend", "touchcancel"]) {
       element.addEventListener(type, this.handlers[type], { passive: false });
     }
     element.addEventListener("lostpointercapture", this.handlers.lostpointercapture, { passive: true });
@@ -183,6 +218,83 @@ export class PointerController {
     };
   }
 
+  syntheticTouchEvent(type, touch) {
+    return {
+      type,
+      pointerId: TOUCH_FALLBACK_POINTER_ID_BASE + Number(touch.identifier),
+      pointerType: "touch",
+      clientX: Number(touch.clientX),
+      clientY: Number(touch.clientY),
+      cancelable: true,
+      target: this.element,
+      preventDefault() {},
+    };
+  }
+
+  handleTouchStart(event) {
+    if (event.cancelable) event.preventDefault();
+    const touch = firstTouch(event);
+    if (!touch || this.sampler.activePointerId !== null || this.deferredPointer !== null ||
+        this.touchFallbackPointerId !== null) return;
+    const pointerId = TOUCH_FALLBACK_POINTER_ID_BASE + Number(touch.identifier);
+    this.touchFallbackPointerId = pointerId;
+    this.touchFallbackIdentifier = Number(touch.identifier);
+    this.touchFallbackClientX = Number(touch.clientX);
+    this.touchFallbackClientY = Number(touch.clientY);
+    this.handlePointerDown(this.syntheticTouchEvent("pointerdown", touch));
+    if (this.sampler.activePointerId !== pointerId && this.deferredPointer?.pointerId !== pointerId) {
+      this.touchFallbackPointerId = null;
+      this.touchFallbackIdentifier = null;
+      this.touchFallbackClientX = null;
+      this.touchFallbackClientY = null;
+    }
+  }
+
+  handleTouchMove(event) {
+    if (event.cancelable) event.preventDefault();
+    if (this.touchFallbackPointerId === null) return;
+    const touch = firstTouch(event, this.touchFallbackIdentifier);
+    if (touch) {
+      this.touchFallbackClientX = Number(touch.clientX);
+      this.touchFallbackClientY = Number(touch.clientY);
+      this.handlePointerMove(this.syntheticTouchEvent("pointermove", touch));
+    }
+  }
+
+  handleTouchEnd(event) {
+    if (event.cancelable) event.preventDefault();
+    if (this.touchFallbackPointerId === null) return;
+    const touch = terminalTouch(event, this.touchFallbackIdentifier, {
+      identifier: this.touchFallbackIdentifier,
+      clientX: this.touchFallbackClientX,
+      clientY: this.touchFallbackClientY,
+    });
+    if (!touch) return;
+    this.touchFallbackClientX = Number(touch.clientX);
+    this.touchFallbackClientY = Number(touch.clientY);
+    this.handlePointerUp(this.syntheticTouchEvent("pointerup", touch));
+    this.touchFallbackPointerId = null;
+    this.touchFallbackIdentifier = null;
+    this.touchFallbackClientX = null;
+    this.touchFallbackClientY = null;
+  }
+
+  handleTouchCancel(event) {
+    if (event.cancelable) event.preventDefault();
+    if (this.touchFallbackPointerId === null) return;
+    const touch = terminalTouch(event, this.touchFallbackIdentifier, {
+      identifier: this.touchFallbackIdentifier,
+      clientX: this.touchFallbackClientX,
+      clientY: this.touchFallbackClientY,
+    });
+    if (!touch) return;
+    this.handlePointerCancel(this.syntheticTouchEvent("pointercancel", touch));
+    this.touchFallbackPointerId = null;
+    this.touchFallbackIdentifier = null;
+    this.touchFallbackClientX = null;
+    this.touchFallbackClientY = null;
+  }
+
   notify(change = {}) {
     const position = this.position;
     if (this.element.dataset) {
@@ -229,6 +341,11 @@ export class PointerController {
   handlePointerDown(event) {
     if (event.cancelable) event.preventDefault();
     if (!this.isInputAllowed()) return;
+    // If Touch Events won the race in a WebKit container, ignore the later
+    // compatibility Pointer Event rather than reporting a false second tap.
+    if (this.touchFallbackPointerId !== null && event.pointerType === "touch" &&
+        event.pointerId !== this.touchFallbackPointerId &&
+        this.sampler.activePointerId === this.touchFallbackPointerId) return;
     // Keep a pending release/cancel marker ahead of a new pointerdown so the
     // next fixed tick records the boundary instead of transferring ownership
     // before the previous action has been sampled.
@@ -504,6 +621,10 @@ export class PointerController {
     this.fingerY = 0;
     this.pendingRelease = false;
     this.deferredPointer = null;
+    this.touchFallbackPointerId = null;
+    this.touchFallbackIdentifier = null;
+    this.touchFallbackClientX = null;
+    this.touchFallbackClientY = null;
   }
 
   destroy() {
@@ -520,6 +641,9 @@ export class PointerController {
     this.onLifecycle = onLifecycle;
     this.destroyed = true;
     for (const type of ["pointerdown", "pointermove", "pointerup", "pointercancel"]) {
+      this.element.removeEventListener(type, this.handlers[type]);
+    }
+    for (const type of ["touchstart", "touchmove", "touchend", "touchcancel"]) {
       this.element.removeEventListener(type, this.handlers[type]);
     }
     this.element.removeEventListener("lostpointercapture", this.handlers.lostpointercapture);
