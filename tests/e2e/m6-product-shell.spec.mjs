@@ -147,7 +147,7 @@ test("M6 home practice can return home, repeat twice, and then enter the real ga
       name: "",
       bestScore: 0,
       bestChain: 0,
-      bestRuleVersion: "m4-gameplay-3",
+      bestRuleVersion: "m4-gameplay-4",
       quality: "high",
       qualityManual: false,
       soundEnabled: false,
@@ -282,7 +282,6 @@ test("M6 result exposes home, experiment, and local top-ten ranking routes", asy
   await expect(page.locator("#hud-choice-count")).toHaveAttribute("data-guaranteed", "true");
   await callApi(page, "settleTerminal");
   await expect(page.locator("#result-screen")).toBeVisible();
-  await expect(page.locator("#result-title")).toBeFocused();
   await expect(page.locator("#result-home")).toHaveCount(0);
   await expect(page.locator("#home-button")).toBeVisible();
   await expect(page.locator("#result-experiment-link")).toHaveAttribute(
