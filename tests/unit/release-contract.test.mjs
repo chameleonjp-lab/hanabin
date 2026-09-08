@@ -32,16 +32,23 @@ test("M7 release identifiers are fixed and agree across rules, storage, and pack
   assert.equal(RELEASE_MANIFEST.runtimeDependencies, 0);
 });
 
-test("M7 Pages workflow deploys only the default branch artifact", async () => {
+test("M7 Pages waits for same-SHA Core and Browser checks before deployment", async () => {
   const workflow = await readProjectFile(".github/workflows/pages.yml");
 
   assert.match(workflow, /push:\s*\n\s+branches:\s+\[main\]/u);
   assert.match(workflow, /workflow_dispatch:/u);
+  assert.match(workflow, /core:\s*\n[\s\S]*?uses:\s+\.\/\.github\/workflows\/ci-core\.yml/u);
+  assert.match(workflow, /browser:\s*\n[\s\S]*?uses:\s+\.\/\.github\/workflows\/ci-browser\.yml/u);
+  assert.match(workflow, /build:\s*\n[\s\S]*?needs:\s*\[core,\s*browser\]/u);
+  assert.match(workflow, /ref:\s+\$\{\{\s*github\.sha\s*\}\}/u);
+  assert.match(workflow, /check-public-artifact\.mjs\s+--root site\s+--write-manifest/u);
+  assert.match(workflow, /needs\.build\.result\s*==\s*['"]success['"]/u);
   assert.match(workflow, /pages:\s+write/u);
   assert.match(workflow, /id-token:\s+write/u);
   assert.match(workflow, /actions\/configure-pages@[0-9a-f]{40}\s+#\s+v5/u);
   assert.match(workflow, /actions\/upload-pages-artifact@[0-9a-f]{40}\s+#\s+v4/u);
   assert.match(workflow, /actions\/deploy-pages@[0-9a-f]{40}\s+#\s+v4/u);
+  assert.match(workflow, /artifact_name:\s+github-pages/u);
   assert.match(workflow, /path:\s+\.\/site/u);
   assert.doesNotMatch(workflow, /npm (?:ci|install)/u);
   for (const releasePath of [
@@ -50,13 +57,23 @@ test("M7 Pages workflow deploys only the default branch artifact", async () => {
     '"src/**"',
     ".github/workflows/pages.yml",
     ".github/workflows/public-release.yml",
+    ".github/workflows/ci-core.yml",
+    ".github/workflows/ci-browser.yml",
     "playwright.public.config.mjs",
     "scripts/check-pages-source.mjs",
+    "scripts/check-public-artifact.mjs",
     "tests/e2e/m7-public-release.spec.mjs",
   ]) {
     assert.equal(workflow.includes(`- ${releasePath}`), true, `${releasePath} must trigger Pages`);
   }
   assert.doesNotMatch(workflow, /- (?:README\.md|docs\/|package\.json)/u);
+
+  const coreWorkflow = await readProjectFile(".github/workflows/ci-core.yml");
+  const browserWorkflow = await readProjectFile(".github/workflows/ci-browser.yml");
+  assert.match(coreWorkflow, /workflow_call:/u);
+  assert.match(browserWorkflow, /workflow_call:/u);
+  assert.match(coreWorkflow, /git rev-parse HEAD/u);
+  assert.match(browserWorkflow, /git rev-parse HEAD/u);
 });
 
 test("public release workflow rejects a non-Actions Pages source", async () => {
@@ -64,5 +81,23 @@ test("public release workflow rejects a non-Actions Pages source", async () => {
 
   assert.match(workflow, /pages:\s+read/u);
   assert.match(workflow, /node scripts\/check-pages-source\.mjs/u);
+  assert.match(workflow, /node scripts\/check-public-artifact\.mjs/u);
+  assert.match(workflow, /EXPECTED_RELEASE_SHA/u);
+  assert.match(workflow, /workflow_run\.conclusion\s*==\s*['"]success['"]/u);
+  assert.match(workflow, /workflow_run\.head_branch\s*==\s*['"]main['"]/u);
+  assert.doesNotMatch(workflow, /workflows?:\s*\[?['"](?:CI Core|CI Browser)/u);
   assert.match(workflow, /GITHUB_TOKEN:\s+\$\{\{ secrets\.GITHUB_TOKEN \}\}/u);
+});
+
+test("public artifact checker keeps the Pages payload allowlisted and SHA-bound", async () => {
+  const script = await readProjectFile("scripts/check-public-artifact.mjs");
+
+  assert.match(script, /schemaVersion/u);
+  assert.match(script, /commitSha/u);
+  assert.match(script, /artifactSha256/u);
+  assert.match(script, /index\.html/u);
+  assert.match(script, /styles/u);
+  assert.match(script, /src/u);
+  assert.match(script, /unexpected top-level/u);
+  assert.match(script, /EXPECTED_RELEASE_SHA/u);
 });

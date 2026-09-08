@@ -16,6 +16,18 @@ const pagesWorkflow = await readFile(
   resolve(projectRoot, ".github/workflows/pages.yml"),
   "utf8",
 );
+const coreWorkflow = await readFile(
+  resolve(projectRoot, ".github/workflows/ci-core.yml"),
+  "utf8",
+);
+const browserWorkflow = await readFile(
+  resolve(projectRoot, ".github/workflows/ci-browser.yml"),
+  "utf8",
+);
+const publicArtifactChecker = await readFile(
+  resolve(projectRoot, "scripts/check-public-artifact.mjs"),
+  "utf8",
+);
 
 const checks = [
   [packageJson.version === MVP_RELEASE_VERSION, "package version must match the MVP release version"],
@@ -26,16 +38,31 @@ const checks = [
   [RELEASE_MANIFEST.profileStorageKey === PROFILE_STORAGE_KEY, "profile storage key mismatch"],
   [RELEASE_MANIFEST.runtimeDependencies === 0, "MVP must have no runtime dependencies"],
   [/branches:\s*\[main\]/u.test(pagesWorkflow), "Pages must publish from main only"],
+  [/core:\s*\n[\s\S]*?uses:\s+\.\/\.github\/workflows\/ci-core\.yml/u.test(pagesWorkflow), "Pages must call the Core gate"],
+  [/browser:\s*\n[\s\S]*?uses:\s+\.\/\.github\/workflows\/ci-browser\.yml/u.test(pagesWorkflow), "Pages must call the Browser gate"],
+  [/build:\s*\n[\s\S]*?needs:\s*\[core,\s*browser\]/u.test(pagesWorkflow), "Pages artifact build must wait for Core and Browser"],
+  [/ref:\s+\$\{\{\s*github\.sha\s*\}\}/u.test(pagesWorkflow), "Pages must check out the triggering SHA"],
+  [/check-public-artifact\.mjs\s+--root site\s+--write-manifest/u.test(pagesWorkflow), "Pages must write and inspect its release manifest"],
+  [/needs\.build\.result\s*==\s*['"]success['"]/u.test(pagesWorkflow), "Pages deploy must require a successful artifact build"],
   [/actions\/upload-pages-artifact@[0-9a-f]{40}\s+#\s+v4/u.test(pagesWorkflow), "Pages artifact action is missing or not SHA-pinned"],
   [/actions\/deploy-pages@[0-9a-f]{40}\s+#\s+v4/u.test(pagesWorkflow), "Pages deploy action is missing or not SHA-pinned"],
+  [/workflow_call:/u.test(coreWorkflow), "Core must be callable as a release gate"],
+  [/workflow_call:/u.test(browserWorkflow), "Browser must be callable as a release gate"],
+  [/git rev-parse HEAD/u.test(coreWorkflow), "Core must verify its checked out SHA"],
+  [/git rev-parse HEAD/u.test(browserWorkflow), "Browser must verify its checked out SHA"],
   [pagesWorkflow.includes("- index.html"), "index.html must trigger Pages"],
   [pagesWorkflow.includes('- "styles/**"'), "styles must trigger Pages"],
   [pagesWorkflow.includes('- "src/**"'), "src must trigger Pages"],
   [pagesWorkflow.includes("- .github/workflows/pages.yml"), "Pages workflow changes must trigger Pages"],
   [pagesWorkflow.includes("- .github/workflows/public-release.yml"), "public smoke workflow changes must trigger Pages"],
+  [pagesWorkflow.includes("- .github/workflows/ci-core.yml"), "Core gate changes must trigger Pages"],
+  [pagesWorkflow.includes("- .github/workflows/ci-browser.yml"), "Browser gate changes must trigger Pages"],
   [pagesWorkflow.includes("- playwright.public.config.mjs"), "public smoke config changes must trigger Pages"],
   [pagesWorkflow.includes("- scripts/check-pages-source.mjs"), "Pages source check changes must trigger Pages"],
+  [pagesWorkflow.includes("- scripts/check-public-artifact.mjs"), "public artifact check changes must trigger Pages"],
   [pagesWorkflow.includes("- tests/e2e/m7-public-release.spec.mjs"), "public smoke test changes must trigger Pages"],
+  [publicArtifactChecker.includes("EXPECTED_RELEASE_SHA"), "public artifact must be bound to an expected SHA"],
+  [publicArtifactChecker.includes("artifactSha256"), "public artifact must carry a content digest"],
 ];
 
 const failures = checks.filter(([ok]) => !ok).map(([, message]) => message);
