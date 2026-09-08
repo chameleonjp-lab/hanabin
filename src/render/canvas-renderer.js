@@ -194,16 +194,6 @@ export class CanvasRenderer {
     }
     ctx.restore();
 
-    if (state?.upcomingWaves?.length) {
-      ctx.save();
-      ctx.globalAlpha = 0.26;
-      ctx.fillStyle = "#79e6ff";
-      ctx.font = `${Math.max(9, width / 100)}px sans-serif`;
-      ctx.textAlign = "right";
-      ctx.textBaseline = "bottom";
-      ctx.fillText("FIXED 60Hz / 16:9", width - 12, height - 10);
-      ctx.restore();
-    }
   }
 
   render(state, {

@@ -34,6 +34,23 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Set expected release SHA
+        id: release
+        env:
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          DISPATCH_SHA: ${{ github.sha }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            printf 'sha=%s\n' "$WORKFLOW_RUN_SHA" >> "$GITHUB_OUTPUT"
+          else
+            printf 'sha=%s\n' "$DISPATCH_SHA" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify checked out SHA
+        env:
+          EXPECTED_SHA: ${{ steps.release.outputs.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
       - name: Set up Node.js
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
@@ -44,6 +61,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/check-pages-source.mjs
+
+      - name: Verify the published artifact SHA and digest
+        env:
+          EXPECTED_RELEASE_SHA: ${{ steps.release.outputs.sha }}
+          PUBLIC_BASE_URL: https://chameleonjp-lab.github.io/hanabin/
+        run: node scripts/check-public-artifact.mjs
 
       - name: Install development dependencies
         run: npm ci

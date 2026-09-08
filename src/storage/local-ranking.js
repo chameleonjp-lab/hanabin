@@ -328,7 +328,15 @@ export const createRankingStore = (
     if (before.recordIds.includes(id) && !enumerated) {
       return { accepted: true, duplicate: true, persisted: !preferMemory, entries: list(), best: before.best };
     }
-    if (enumerated && listKeys(backend, `${entryPrefix}${keyPart(id)}`).length > 0) {
+    // Check the complete record key. A prefix scan would treat IDs such as
+    // `abc` and `abc-long` as duplicates and silently drop a valid run.
+    if (enumerated && (() => {
+      try {
+        return backend.getItem(`${entryPrefix}${keyPart(id)}`) !== null;
+      } catch {
+        return false;
+      }
+    })()) {
       const after = loadDocument();
       return { accepted: true, duplicate: true, persisted: !preferMemory, entries: list(), best: after.best };
     }
