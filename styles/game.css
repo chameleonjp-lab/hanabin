@@ -13,10 +13,7 @@
 }
 
 .game-app {
-  display: flex;
-  flex-direction: column;
   width: min(100%, 1180px);
-  min-height: 0;
   padding: clamp(16px, 3vw, 32px);
 }
 
@@ -323,18 +320,13 @@
 }
 
 .screen--practice {
-  flex: 1 1 auto;
   display: grid;
   justify-items: center;
   gap: 16px;
-  min-height: 0;
   max-width: 760px;
   margin-right: auto;
   margin-left: auto;
-  overflow-y: auto;
-  overscroll-behavior: contain;
   padding: clamp(24px, 5vw, 58px) clamp(16px, 5vw, 56px);
-  scrollbar-gutter: stable;
   border: 1px solid var(--game-border);
   border-radius: 24px;
   background:
@@ -1462,6 +1454,7 @@
 
 .app-shell[data-screen="play"] .game-app {
   display: flex;
+  flex-direction: column;
   width: 100%;
   max-width: none;
   height: 100%;
@@ -1514,6 +1507,7 @@
 
   .app-shell[data-screen="practice"] .game-app {
     display: flex;
+    flex-direction: column;
     width: 100%;
     max-width: none;
     height: 100%;
@@ -1533,6 +1527,7 @@
   .app-shell[data-screen="practice"] .screen--practice {
     align-content: start;
     flex: 1 1 auto;
+    min-height: 0;
     width: 100%;
     max-width: none;
     margin: 0;
@@ -1540,6 +1535,9 @@
     border: 0;
     border-radius: 0;
     background: transparent;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
   }
 
   /* Keep the primary practice action in the first visible row without
