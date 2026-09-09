@@ -6,7 +6,6 @@ import { SoundController } from "../audio/sound.js";
 import { detectPresentationExperience } from "../presentation/experience.js";
 import { createProfileStore, sanitizePlayerName } from "../storage/local-storage.js";
 import { createRankingStore } from "../storage/local-ranking.js";
-import { EXPERIMENT_URL } from "../config/release.js";
 import { GameSession } from "./session.js";
 import { PresentationEventTracker } from "./presentation-events.js";
 import { updateHud, updatePlayMessage } from "../ui/hud.js";
@@ -141,7 +140,6 @@ export class GameController {
     this.shareButton = root.querySelector("#share-button");
     this.shareStatus = root.querySelector("#share-status");
     this.resultStatus = root.querySelector("#result-status");
-    this.resultExperimentLink = root.querySelector("#result-experiment-link");
     this.startButton = root.querySelector("#start-button");
     this.practiceButton = root.querySelector("#practice-button");
     this.practiceHomeButton = root.querySelector("#practice-home");
@@ -265,9 +263,8 @@ export class GameController {
     const snapshot = this.renderer?.qualityController?.snapshot?.();
     if (!snapshot) return;
     const mode = snapshot.auto ? "自動調整" : "固定";
-    const device = snapshot.variant === "desktop" ? "PCリッチ演出" : "スマホ軽量演出";
     if (this.qualityActiveLabel) {
-      this.qualityActiveLabel.textContent = `${mode}：${QUALITY_LABELS[snapshot.level] ?? snapshot.level} / ${device}`;
+      this.qualityActiveLabel.textContent = `${mode}：${QUALITY_LABELS[snapshot.level] ?? snapshot.level}`;
     }
   }
 
@@ -528,7 +525,7 @@ export class GameController {
     this.root.dataset.phase = phase;
     this.transitions = this.screens.history();
     if (phase === "home") {
-      if (this.status) this.status.textContent = "静的ページの読み込みが完了しました";
+      if (this.status) this.status.textContent = "準備できました";
     } else if (phase === "countdown") {
       if (this.status) this.status.textContent = "開始準備中…";
     } else if (phase === "playing") {
@@ -738,7 +735,7 @@ export class GameController {
       this.screens.show("home", this.screens.phase);
       this.root.dataset.phase = "home";
       this.transitions = this.screens.history();
-      if (this.status) this.status.textContent = "静的ページの読み込みが完了しました";
+      if (this.status) this.status.textContent = "準備できました";
       this.render();
     }
     this.stopLoop();
@@ -886,16 +883,15 @@ export class GameController {
       isRetired: state.status === "retired",
       ranking: this.rankingStore.list(),
     });
-    if (this.resultExperimentLink) this.resultExperimentLink.href = EXPERIMENT_URL;
     if (this.resultStatus) this.resultStatus.dataset.retired = state.status === "retired" ? "true" : "false";
     const check = this.session.replayCheck;
     if (this.resultReplay) {
       this.resultReplay.dataset.fault = state.simulationFault ? "true" : "false";
       this.resultReplay.textContent = state.simulationFault
-        ? `このプレイは無効です（${state.simulationFault.code ?? "simulationFault"}）`
+        ? "このプレイは無効です"
         : state.status === "retired"
-          ? "リタイアしたため、入力記録とランキングには登録していません"
-        : check?.ok ? "入力記録の再生一致を確認しました" : "入力記録の検証に失敗しました";
+          ? "リタイアしたため、記録には残していません"
+        : check?.ok ? "プレイ結果を確認しました" : "プレイ結果を確認できませんでした";
     }
   }
 

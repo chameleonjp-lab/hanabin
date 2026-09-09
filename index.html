@@ -62,7 +62,7 @@
           <div class="profile-panel" aria-label="プレイヤー設定">
             <div class="profile-panel__heading">
               <span class="hud-label">PLAYER SETTINGS</span>
-              <span id="profile-best-label" class="profile-best-label">現ルールの端末内ベスト</span>
+              <span id="profile-best-label" class="profile-best-label">現在のルールでのベスト</span>
             </div>
             <label class="field-row" for="player-name">
               <span>名前（必須・12文字まで）</span>
@@ -85,7 +85,7 @@
               </label>
             </div>
             <p id="quality-active-label" class="quality-active-label">自動調整：高</p>
-            <div class="profile-best" aria-label="端末内ベスト記録">
+            <div class="profile-best" aria-label="自己ベスト記録">
               <span>SCORE <strong id="home-best-score">0</strong></span>
               <span>CHAIN <strong id="home-best-chain">0</strong></span>
             </div>
@@ -248,6 +248,10 @@
             <div><span>連鎖捕捉</span><strong id="result-chain-targets">0</strong></div>
             <div><span>予告成功</span><strong id="result-forecast-successes">0</strong></div>
           </div>
+          <div class="result-actions">
+            <button id="retry-button" class="primary-button" type="button">もう一度遊ぶ</button>
+            <button id="home-button" class="secondary-button" type="button">ホームへ戻る</button>
+          </div>
           <details class="result-breakdown" open>
             <summary>得点内訳</summary>
             <dl>
@@ -261,31 +265,22 @@
             </dl>
           </details>
           <p id="result-best-mark" class="result-best-mark" hidden>自己ベスト更新</p>
-          <div class="result-record"><span>端末内ベスト</span><strong><span id="result-best-score">0</span> / 連鎖 <span id="result-best-chain">0</span></strong></div>
-          <p id="result-replay" class="result-replay" role="status">入力記録を検証しています…</p>
+          <div class="result-record"><span>自己ベスト</span><strong><span id="result-best-score">0</span> / 連鎖 <span id="result-best-chain">0</span></strong></div>
+          <p id="result-replay" class="result-replay" role="status">プレイ結果を確認しています…</p>
           <p id="result-hint" class="result-hint">次の波の予告を使ってみましょう。</p>
           <section class="result-ranking" aria-labelledby="result-ranking-title">
             <div class="result-ranking__heading">
-              <h3 id="result-ranking-title">この端末のランキング TOP10</h3>
+              <h3 id="result-ranking-title">ランキング TOP10</h3>
               <span>スコア / 最大連鎖</span>
             </div>
             <ol id="result-ranking-list" class="result-ranking__list"></ol>
-            <p id="result-ranking-note" class="result-ranking__note">オンラインランキングは準備中です。ここではこの端末の記録だけを表示します。</p>
+            <p id="result-ranking-note" class="result-ranking__note">あなたの記録を表示しています。</p>
           </section>
           <div class="share-panel">
             <button id="share-button" class="secondary-button" type="button">結果を共有</button>
             <p id="share-status" class="share-status" role="status" aria-live="polite"></p>
           </div>
-          <div class="result-actions">
-            <button id="retry-button" class="primary-button" type="button">もう一度遊ぶ</button>
-            <button id="home-button" class="secondary-button" type="button">ホームへ戻る</button>
-            <a id="result-experiment-link" class="secondary-button result-experiment-link" href="#" target="_blank" rel="noopener noreferrer">実験場へ</a>
-          </div>
         </section>
-
-        <p class="notice" id="m7-notice">
-          スマホは縦・横画面に対応しています。PCはマウスで押しながらつなぎます。PCはリッチ演出、スマホは負荷を抑えた演出です。音は初期状態で無効です。
-        </p>
       </section>
     </main>
 

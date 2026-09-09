@@ -105,6 +105,38 @@ test("M6 first practice can be skipped and then starts the real game", async ({ 
   });
 });
 
+test("M6 portrait keeps practice start and the play board inside the fixed viewport", async ({ page }) => {
+  await openPage(page, { width: 393, height: 852 });
+  await page.locator("#start-button").click();
+
+  const startBox = await page.locator("#practice-start").boundingBox();
+  expect(startBox).not.toBeNull();
+  expect(startBox.y).toBeGreaterThanOrEqual(0);
+  expect(startBox.y + startBox.height).toBeLessThanOrEqual(852);
+  const practiceScroll = await page.evaluate(() => ({
+    viewport: document.documentElement.clientHeight,
+    documentHeight: document.documentElement.scrollHeight,
+    scrollTop: document.scrollingElement?.scrollTop ?? 0,
+  }));
+  expect(practiceScroll.documentHeight).toBeLessThanOrEqual(practiceScroll.viewport);
+  expect(practiceScroll.scrollTop).toBe(0);
+
+  await page.locator("#practice-skip").click();
+  await callApi(page, "advanceTicks", 1);
+  const frame = await page.locator("#game-frame").boundingBox();
+  expect(frame).not.toBeNull();
+  expect(frame.y).toBeGreaterThanOrEqual(-1);
+  expect(frame.y + frame.height).toBeLessThanOrEqual(853);
+  expect(frame.width / frame.height).toBeCloseTo(9 / 16, 2);
+  const playScroll = await page.evaluate(() => ({
+    viewport: document.documentElement.clientHeight,
+    documentHeight: document.documentElement.scrollHeight,
+    scrollTop: document.scrollingElement?.scrollTop ?? 0,
+  }));
+  expect(playScroll.documentHeight).toBeLessThanOrEqual(playScroll.viewport);
+  expect(playScroll.scrollTop).toBe(0);
+});
+
 test("M6 first practice teaches basic selection and then a real nearby chain", async ({ page }) => {
   await openPage(page);
   await page.locator("#start-button").click();
@@ -272,24 +304,22 @@ test("M6 pause menu freezes ticks, explains rules, and supports retire", async (
   await page.locator("#pause-retire-button").click();
   await expect(page.locator("#result-screen")).toBeVisible();
   await expect(page.locator("#result-status")).toHaveText("リタイアしました");
-  await expect(page.locator("#result-replay")).toContainText("ランキングには登録していません");
+  await expect(page.locator("#result-replay")).toContainText("記録には残していません");
 });
 
-test("M6 result exposes home, experiment, and local top-ten ranking routes", async ({ page }) => {
+test("M6 result keeps the home route and local top-ten ranking visible", async ({ page }) => {
   await openPage(page);
   await beginPlaying(page);
   await expect(page.locator("#hud-choice-count")).toHaveText(/^[4-9][0-9]*$/);
   await expect(page.locator("#hud-choice-count")).toHaveAttribute("data-guaranteed", "true");
   await callApi(page, "settleTerminal");
   await expect(page.locator("#result-screen")).toBeVisible();
-  await expect(page.locator("#result-home")).toHaveCount(0);
   await expect(page.locator("#home-button")).toBeVisible();
-  await expect(page.locator("#result-experiment-link")).toHaveAttribute(
-    "href",
-    "https://chameleonjp-lab.github.io/chameleonjp_lab/",
-  );
+  await expect(page.locator("#result-experiment-link")).toHaveCount(0);
   await expect(page.locator("#result-ranking-list li")).toHaveCount(1);
   await expect(page.locator("#result-ranking-list")).toContainText("M6テスト");
+  await page.locator("#home-button").click();
+  await expect(page.locator("#home-screen")).toBeVisible();
 });
 
 test("M6 practice safely stops and clears progress on page lifecycle interruption", async ({ page }) => {

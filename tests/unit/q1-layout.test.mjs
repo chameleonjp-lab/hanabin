@@ -3,8 +3,30 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 const gameStyles = readFileSync(new URL("../../styles/game.css", import.meta.url), "utf8");
+const baseStyles = readFileSync(new URL("../../styles/base.css", import.meta.url), "utf8");
+const html = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
 const playableE2E = readFileSync(new URL("../e2e/m3-playable.spec.mjs", import.meta.url), "utf8");
 const productShellE2E = readFileSync(new URL("../e2e/m6-product-shell.spec.mjs", import.meta.url), "utf8");
+
+test("the document stays fixed while long panels own their own scroll", () => {
+  assert.match(baseStyles, /html\s*\{[\s\S]*height:\s*100%[\s\S]*overflow-y:\s*hidden/);
+  assert.match(baseStyles, /body\s*\{[\s\S]*height:\s*100%[\s\S]*overflow-y:\s*hidden/);
+  assert.match(baseStyles, /\.app-shell\s*\{[\s\S]*height:\s*100%[\s\S]*overflow:\s*hidden/);
+  assert.match(gameStyles, /\.screen--home,[\s\S]*\.screen--result\s*\{[\s\S]*overflow-y:\s*auto/);
+  assert.match(gameStyles, /\.screen--practice\s*\{[\s\S]*overflow-y:\s*auto/);
+});
+
+test("mobile play and practice layouts reserve visible action space", () => {
+  const practiceActionIndex = html.indexOf('<div class="practice-actions">');
+  const practiceBoardIndex = html.indexOf('id="practice-board"');
+  const resultActionIndex = html.indexOf('<div class="result-actions">');
+  const resultBreakdownIndex = html.indexOf('class="result-breakdown"');
+  assert.ok(practiceActionIndex >= 0 && practiceBoardIndex >= 0 && practiceActionIndex > practiceBoardIndex);
+  assert.match(gameStyles, /grid-template-areas:[\s\S]*"actions"[\s\S]*"kicker"[\s\S]*"title"[\s\S]*"stage"[\s\S]*"message"[\s\S]*"value"[\s\S]*"board"[\s\S]*"steps"/);
+  assert.ok(resultActionIndex >= 0 && resultActionIndex < resultBreakdownIndex);
+  assert.match(gameStyles, /grid-template-areas:[\s\S]*"score time combo"[\s\S]*"selection selection selection"[\s\S]*"blast blast choices"[\s\S]*"forecast forecast forecast"/);
+  assert.match(gameStyles, /#practice-start,[\s\S]*#practice-continue\s*\{[\s\S]*grid-column:\s*1\s*\/\s*-1/);
+});
 
 test("portrait play frame derives its height from one shared aspect-ratio budget", () => {
   const portraitStart = gameStyles.indexOf("@media (orientation: portrait)");

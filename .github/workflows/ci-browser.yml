@@ -24,7 +24,15 @@ jobs:
       - name: Install development dependencies
         run: npm ci
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium webkit
+        run: |
+          # The hosted image includes a stale Google Chrome APT index on some
+          # days. Playwright does not need that third-party repository, and a
+          # mismatched index prevents its Ubuntu dependency install entirely.
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.sources
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          npx playwright install --with-deps chromium webkit
       - name: Run browser tests
         run: npm run test:browser
       - name: Upload Playwright report on failure
