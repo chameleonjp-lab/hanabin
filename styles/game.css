@@ -1310,7 +1310,6 @@
   }
 
   .app-shell[data-screen="practice"] .game-header,
-  .app-shell[data-screen="practice"] #orientation-guide,
   .app-shell[data-screen="practice"] .notice {
     display: none;
   }
@@ -1433,7 +1432,6 @@
   }
 
   .app-shell[data-screen="play"] .game-header,
-  .app-shell[data-screen="play"] #orientation-guide,
   .app-shell[data-screen="play"] .notice,
   .app-shell[data-screen="play"] .play-instruction {
     display: none;
@@ -1476,7 +1474,6 @@
 }
 
 .app-shell[data-screen="play"] .game-header,
-.app-shell[data-screen="play"] #orientation-guide,
 .app-shell[data-screen="play"] .notice,
 .app-shell[data-screen="play"] .play-instruction {
   display: none;
@@ -1529,7 +1526,6 @@
   }
 
   .app-shell[data-screen="practice"] .game-header,
-  .app-shell[data-screen="practice"] #orientation-guide,
   .app-shell[data-screen="practice"] .notice {
     display: none;
   }
@@ -1545,6 +1541,29 @@
     border-radius: 0;
     background: transparent;
   }
+
+  /* Keep the primary practice action in the first visible row without
+     changing the DOM order used by the landscape board. */
+  .app-shell[data-screen="practice"] .screen--practice {
+    grid-template-areas:
+      "actions"
+      "kicker"
+      "title"
+      "stage"
+      "message"
+      "value"
+      "board"
+      "steps";
+  }
+
+  .app-shell[data-screen="practice"] .home-kicker { grid-area: kicker; }
+  .app-shell[data-screen="practice"] .screen--practice h2 { grid-area: title; }
+  .app-shell[data-screen="practice"] .practice-stage-label { grid-area: stage; }
+  .app-shell[data-screen="practice"] .practice-message { grid-area: message; }
+  .app-shell[data-screen="practice"] .practice-value { grid-area: value; }
+  .app-shell[data-screen="practice"] .practice-board { grid-area: board; }
+  .app-shell[data-screen="practice"] .practice-steps { grid-area: steps; }
+  .app-shell[data-screen="practice"] .practice-actions { grid-area: actions; }
 
   .app-shell[data-screen="practice"] .practice-actions {
     position: sticky;
@@ -1606,5 +1625,36 @@
     width: 100%;
     padding: 6px 0 8px;
     background: linear-gradient(180deg, rgba(7, 12, 29, 0.98) 72%, rgba(7, 12, 29, 0));
+  }
+}
+
+/* Portrait guidance is a fixed, non-interactive strip so it never consumes a
+   grid row or pushes the board and actions below the fold. */
+@media (orientation: portrait) {
+  #orientation-guide {
+    position: fixed;
+    top: max(8px, var(--safe-top));
+    right: max(8px, var(--safe-right));
+    left: max(8px, var(--safe-left));
+    z-index: 8;
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 7px 10px;
+    font-size: 0.72rem;
+    line-height: 1.35;
+    pointer-events: none;
+  }
+
+  .app-shell[data-screen="play"] #orientation-guide {
+    right: calc(max(8px, var(--safe-right)) + 124px);
+    left: max(8px, var(--safe-left));
+  }
+
+  .app-shell[data-screen="play"] .game-hud {
+    top: 78px;
+  }
+
+  .app-shell[data-screen="practice"] .screen--practice {
+    padding-top: 78px;
   }
 }

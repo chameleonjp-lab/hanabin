@@ -21,7 +21,8 @@ test("mobile play and practice layouts reserve visible action space", () => {
   const practiceBoardIndex = html.indexOf('id="practice-board"');
   const resultActionIndex = html.indexOf('<div class="result-actions">');
   const resultBreakdownIndex = html.indexOf('class="result-breakdown"');
-  assert.ok(practiceActionIndex >= 0 && practiceActionIndex < practiceBoardIndex);
+  assert.ok(practiceActionIndex >= 0 && practiceBoardIndex >= 0 && practiceActionIndex > practiceBoardIndex);
+  assert.match(gameStyles, /grid-template-areas:[\s\S]*"actions"[\s\S]*"kicker"[\s\S]*"title"[\s\S]*"stage"[\s\S]*"message"[\s\S]*"value"[\s\S]*"board"[\s\S]*"steps"/);
   assert.ok(resultActionIndex >= 0 && resultActionIndex < resultBreakdownIndex);
   assert.match(gameStyles, /grid-template-areas:[\s\S]*"score time combo"[\s\S]*"selection selection selection"[\s\S]*"blast blast choices"[\s\S]*"forecast forecast forecast"/);
   assert.match(gameStyles, /#practice-start,[\s\S]*#practice-continue\s*\{[\s\S]*grid-column:\s*1\s*\/\s*-1/);
