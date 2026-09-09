@@ -23,7 +23,7 @@ try {
 
   // Preserve M1's clean-load contract on the home screen. Gameplay phases
   // replace this status with their own short status text.
-  status.textContent = "静的ページの読み込みが完了しました";
+  status.textContent = "準備できました";
   app.dataset.state = "home";
   app.dataset.screen = "home";
   errorPanel.hidden = true;

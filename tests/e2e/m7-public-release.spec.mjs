@@ -51,7 +51,7 @@ test("published Pages reaches the result screen through the real terminal flow",
   await expect(page.locator("#result-screen")).toBeVisible({ timeout: 90_000 });
   await expect(page.locator("#result-score")).toBeVisible();
   await expect(page.locator("#result-chain")).toBeVisible();
-  await expect(page.locator("#result-replay")).toContainText("入力記録の再生一致を確認しました");
+  await expect(page.locator("#result-replay")).toContainText("プレイ結果を確認しました");
   await expect(page.locator("#app")).toHaveAttribute("data-result-entries", "1");
 
   assertClean(diagnostics);

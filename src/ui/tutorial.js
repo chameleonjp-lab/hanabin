@@ -959,6 +959,7 @@ export class TutorialController {
 
     const boardState = this.state;
     const interactionAllowed = this.isInteractionAllowed();
+    if (this.element?.dataset) this.element.dataset.practiceState = boardState;
     if (this.boardElement) this.boardElement.dataset.practiceState = boardState;
     canvas.dataset.practiceState = boardState;
     canvas.dataset.practiceStage = String(this.stage);

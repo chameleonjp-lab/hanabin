@@ -31,19 +31,24 @@ button,
 
 html {
   min-width: 0;
+  height: 100%;
   min-height: 100vh;
   min-height: 100dvh;
   overflow-x: hidden;
+  overflow-y: hidden;
+  overscroll-behavior: none;
   background: var(--bg);
 }
 
 body {
   min-width: 0;
+  height: 100%;
   min-height: 100vh;
   min-height: 100dvh;
   margin: 0;
   overflow-x: hidden;
-  overscroll-behavior-x: none;
+  overflow-y: hidden;
+  overscroll-behavior: none;
   background:
     radial-gradient(circle at 50% 0%, rgba(55, 104, 178, 0.22), transparent 48%),
     var(--bg);
@@ -59,16 +64,21 @@ select {
 
 .app-shell {
   display: grid;
+  height: 100%;
   min-height: calc(100vh - var(--safe-top) - var(--safe-bottom));
   min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
   min-width: 0;
+  max-height: 100%;
+  overflow: hidden;
   place-items: center;
   padding: clamp(16px, 5vw, 48px);
 }
 
 .app-card {
   width: min(100%, 920px);
+  max-height: 100%;
   min-width: 0;
+  overflow: hidden;
   padding: clamp(20px, 5vw, 48px);
   border: 1px solid rgba(155, 186, 255, 0.18);
   border-radius: 24px;

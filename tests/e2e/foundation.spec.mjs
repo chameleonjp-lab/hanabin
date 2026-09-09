@@ -40,7 +40,7 @@ test("loads cleanly in the 667x375 landscape viewport", async ({ page }) => {
   await page.setViewportSize({ width: 667, height: 375 });
   const diagnostics = await openAndTrack(page, "/");
 
-  await expect(page.locator("#app-status")).toHaveText("静的ページの読み込みが完了しました");
+  await expect(page.locator("#app-status")).toHaveText("準備できました");
   await expect(page.locator("#app-error")).toBeHidden();
   await assertNoHorizontalOverflow(page);
   assertCleanPage(diagnostics);
@@ -51,7 +51,7 @@ test("loads cleanly in the 375x667 portrait viewport", async ({ page }) => {
   const diagnostics = await openAndTrack(page, "/");
 
   await expect(page.locator("#orientation-guide")).toBeVisible();
-  await expect(page.locator("#app-status")).toHaveText("静的ページの読み込みが完了しました");
+  await expect(page.locator("#app-status")).toHaveText("準備できました");
   await assertNoHorizontalOverflow(page);
   assertCleanPage(diagnostics);
 });
@@ -60,7 +60,7 @@ test("loads from the GitHub Pages-style /hanabin/ subpath", async ({ page }) => 
   await page.setViewportSize({ width: 667, height: 375 });
   const diagnostics = await openAndTrack(page, "/hanabin/");
 
-  await expect(page.locator("#app-status")).toHaveText("静的ページの読み込みが完了しました");
+  await expect(page.locator("#app-status")).toHaveText("準備できました");
   await assertNoHorizontalOverflow(page);
   assertCleanPage(diagnostics);
 });

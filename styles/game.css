@@ -13,7 +13,10 @@
 }
 
 .game-app {
+  display: flex;
+  flex-direction: column;
   width: min(100%, 1180px);
+  min-height: 0;
   padding: clamp(16px, 3vw, 32px);
 }
 
@@ -41,19 +44,25 @@
 
 .screen {
   width: 100%;
+  min-height: 0;
   min-width: 0;
   margin-top: clamp(18px, 3vw, 30px);
 }
 
 .screen--home,
 .screen--result {
+  flex: 1 1 auto;
   display: grid;
   justify-items: center;
   gap: 20px;
+  min-height: 0;
   max-width: 760px;
   margin-right: auto;
   margin-left: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: clamp(24px, 5vw, 58px) clamp(16px, 5vw, 56px);
+  scrollbar-gutter: stable;
   border: 1px solid var(--game-border);
   border-radius: 24px;
   background:
@@ -314,13 +323,18 @@
 }
 
 .screen--practice {
+  flex: 1 1 auto;
   display: grid;
   justify-items: center;
   gap: 16px;
+  min-height: 0;
   max-width: 760px;
   margin-right: auto;
   margin-left: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: clamp(24px, 5vw, 58px) clamp(16px, 5vw, 56px);
+  scrollbar-gutter: stable;
   border: 1px solid var(--game-border);
   border-radius: 24px;
   background:
@@ -625,6 +639,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;
   min-height: 22px;
   padding: 2px 5px;
   border: 1px solid transparent;
@@ -1074,6 +1089,68 @@
     gap: 4px;
   }
 
+  /* The narrow HUD is a fixed four-row tray. Every item gets one grid cell,
+     so the pause target and the forecast never compete for the same pixels. */
+  .game-hud {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "score time combo"
+      "selection selection selection"
+      "blast blast choices"
+      "forecast forecast forecast";
+    align-items: stretch;
+    gap: 5px;
+    padding: 6px;
+    border: 1px solid rgba(146, 188, 255, 0.18);
+    border-radius: 14px;
+    background: rgba(5, 10, 27, 0.62);
+    backdrop-filter: blur(8px);
+  }
+
+  .game-hud > .hud-pill,
+  .game-hud > .hud-forecast {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .hud-pill--score { grid-area: score; }
+  .hud-pill--time { grid-area: time; }
+  .hud-pill--combo { grid-area: combo; }
+  .hud-pill--selection { grid-area: selection; }
+  .hud-pill--blast { grid-area: blast; }
+  .hud-pill--choices { grid-area: choices; }
+  .hud-forecast {
+    grid-area: forecast;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+
+  #hud-forecast-items {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .forecast-item {
+    flex-wrap: wrap;
+    align-content: center;
+    overflow: hidden;
+  }
+
+  .forecast-item .forecast-position,
+  .forecast-item .forecast-arrival {
+    white-space: nowrap;
+  }
+
+  .forecast-item .forecast-cue {
+    flex: 1 0 100%;
+    overflow: hidden;
+    text-align: left;
+    text-overflow: ellipsis;
+  }
+
   .hud-pill--selection {
     margin-left: 0;
   }
@@ -1101,6 +1178,16 @@
   .hud-forecast {
     overflow: hidden;
     white-space: normal;
+  }
+
+  .game-hud {
+    gap: 4px;
+    padding: 5px;
+  }
+
+  .hud-pill {
+    padding-right: 5px;
+    padding-left: 5px;
   }
 
   .hud-forecast .hud-label {
@@ -1362,5 +1449,162 @@
     aspect-ratio: 16 / 9;
     max-width: none;
     margin: 0 auto;
+  }
+}
+
+/* A running game owns the visual viewport. The page itself never scrolls;
+   only the home, practice, and result panels can scroll when their copy is
+   longer than a small device. */
+.app-shell[data-screen="play"] {
+  height: 100%;
+  min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+  padding: 0;
+  place-items: stretch;
+}
+
+.app-shell[data-screen="play"] .game-app {
+  display: flex;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.app-shell[data-screen="play"] .game-header,
+.app-shell[data-screen="play"] #orientation-guide,
+.app-shell[data-screen="play"] .notice,
+.app-shell[data-screen="play"] .play-instruction {
+  display: none;
+}
+
+.app-shell[data-screen="play"] .screen--play {
+  display: grid;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  place-items: center;
+}
+
+.app-shell[data-screen="play"] .game-frame {
+  width: min(100%, calc((100dvh - var(--safe-top) - var(--safe-bottom) - 16px) * 16 / 9));
+  height: auto;
+  max-width: 1120px;
+  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 16px);
+  margin: 0 auto;
+  aspect-ratio: 16 / 9;
+}
+
+@media (orientation: portrait) {
+  .app-shell[data-screen="play"] .game-frame {
+    width: min(100%, calc((100dvh - var(--safe-top) - var(--safe-bottom) - 16px) * 9 / 16));
+    aspect-ratio: 9 / 16;
+  }
+}
+
+@media (orientation: portrait) and (max-width: 720px) {
+  .app-shell[data-screen="practice"] {
+    height: 100%;
+    min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+    padding: 0;
+    place-items: stretch;
+  }
+
+  .app-shell[data-screen="practice"] .game-app {
+    display: flex;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .app-shell[data-screen="practice"] .game-header,
+  .app-shell[data-screen="practice"] #orientation-guide,
+  .app-shell[data-screen="practice"] .notice {
+    display: none;
+  }
+
+  .app-shell[data-screen="practice"] .screen--practice {
+    align-content: start;
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 10px 10px max(12px, var(--safe-bottom));
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .app-shell[data-screen="practice"] .practice-actions {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 7px;
+    padding: 6px 0 8px;
+    background: linear-gradient(180deg, rgba(8, 11, 24, 0.98) 72%, rgba(8, 11, 24, 0));
+  }
+
+  .app-shell[data-screen="practice"] .practice-actions #practice-start,
+  .app-shell[data-screen="practice"] .practice-actions #practice-continue {
+    grid-column: 1 / -1;
+  }
+
+  .app-shell[data-screen="practice"] .practice-actions button {
+    min-height: 44px;
+    min-width: 0;
+    padding: 8px 7px;
+    font-size: 0.78rem;
+  }
+
+  .app-shell[data-screen="practice"] .practice-value {
+    min-width: 100px;
+    min-height: 52px;
+  }
+
+  .app-shell[data-screen="practice"] .practice-value strong {
+    font-size: 1.7rem;
+  }
+
+  .app-shell[data-screen="practice"] .practice-board {
+    width: auto;
+    height: min(calc(100dvh - var(--safe-top) - var(--safe-bottom) - 182px), 640px);
+    max-width: 100%;
+    aspect-ratio: 9 / 16;
+    justify-self: center;
+  }
+
+  .app-shell[data-screen="practice"] .practice-message {
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
+
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="running"] .practice-steps,
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="stage-transition"] .practice-steps {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .screen--result .result-actions {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    width: 100%;
+    padding: 6px 0 8px;
+    background: linear-gradient(180deg, rgba(7, 12, 29, 0.98) 72%, rgba(7, 12, 29, 0));
   }
 }
