@@ -207,6 +207,45 @@ test("touch, mouse, and pen input all use the exact pointer position", () => {
   });
 });
 
+test("Touch Events keep the gesture usable when Pointer Events are unavailable", () => {
+  withBrowserGlobals(() => {
+    const element = makeEventTarget({ width: 200, height: 100 });
+    const controller = new PointerController(element);
+    const touch = (identifier, clientX, clientY) => ({ identifier, clientX, clientY });
+
+    const start = element.dispatch("touchstart", {
+      changedTouches: [touch(7, 100, 50)],
+      touches: [touch(7, 100, 50)],
+    });
+    assert.equal(start.defaultPrevented, true);
+    assert.equal(controller.pressed, true);
+    assert.equal(controller.position.pointerId, 1_000_007);
+
+    const move = element.dispatch("touchmove", {
+      changedTouches: [touch(7, 120, 60)],
+      touches: [touch(7, 120, 60)],
+    });
+    assert.equal(move.defaultPrevented, true);
+    assert.equal(controller.position.x, 9_600);
+    assert.equal(controller.position.y, 5_400);
+
+    element.dispatch("touchend", {
+      changedTouches: [touch(8, 40, 20)],
+      touches: [touch(7, 120, 60)],
+    });
+    assert.equal(controller.pressed, true);
+
+    const end = element.dispatch("touchend", {
+      changedTouches: [touch(7, 120, 60)],
+      touches: [],
+    });
+    assert.equal(end.defaultPrevented, true);
+    assert.equal(controller.pressed, false);
+    assert.equal(controller.activePointerId, null);
+    controller.destroy();
+  });
+});
+
 test("clientToBoard returns null for a zero or invalid rect", () => {
   assert.equal(clientToBoard(10, 10, { left: 0, top: 0, width: 0, height: 100 }), null);
   assert.equal(clientToBoard(10, 10, { left: 0, top: 0, width: 100, height: 0 }), null);
