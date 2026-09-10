@@ -160,6 +160,43 @@ test("M6 failed Safari-style storage reads and writes preserve in-memory updates
   assert.equal(afterReadFailure.name, "保存済み");
 });
 
+test("profile best updates compare the latest persisted value before saving", () => {
+  const storage = fakeStorage();
+  const oldTab = createProfileStore(storage, "shared-profile");
+  const newTab = createProfileStore(storage, "shared-profile");
+
+  oldTab.save({
+    name: "古い画面",
+    bestScore: 0,
+    bestChain: 0,
+    bestRuleVersion: "m4-gameplay-3",
+  });
+  newTab.updateBest({ score: 10_000, maxChain: 8, ruleVersion: "m4-gameplay-3" });
+
+  const afterOldTabFinishes = oldTab.updateBest({
+    score: 0,
+    maxChain: 0,
+    ruleVersion: "m4-gameplay-3",
+  });
+
+  assert.equal(afterOldTabFinishes.bestScore, 10_000);
+  assert.equal(afterOldTabFinishes.bestChain, 8);
+  assert.equal(createProfileStore(storage, "shared-profile").load().bestScore, 10_000);
+
+  const staleRuleTab = createProfileStore(storage, "shared-profile");
+  const currentRuleProfile = staleRuleTab.updateBest({
+    score: 11_000,
+    maxChain: 9,
+    ruleVersion: "m4-gameplay-3",
+  });
+  assert.equal(currentRuleProfile.bestScore, 11_000);
+  assert.deepEqual(staleRuleTab.updateBest({
+    score: 99_999,
+    maxChain: 99,
+    ruleVersion: "m4-gameplay-1",
+  }), currentRuleProfile);
+});
+
 test("M6 result hint is one deterministic sentence and share URL is last", () => {
   const state = { score: 2_000, stats: { maxChain: 2, directTargets: 9, chainTargets: 1 } };
   const hint = resultHintFor(state);

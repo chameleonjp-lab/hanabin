@@ -552,6 +552,7 @@ test("M3 landscape-to-landscape orientationchange interrupts once and resumes", 
   const before = await callApi(page, "snapshot");
   await page.evaluate(() => window.dispatchEvent(new Event("orientationchange")));
   await expect(page.locator("#orientation-guide")).toBeHidden();
+  expect((await callApi(page, "renderModel")).clock.paused).toBe(false);
   await callApi(page, "advanceTicks", 1);
   const after = await callApi(page, "snapshot");
   expect(after.actionCount).toBe(before.actionCount + 1);
@@ -560,6 +561,25 @@ test("M3 landscape-to-landscape orientationchange interrupts once and resumes", 
   const following = await callApi(page, "snapshot");
   expect(following.actionCount).toBe(before.actionCount + 2);
   expect(following.inputFrames.filter((frame) => frame.interrupted === true)).toHaveLength(1);
+  assertClean(diagnostics);
+});
+
+test("M3 landscape-to-landscape rotation does not resume an explicitly paused game", async ({ page }) => {
+  const diagnostics = await openPage(page, viewports[1]);
+  await beginPlaying(page);
+  await callApi(page, "pause");
+  expect((await callApi(page, "renderModel")).clock).toMatchObject({
+    paused: true,
+    userPaused: true,
+  });
+
+  await page.evaluate(() => window.dispatchEvent(new Event("orientationchange")));
+  expect((await callApi(page, "renderModel")).clock).toMatchObject({
+    paused: true,
+    userPaused: true,
+  });
+  await callApi(page, "resume");
+  expect((await callApi(page, "renderModel")).clock.paused).toBe(false);
   assertClean(diagnostics);
 });
 

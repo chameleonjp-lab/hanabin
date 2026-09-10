@@ -73,6 +73,19 @@ const practicePoints = async (canvas) => {
   });
 };
 
+const practiceTargetCenters = async (canvas) => {
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  const orientation = await canvas.getAttribute("data-orientation");
+  const encodedTargets = await canvas.getAttribute("data-practice-targets");
+  return encodedTargets.split("|").map((value) => {
+    const [x, y] = value.split(",").map(Number);
+    return orientation === "portrait"
+      ? { x: box.x + (1 - y) * box.width, y: box.y + x * box.height }
+      : { x: box.x + x * box.width, y: box.y + y * box.height };
+  });
+};
+
 const dispatchPracticePointer = (page, type, {
   pointerId,
   clientX,
@@ -136,6 +149,43 @@ test("M6 portrait keeps practice start and the play board inside the fixed viewp
   expect(playScroll.documentHeight).toBeLessThanOrEqual(playScroll.viewport);
   expect(playScroll.scrollTop).toBe(0);
 });
+
+for (const viewport of [
+  { name: "402x874 portrait", width: 402, height: 874 },
+  { name: "402x780 portrait", width: 402, height: 780 },
+  { name: "402x700 portrait", width: 402, height: 700 },
+  { name: "390x664 portrait", width: 390, height: 664 },
+  { name: "320x568 portrait", width: 320, height: 568 },
+  { name: "874x402 landscape", width: 874, height: 402 },
+]) {
+  test(`HBA-03 practice targets are visible without scrolling at ${viewport.name}`, async ({ page }) => {
+    await openPage(page, viewport);
+    await page.locator("#start-button").click();
+    await page.locator("#practice-start").click();
+    const canvas = page.locator("#practice-canvas");
+    await expect(canvas).toHaveAttribute("data-practice-state", "running");
+
+    const boardBox = await canvas.boundingBox();
+    expect(boardBox).not.toBeNull();
+    expect(boardBox.y).toBeGreaterThanOrEqual(0);
+    expect(boardBox.y + boardBox.height).toBeLessThanOrEqual(viewport.height);
+    const centers = await practiceTargetCenters(canvas);
+    expect(centers).toHaveLength(3);
+    for (const center of centers) {
+      expect(center.x).toBeGreaterThanOrEqual(0);
+      expect(center.x).toBeLessThanOrEqual(viewport.width);
+      expect(center.y).toBeGreaterThanOrEqual(0);
+      expect(center.y).toBeLessThanOrEqual(viewport.height);
+    }
+    const scroll = await page.evaluate(() => ({
+      viewport: document.documentElement.clientHeight,
+      documentHeight: document.documentElement.scrollHeight,
+      scrollTop: document.scrollingElement?.scrollTop ?? 0,
+    }));
+    expect(scroll.documentHeight).toBeLessThanOrEqual(scroll.viewport);
+    expect(scroll.scrollTop).toBe(0);
+  });
+}
 
 test("M6 first practice teaches basic selection and then a real nearby chain", async ({ page }) => {
   await openPage(page);
@@ -453,6 +503,35 @@ test("M6 profile name is rendered as text, best record is saved, and share URL i
   await page.locator("#home-button").click();
   await expect(page.locator("#home-best-score")).not.toHaveText("0");
   expect((await callApi(page, "profile")).bestScore).toBeGreaterThan(0);
+});
+
+test("HBA-02 an older tab cannot lower the latest same-rule best", async ({ page, context }) => {
+  await openPage(page);
+  await page.locator("#start-button").click();
+  await page.locator("#practice-skip").click();
+  await callApi(page, "advanceTicks", 1);
+
+  const newerTab = await context.newPage();
+  await newerTab.goto("/?e2e=1");
+  await newerTab.evaluate(() => {
+    const current = JSON.parse(localStorage.getItem("hanabin:profile:v1") ?? "{}");
+    localStorage.setItem("hanabin:profile:v1", JSON.stringify({
+      ...current,
+      bestScore: 10_000,
+      bestChain: 8,
+      bestRuleVersion: "m4-gameplay-3",
+    }));
+  });
+
+  await callApi(page, "advanceTicks", 3_600);
+  await callApi(page, "settleTerminal");
+  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem("hanabin:profile:v1")));
+  expect(persisted).toMatchObject({
+    bestScore: 10_000,
+    bestChain: 8,
+    bestRuleVersion: "m4-gameplay-3",
+  });
+  await newerTab.close();
 });
 
 test("M6 damaged local profile data does not block startup", async ({ page }) => {

@@ -1653,6 +1653,69 @@
   }
 
   .app-shell[data-screen="practice"] .screen--practice {
-    padding-top: 78px;
+    padding-top: calc(max(42px, var(--safe-top)) + 34px);
+  }
+}
+
+/* While the practice is active, the board is the task. The explanatory
+   heading and step cards have already done their job, so give the remaining
+   viewport height to the real input surface. This keeps every target in the
+   first frame even on short portrait displays. */
+@media (orientation: portrait) and (max-width: 720px) {
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="running"],
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="stage-transition"] {
+    grid-template-areas:
+      "actions"
+      "stage"
+      "message"
+      "value"
+      "board";
+    grid-template-rows: auto auto auto auto minmax(0, 1fr);
+    align-content: stretch;
+    gap: 5px;
+    overflow: hidden;
+  }
+
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="running"] .home-kicker,
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="running"] h2,
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="stage-transition"] .home-kicker,
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="stage-transition"] h2 {
+    display: none;
+  }
+
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="running"] .practice-actions,
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="stage-transition"] .practice-actions {
+    position: static;
+    padding: 0;
+    background: none;
+  }
+
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="running"] .practice-stage-label,
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="stage-transition"] .practice-stage-label {
+    margin: 0;
+    font-size: 0.68rem;
+  }
+
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="running"] .practice-message,
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="stage-transition"] .practice-message {
+    max-width: 100%;
+    font-size: 0.76rem;
+    line-height: 1.35;
+  }
+
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="running"] .practice-value,
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="stage-transition"] .practice-value {
+    min-height: 46px;
+  }
+
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="running"] .practice-board,
+  .app-shell[data-screen="practice"] .screen--practice[data-practice-state="stage-transition"] .practice-board {
+    width: auto;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    min-height: 0;
+    align-self: center;
+    justify-self: center;
   }
 }

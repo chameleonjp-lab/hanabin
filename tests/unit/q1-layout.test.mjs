@@ -26,6 +26,14 @@ test("mobile play and practice layouts reserve visible action space", () => {
   assert.ok(resultActionIndex >= 0 && resultActionIndex < resultBreakdownIndex);
   assert.match(gameStyles, /grid-template-areas:[\s\S]*"score time combo"[\s\S]*"selection selection selection"[\s\S]*"blast blast choices"[\s\S]*"forecast forecast forecast"/);
   assert.match(gameStyles, /#practice-start,[\s\S]*#practice-continue\s*\{[\s\S]*grid-column:\s*1\s*\/\s*-1/);
+  assert.match(
+    gameStyles,
+    /data-practice-state="running"[\s\S]*grid-template-rows:\s*auto auto auto auto minmax\(0, 1fr\)/,
+  );
+  assert.match(
+    gameStyles,
+    /data-practice-state="running"[\s\S]*\.practice-board\s*\{[\s\S]*height:\s*100%[\s\S]*max-height:\s*100%/,
+  );
 });
 
 test("portrait play frame derives its height from one shared aspect-ratio budget", () => {

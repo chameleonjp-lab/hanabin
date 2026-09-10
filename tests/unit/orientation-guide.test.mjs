@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import { createOrientationGuide } from "../../src/ui/orientation-guide.js";
 
-test("orientation guide notifies only when orientation actually changes", () => {
+test("orientation guide notifies on media changes and physical same-orientation rotations", () => {
   const previousWindow = globalThis.window;
   const listeners = new Map();
   let portrait = false;

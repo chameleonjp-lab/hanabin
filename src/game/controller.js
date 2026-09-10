@@ -575,6 +575,12 @@ export class GameController {
     const nextOrientation = portrait === true || this.isPortrait() ? "portrait" : "landscape";
     const changed = this.orientation !== nextOrientation ||
       (previousPortrait !== null && previousPortrait !== (nextOrientation === "portrait"));
+    // The orientation guide calls this method for both kinds of physical
+    // rotation: one that changes the portrait media query and one that keeps
+    // it unchanged (landscape-primary <-> landscape-secondary). The pointer
+    // adapter pauses on the browser notification in both cases, so the
+    // controller must also complete the resume boundary in both cases.
+    const orientationNotification = previousPortrait !== null;
     this.orientation = nextOrientation;
     this.renderer.setOrientation(nextOrientation);
     this.pointer.setOrientation(nextOrientation);
@@ -582,7 +588,7 @@ export class GameController {
     this.renderer.resize();
     if (this.screens.phase === "practice") this.tutorial?.resizeCanvas();
     this.tutorial?.render();
-    if (changed && ["countdown", "playing", "finalizing"].includes(this.phase)) {
+    if ((changed || orientationNotification) && ["countdown", "playing", "finalizing"].includes(this.phase)) {
       // Rotation invalidates the in-flight pointer geometry. The pointer
       // adapter may already have placed this marker from orientationchange;
       // repeating it is idempotent and keeps direct test calls safe.
@@ -858,15 +864,18 @@ export class GameController {
     const maxChain = Math.max(0, Math.trunc(stats.maxChain ?? 0));
     const resultKey = `${state.seed}:${state.actionCount}:${score}:${maxChain}:${state.status}:${state.simulationFault?.code ?? "ok"}`;
     if (resultKey !== this.lastPersistedResultKey) {
-      const previousBest = this.profile.bestScore;
       const recordable = !state.simulationFault && state.status === "finished";
       if (recordable) {
-        this.profile = this.profileStore.update({
-          bestScore: Math.max(this.profile.bestScore, score),
-          bestChain: Math.max(this.profile.bestChain, maxChain),
-          bestRuleVersion: this.rules.ruleVersion,
+        const latestProfile = this.profileStore.load();
+        const previousBest = latestProfile.bestRuleVersion === this.rules.ruleVersion
+          ? latestProfile.bestScore
+          : 0;
+        this.profile = this.profileStore.updateBest({
+          score,
+          maxChain,
+          ruleVersion: this.rules.ruleVersion,
         });
-        this.lastBestScore = score > previousBest;
+        this.lastBestScore = score > previousBest && this.profile.bestScore === score;
         this.updateHomeBest();
         this.rankingStore.record({
           name: this.profile.name,

@@ -116,6 +116,32 @@ export const createProfileStore = (storage = readGlobalStorage(), key = DEFAULT_
     update(patch = {}) {
       return save({ ...load(), ...(patch && typeof patch === "object" ? patch : {}) });
     },
+    /** Merge a completed score with the latest persisted best for one rule. */
+    updateBest({ score = 0, maxChain = 0, ruleVersion = "" } = {}) {
+      const latest = load();
+      const requestedRuleVersion = typeof ruleVersion === "string" ? ruleVersion.slice(0, 64) : "";
+      // A tab running an older rule must never replace the current rule's
+      // record. The controller initializes a newly loaded rule before a run;
+      // this guard protects the later completion of a stale tab.
+      if (requestedRuleVersion && latest.bestRuleVersion &&
+          latest.bestRuleVersion !== requestedRuleVersion) return latest;
+      const nextRuleVersion = requestedRuleVersion || latest.bestRuleVersion;
+      const sameRule = nextRuleVersion !== "" && latest.bestRuleVersion === nextRuleVersion;
+      const base = sameRule
+        ? latest
+        : {
+          ...latest,
+          bestScore: 0,
+          bestChain: 0,
+          bestRuleVersion: nextRuleVersion,
+        };
+      return save({
+        ...base,
+        bestScore: Math.max(base.bestScore, finiteInteger(score)),
+        bestChain: Math.max(base.bestChain, finiteInteger(maxChain)),
+        bestRuleVersion: nextRuleVersion || base.bestRuleVersion,
+      });
+    },
     clear() {
       memory = { ...DEFAULT_PROFILE };
       try {
