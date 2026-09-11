@@ -534,6 +534,55 @@ test("HBA-02 an older tab cannot lower the latest same-rule best", async ({ page
   await newerTab.close();
 });
 
+test("HBA-05 keeps legacy ranking records out of the current-rule ranking", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("hanabin:profile:v1", JSON.stringify({
+      name: "現在のプレイヤー",
+      bestScore: 10_000,
+      bestChain: 8,
+      bestRuleVersion: "m4-gameplay-1",
+    }));
+    localStorage.setItem("hanabin:ranking:v1", JSON.stringify([
+      {
+        name: "旧ルール",
+        score: 10_000,
+        maxChain: 8,
+        createdAt: 1,
+        ruleVersion: "m4-gameplay-1",
+      },
+      {
+        name: "版不明",
+        score: 9_000,
+        maxChain: 7,
+        createdAt: 2,
+      },
+    ]));
+  });
+  await openPage(page);
+  await expect(page.locator("#home-best-score")).toHaveText("0");
+  await page.locator("#start-button").click();
+  await page.locator("#practice-skip").click();
+  await callApi(page, "advanceTicks", 1);
+  await callApi(page, "advanceTicks", 3_600);
+  await callApi(page, "settleTerminal");
+  await expect(page.locator("#result-screen")).toBeVisible();
+
+  await expect(page.locator("#result-best-score")).toHaveText("0");
+  await expect(page.locator("#result-ranking-list")).not.toContainText("旧ルール");
+  await expect(page.locator("#result-ranking-list")).not.toContainText("版不明");
+  await expect(page.locator("#legacy-ranking")).toBeVisible();
+  await expect(page.locator("#legacy-ranking-list")).toContainText("旧ルール");
+  await expect(page.locator("#legacy-ranking-list")).toContainText("m4-gameplay-1");
+  await expect(page.locator("#legacy-ranking-list")).toContainText("版不明");
+
+  const savedRanking = await page.evaluate(() => JSON.parse(localStorage.getItem("hanabin:ranking:v1")));
+  expect(savedRanking).toEqual(expect.arrayContaining([
+    expect.objectContaining({ name: "旧ルール", ruleVersion: "m4-gameplay-1" }),
+    expect.objectContaining({ name: "版不明", ruleVersion: "" }),
+    expect.objectContaining({ name: "現在のプレイヤー", ruleVersion: "m4-gameplay-3" }),
+  ]));
+});
+
 test("M6 damaged local profile data does not block startup", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.setItem("hanabin:profile:v1", "{broken"));

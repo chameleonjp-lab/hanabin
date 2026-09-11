@@ -65,7 +65,9 @@ export class GameController {
     this.defaultSeed = Number(seed) >>> 0 || 1;
     this.nextSeed = this.defaultSeed;
     this.profileStore = createProfileStore();
-    this.rankingStore = createRankingStore();
+    this.rankingStore = createRankingStore(undefined, undefined, {
+      ruleVersion: this.rules.ruleVersion,
+    });
     this.profile = this.profileStore.load();
     if (this.profile.bestRuleVersion !== this.rules.ruleVersion) {
       this.profile = this.profileStore.update({
@@ -881,6 +883,7 @@ export class GameController {
           name: this.profile.name,
           score,
           maxChain,
+          ruleVersion: this.rules.ruleVersion,
         });
       }
       this.lastPersistedResultKey = resultKey;
@@ -891,6 +894,7 @@ export class GameController {
       isBestScore: this.lastBestScore,
       isRetired: state.status === "retired",
       ranking: this.rankingStore.list(),
+      legacyRanking: this.rankingStore.legacyList(),
     });
     if (this.resultStatus) this.resultStatus.dataset.retired = state.status === "retired" ? "true" : "false";
     const check = this.session.replayCheck;

@@ -1015,6 +1015,20 @@
   white-space: nowrap;
 }
 
+.result-ranking__name-block {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.result-ranking__version {
+  overflow: hidden;
+  color: #8fa2cf;
+  font-size: 0.58rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .result-ranking__score {
   color: #eef5ff;
   font-variant-numeric: tabular-nums;
@@ -1029,6 +1043,15 @@
 .result-ranking__note {
   margin: 9px 0 0;
   line-height: 1.45;
+}
+
+.result-ranking--legacy {
+  border-color: rgba(255, 209, 102, 0.22);
+  background: rgba(31, 24, 20, 0.42);
+}
+
+.result-ranking--legacy .result-ranking__heading h3 {
+  color: var(--game-gold);
 }
 
 .share-panel {

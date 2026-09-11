@@ -273,10 +273,7 @@ export class PointerController {
     this.touchFallbackClientX = Number(touch.clientX);
     this.touchFallbackClientY = Number(touch.clientY);
     this.handlePointerUp(this.syntheticTouchEvent("pointerup", touch));
-    this.touchFallbackPointerId = null;
-    this.touchFallbackIdentifier = null;
-    this.touchFallbackClientX = null;
-    this.touchFallbackClientY = null;
+    this.clearTouchFallback();
   }
 
   handleTouchCancel(event) {
@@ -289,6 +286,11 @@ export class PointerController {
     });
     if (!touch) return;
     this.handlePointerCancel(this.syntheticTouchEvent("pointercancel", touch));
+    this.clearTouchFallback();
+  }
+
+  /** End the compatibility gesture at every interruption boundary. */
+  clearTouchFallback() {
     this.touchFallbackPointerId = null;
     this.touchFallbackIdentifier = null;
     this.touchFallbackClientX = null;
@@ -562,6 +564,11 @@ export class PointerController {
       this.deferredPointer = null;
       this.release(deferredPointerId);
     }
+    // Touch Events do not guarantee a matching touchend/touchcancel after a
+    // page lifecycle boundary. Clear the compatibility owner together with
+    // the sampler, while leaving the sampler's single interruption marker for
+    // the next fixed-tick frame.
+    this.clearTouchFallback();
     if ((hadPointer || accepted) && !hadMarker) {
       this.notify({ type: "interrupt", reason });
       if (this.onInterrupt) this.onInterrupt(reason);
@@ -621,10 +628,7 @@ export class PointerController {
     this.fingerY = 0;
     this.pendingRelease = false;
     this.deferredPointer = null;
-    this.touchFallbackPointerId = null;
-    this.touchFallbackIdentifier = null;
-    this.touchFallbackClientX = null;
-    this.touchFallbackClientY = null;
+    this.clearTouchFallback();
   }
 
   destroy() {

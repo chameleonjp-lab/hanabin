@@ -246,6 +246,65 @@ test("Touch Events keep the gesture usable when Pointer Events are unavailable",
   });
 });
 
+test("lifecycle interruption clears the compatibility touch owner before the next touch", () => {
+  const cases = [
+    {
+      reason: "visibilitychange",
+      trigger({ documentStub }) {
+        documentStub.visibilityState = "hidden";
+        documentStub.dispatch("visibilitychange");
+      },
+    },
+    {
+      reason: "pagehide",
+      trigger({ windowStub }) {
+        windowStub.dispatch("pagehide");
+      },
+    },
+    {
+      reason: "orientationchange",
+      trigger({ windowStub }) {
+        windowStub.dispatch("orientationchange");
+      },
+    },
+    {
+      reason: "user-pause",
+      trigger({ controller }) {
+        controller.interrupt("user-pause");
+      },
+    },
+  ];
+
+  for (const lifecycleCase of cases) {
+    withBrowserGlobals((globals) => {
+      const element = makeEventTarget({ width: 200, height: 100 });
+      const controller = new PointerController(element);
+      const touch = (identifier, clientX, clientY) => ({ identifier, clientX, clientY });
+
+      element.dispatch("touchstart", {
+        changedTouches: [touch(7, 100, 50)],
+        touches: [touch(7, 100, 50)],
+      });
+      assert.equal(controller.touchFallbackPointerId, 1_000_007);
+
+      lifecycleCase.trigger({ ...globals, controller });
+      assert.equal(controller.touchFallbackPointerId, null, lifecycleCase.reason);
+      assert.equal(controller.touchFallbackIdentifier, null, lifecycleCase.reason);
+      assert.equal(controller.activePointerId, null, lifecycleCase.reason);
+
+      element.dispatch("touchstart", {
+        changedTouches: [touch(8, 120, 60)],
+        touches: [touch(8, 120, 60)],
+      });
+      assert.equal(controller.touchFallbackPointerId, 1_000_008, lifecycleCase.reason);
+      assert.equal(controller.activePointerId, 1_000_008, lifecycleCase.reason);
+      assert.equal(controller.sampleFrame(0, 0).interrupted, true, lifecycleCase.reason);
+      assert.equal(controller.sampleFrame(1, 1).pressed, true, lifecycleCase.reason);
+      controller.destroy();
+    });
+  }
+});
+
 test("clientToBoard returns null for a zero or invalid rect", () => {
   assert.equal(clientToBoard(10, 10, { left: 0, top: 0, width: 0, height: 100 }), null);
   assert.equal(clientToBoard(10, 10, { left: 0, top: 0, width: 100, height: 0 }), null);
