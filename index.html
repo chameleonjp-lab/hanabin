@@ -270,11 +270,19 @@
           <p id="result-hint" class="result-hint">次の波の予告を使ってみましょう。</p>
           <section class="result-ranking" aria-labelledby="result-ranking-title">
             <div class="result-ranking__heading">
-              <h3 id="result-ranking-title">ランキング TOP10</h3>
+              <h3 id="result-ranking-title">現在のルールのランキング TOP10</h3>
               <span>スコア / 最大連鎖</span>
             </div>
             <ol id="result-ranking-list" class="result-ranking__list"></ol>
-            <p id="result-ranking-note" class="result-ranking__note">あなたの記録を表示しています。</p>
+            <p id="result-ranking-note" class="result-ranking__note">現在のルールで作った記録だけを表示しています。</p>
+          </section>
+          <section id="legacy-ranking" class="result-ranking result-ranking--legacy" hidden aria-labelledby="legacy-ranking-title">
+            <div class="result-ranking__heading">
+              <h3 id="legacy-ranking-title">以前のルールの記録</h3>
+              <span>参考表示</span>
+            </div>
+            <ol id="legacy-ranking-list" class="result-ranking__list"></ol>
+            <p class="result-ranking__note">以前のルールや、ルール版を確認できない保存済み記録です。現在のランキングには含めません。</p>
           </section>
           <div class="share-panel">
             <button id="share-button" class="secondary-button" type="button">結果を共有</button>

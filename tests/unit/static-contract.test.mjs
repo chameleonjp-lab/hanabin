@@ -23,6 +23,8 @@ test("static page has the M1 loading contract", async () => {
   assert.match(html, /id="home-button"/);
   assert.match(html, /id="result-ranking-list"/);
   assert.doesNotMatch(html, /id="result-experiment-link"/);
+  assert.match(html, /id="legacy-ranking"/);
+  assert.match(html, /id="legacy-ranking-list"/);
   assert.doesNotMatch(html, /PCリッチ演出|スマホ軽量演出|負荷を抑えた演出|実験場へ/);
   assert.doesNotMatch(html, /<(?:script|link)[^>]+(?:src|href)=["']https?:\/\//i);
 });

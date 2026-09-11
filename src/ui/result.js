@@ -123,12 +123,52 @@ export const buildShareText = ({
   return `${title}\nSCORE ${formatScore(score)} / 最大連鎖 ${Math.max(0, Math.trunc(Number(maxChain) || 0))}\n${url}`;
 };
 
+const renderRankingList = (listElement, entries, ownerDocument, { showRuleVersion = false } = {}) => {
+  if (!listElement) return;
+  listElement.replaceChildren();
+  if (!ownerDocument) return;
+  if (!entries.length) {
+    const empty = ownerDocument.createElement("li");
+    empty.className = "result-ranking__empty";
+    empty.textContent = "まだ記録がありません";
+    listElement.append(empty);
+    return;
+  }
+  entries.forEach((entry, index) => {
+    const item = ownerDocument.createElement("li");
+    const rank = ownerDocument.createElement("span");
+    rank.className = "result-ranking__rank";
+    rank.textContent = `${index + 1}`;
+    const name = ownerDocument.createElement("span");
+    name.className = "result-ranking__name";
+    name.textContent = safeText(entry?.name) || "名無し";
+    const nameCell = showRuleVersion
+      ? ownerDocument.createElement("span")
+      : name;
+    if (showRuleVersion) {
+      nameCell.className = "result-ranking__name-block";
+      const version = ownerDocument.createElement("small");
+      version.className = "result-ranking__version";
+      version.textContent = entry?.ruleVersion
+        ? `ルール ${entry.ruleVersion}`
+        : "ルール版不明";
+      nameCell.append(name, version);
+    }
+    const value = ownerDocument.createElement("strong");
+    value.className = "result-ranking__score";
+    value.textContent = `${formatScore(entry?.score)} / ${Math.max(0, Math.trunc(Number(entry?.maxChain) || 0))}連鎖`;
+    item.append(rank, nameCell, value);
+    listElement.append(item);
+  });
+};
+
 export const renderResult = (root, state, {
   profile = {},
   publicUrl = publicUrlFor(),
   isBestScore = false,
   isRetired = state.status === "retired",
   ranking = [],
+  legacyRanking = [],
 } = {}) => {
   if (!root || !state) return null;
   const stats = state.stats ?? {};
@@ -170,35 +210,28 @@ export const renderResult = (root, state, {
   });
   const shareButton = root.querySelector("#share-button");
   if (shareButton) shareButton.dataset.shareText = shareText;
+  const ownerDocument = root.ownerDocument ?? (typeof document !== "undefined" ? document : null);
   const rankingList = root.querySelector("#result-ranking-list");
   const entries = Array.isArray(ranking) ? ranking.slice(0, 10) : [];
-  if (rankingList) {
-    rankingList.replaceChildren();
-    const ownerDocument = root.ownerDocument ?? (typeof document !== "undefined" ? document : null);
-    if (!entries.length) {
-      if (!ownerDocument) return { score, maxChain, breakdown, hint: resultHintFor(state), shareText, ranking: entries };
-      const empty = ownerDocument.createElement("li");
-      empty.className = "result-ranking__empty";
-      empty.textContent = "まだ記録がありません";
-      rankingList.append(empty);
-    } else {
-      entries.forEach((entry, index) => {
-        const item = ownerDocument.createElement("li");
-        const rank = ownerDocument.createElement("span");
-        rank.className = "result-ranking__rank";
-        rank.textContent = `${index + 1}`;
-        const name = ownerDocument.createElement("span");
-        name.className = "result-ranking__name";
-        name.textContent = safeText(entry?.name) || "名無し";
-        const value = ownerDocument.createElement("strong");
-        value.className = "result-ranking__score";
-        value.textContent = `${formatScore(entry?.score)} / ${Math.max(0, Math.trunc(Number(entry?.maxChain) || 0))}連鎖`;
-        item.append(rank, name, value);
-        rankingList.append(item);
-      });
-    }
-  }
-  return { score, maxChain, breakdown, hint: resultHintFor(state), shareText, ranking: entries };
+  renderRankingList(rankingList, entries, ownerDocument);
+  const legacyEntries = Array.isArray(legacyRanking) ? legacyRanking.slice(0, 10) : [];
+  const legacySection = root.querySelector("#legacy-ranking");
+  if (legacySection) legacySection.hidden = legacyEntries.length === 0;
+  renderRankingList(
+    root.querySelector("#legacy-ranking-list"),
+    legacyEntries,
+    ownerDocument,
+    { showRuleVersion: true },
+  );
+  return {
+    score,
+    maxChain,
+    breakdown,
+    hint: resultHintFor(state),
+    shareText,
+    ranking: entries,
+    legacyRanking: legacyEntries,
+  };
 };
 
 const fallbackCopy = (text) => {
