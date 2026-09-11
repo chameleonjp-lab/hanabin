@@ -17,6 +17,7 @@ import {
   scoreBreakdownFor,
 } from "../../src/ui/result.js";
 import { DEFAULT_RULES } from "../../src/config/rules.js";
+import { GameController, isRecordableResult } from "../../src/game/controller.js";
 import { explosionRangeRows, scoreGuideModel } from "../../src/ui/rules-guide.js";
 import {
   inputFailureMessageFor,
@@ -195,6 +196,67 @@ test("profile best updates compare the latest persisted value before saving", ()
     maxChain: 99,
     ruleVersion: "m4-gameplay-1",
   }), currentRuleProfile);
+});
+
+test("completed results are recordable only after a matching replay check", () => {
+  const finished = { status: "finished", simulationFault: null };
+  assert.equal(isRecordableResult(finished, { ok: true }), true);
+  assert.equal(isRecordableResult(finished, { ok: false }), false);
+  assert.equal(isRecordableResult(finished, null), false);
+  assert.equal(isRecordableResult({ ...finished, simulationFault: { code: "STATE" } }, { ok: true }), false);
+  assert.equal(isRecordableResult({ status: "retired", simulationFault: null }, { ok: true }), false);
+});
+
+test("controller does not persist a finished result whose replay mismatches", () => {
+  const resultStatus = { dataset: {}, textContent: "" };
+  const resultReplay = { dataset: {}, textContent: "" };
+  const root = {
+    querySelector(selector) {
+      if (selector === "#result-status") return resultStatus;
+      if (selector === "#result-replay") return resultReplay;
+      return null;
+    },
+  };
+  let bestUpdates = 0;
+  let rankingRecords = 0;
+  const controller = Object.create(GameController.prototype);
+  controller.root = root;
+  controller.session = {
+    state: {
+      status: "finished",
+      score: 900,
+      finalScore: 900,
+      seed: 1,
+      actionCount: 3_600,
+      simulationFault: null,
+      stats: { maxChain: 2 },
+    },
+    replayCheck: { ok: false, reason: "STATE_MISMATCH" },
+  };
+  controller.profile = { name: "検証", bestScore: 0, bestChain: 0 };
+  controller.profileStore = {
+    load() { throw new Error("invalid result must not update the profile"); },
+    updateBest() { bestUpdates += 1; },
+  };
+  controller.rankingStore = {
+    list() { return []; },
+    legacyList() { return []; },
+    record() { rankingRecords += 1; },
+  };
+  controller.rules = { ruleVersion: "m4-gameplay-3" };
+  controller.lastPersistedResultKey = "";
+  controller.lastBestScore = false;
+  controller.resultStatus = resultStatus;
+  controller.resultReplay = resultReplay;
+  controller.updateHomeBest = () => { throw new Error("invalid result must not update home best"); };
+
+  controller.populateResult();
+
+  assert.equal(bestUpdates, 0);
+  assert.equal(rankingRecords, 0);
+  assert.equal(resultStatus.textContent, "このプレイは無効です");
+  assert.equal(resultReplay.textContent, "このプレイは無効です");
+  assert.equal(resultReplay.dataset.fault, "true");
 });
 
 test("M6 result hint is one deterministic sentence and share URL is last", () => {

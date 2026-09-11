@@ -167,6 +167,7 @@ export const renderResult = (root, state, {
   publicUrl = publicUrlFor(),
   isBestScore = false,
   isRetired = state.status === "retired",
+  isReplayValid = null,
   ranking = [],
   legacyRanking = [],
 } = {}) => {
@@ -193,7 +194,9 @@ export const renderResult = (root, state, {
   setText("result-score-other", formatScore(breakdown.other));
   setText("result-score-deductions", "0");
   setText("result-player-name", safeText(profile.name) || "ゲストプレイヤー");
-  setText("result-status", isRetired ? "リタイアしました" : state.simulationFault ? "このプレイは無効です" : "プレイ完了");
+  const replayInvalid = state.status === "finished" && isReplayValid !== true;
+  const invalidResult = Boolean(state.simulationFault) || replayInvalid;
+  setText("result-status", isRetired ? "リタイアしました" : invalidResult ? "このプレイは無効です" : "プレイ完了");
   setText("result-best-score", formatScore(profile.bestScore ?? 0));
   setText("result-best-chain", Math.max(0, Math.trunc(profile.bestChain ?? 0)));
   setText("result-hint", resultHintFor(state));
