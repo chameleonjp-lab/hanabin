@@ -46,6 +46,10 @@ const nowMs = () => typeof performance !== "undefined" && Number.isFinite(perfor
   ? performance.now()
   : 0;
 
+/** A result is recordable only after the live state has passed replay checks. */
+export const isRecordableResult = (state, replayCheck) =>
+  Boolean(state && state.status === "finished" && !state.simulationFault && replayCheck?.ok === true);
+
 /**
  * Connects DOM, Canvas, Pointer Events and the deterministic GameSession.
  * requestAnimationFrame is presentation scheduling only; game ticks are
@@ -864,9 +868,11 @@ export class GameController {
     const stats = state.stats ?? {};
     const score = Math.max(0, Math.trunc(state.finalScore ?? state.score ?? 0));
     const maxChain = Math.max(0, Math.trunc(stats.maxChain ?? 0));
-    const resultKey = `${state.seed}:${state.actionCount}:${score}:${maxChain}:${state.status}:${state.simulationFault?.code ?? "ok"}`;
+    const check = this.session.replayCheck;
+    const replayKey = check?.ok === true ? "valid" : check?.reason ?? "unverified";
+    const resultKey = `${state.seed}:${state.actionCount}:${score}:${maxChain}:${state.status}:${state.simulationFault?.code ?? "ok"}:${replayKey}`;
     if (resultKey !== this.lastPersistedResultKey) {
-      const recordable = !state.simulationFault && state.status === "finished";
+      const recordable = isRecordableResult(state, check);
       if (recordable) {
         const latestProfile = this.profileStore.load();
         const previousBest = latestProfile.bestRuleVersion === this.rules.ruleVersion
@@ -895,12 +901,14 @@ export class GameController {
       isRetired: state.status === "retired",
       ranking: this.rankingStore.list(),
       legacyRanking: this.rankingStore.legacyList(),
+      isReplayValid: check?.ok === true,
     });
     if (this.resultStatus) this.resultStatus.dataset.retired = state.status === "retired" ? "true" : "false";
-    const check = this.session.replayCheck;
     if (this.resultReplay) {
-      this.resultReplay.dataset.fault = state.simulationFault ? "true" : "false";
-      this.resultReplay.textContent = state.simulationFault
+      const invalid = Boolean(state.simulationFault) ||
+        (state.status === "finished" && check?.ok !== true);
+      this.resultReplay.dataset.fault = invalid ? "true" : "false";
+      this.resultReplay.textContent = invalid
         ? "このプレイは無効です"
         : state.status === "retired"
           ? "リタイアしたため、記録には残していません"
