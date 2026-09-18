@@ -1,0 +1,50 @@
+{
+  "schema_version": "chameleonjp-ranking-manifest-v1",
+  "game_id": "hanabin",
+  "title": "HANABIN",
+  "description": "同じ色の花火をつないで60秒の連鎖スコアを競うゲームです。",
+  "share_text": "HANABINで花火の連鎖スコアを競おう。",
+  "canonical_url": "https://chameleonjp-lab.github.io/hanabin/",
+  "release_date": "2026-09-18",
+  "client_version": "hanabin-web-20260918-01",
+  "submission_mode": "shared",
+  "lab": {
+    "representative_slug": "hanabin"
+  },
+  "player_name": {
+    "required_before_start": true,
+    "min_length": 1,
+    "max_length": 12,
+    "storage_key": "hanabin:profile:v1"
+  },
+  "play_count": {
+    "count_at": "start",
+    "rpc": "start_game_play_v1",
+    "idempotency": true
+  },
+  "submission": {
+    "rpc": "submit_score_idempotent_v1",
+    "automatic": true,
+    "idempotency": true,
+    "timeout_ms": 8000
+  },
+  "ranking_entries": [
+    {
+      "mode_id": "standard-60-seconds",
+      "game_slug": "hanabin",
+      "title": "HANABIN",
+      "display_order": 57,
+      "top_ranking_type": "best",
+      "score_order": "desc",
+      "score_unit": "点",
+      "score_scale": 1,
+      "score_decimals": 0,
+      "score_label": "スコア",
+      "first_score_label": "初回スコア",
+      "best_score_label": "最高スコア",
+      "score_min": 0,
+      "score_max": 100000000,
+      "ranked_results": ["game_over"]
+    }
+  ]
+}

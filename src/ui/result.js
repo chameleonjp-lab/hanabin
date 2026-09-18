@@ -123,7 +123,10 @@ export const buildShareText = ({
   return `${title}\nSCORE ${formatScore(score)} / 最大連鎖 ${Math.max(0, Math.trunc(Number(maxChain) || 0))}\n${url}`;
 };
 
-const renderRankingList = (listElement, entries, ownerDocument, { showRuleVersion = false } = {}) => {
+const renderRankingList = (listElement, entries, ownerDocument, {
+  showRuleVersion = false,
+  mode = "local",
+} = {}) => {
   if (!listElement) return;
   listElement.replaceChildren();
   if (!ownerDocument) return;
@@ -138,10 +141,10 @@ const renderRankingList = (listElement, entries, ownerDocument, { showRuleVersio
     const item = ownerDocument.createElement("li");
     const rank = ownerDocument.createElement("span");
     rank.className = "result-ranking__rank";
-    rank.textContent = `${index + 1}`;
+    rank.textContent = `${Number.isInteger(entry?.rankNo) ? entry.rankNo : index + 1}`;
     const name = ownerDocument.createElement("span");
     name.className = "result-ranking__name";
-    name.textContent = safeText(entry?.name) || "名無し";
+    name.textContent = safeText(entry?.name ?? entry?.displayName) || "名無し";
     const nameCell = showRuleVersion
       ? ownerDocument.createElement("span")
       : name;
@@ -156,7 +159,9 @@ const renderRankingList = (listElement, entries, ownerDocument, { showRuleVersio
     }
     const value = ownerDocument.createElement("strong");
     value.className = "result-ranking__score";
-    value.textContent = `${formatScore(entry?.score)} / ${Math.max(0, Math.trunc(Number(entry?.maxChain) || 0))}連鎖`;
+    value.textContent = mode === "remote"
+      ? `${formatScore(entry?.score)}点 / ${Math.max(0, Math.trunc(Number(entry?.playCount) || 0))}プレイ`
+      : `${formatScore(entry?.score)} / ${Math.max(0, Math.trunc(Number(entry?.maxChain) || 0))}連鎖`;
     item.append(rank, nameCell, value);
     listElement.append(item);
   });
@@ -170,6 +175,8 @@ export const renderResult = (root, state, {
   isReplayValid = null,
   ranking = [],
   legacyRanking = [],
+  rankingMode = "local",
+  rankingNote = "",
 } = {}) => {
   if (!root || !state) return null;
   const stats = state.stats ?? {};
@@ -216,7 +223,16 @@ export const renderResult = (root, state, {
   const ownerDocument = root.ownerDocument ?? (typeof document !== "undefined" ? document : null);
   const rankingList = root.querySelector("#result-ranking-list");
   const entries = Array.isArray(ranking) ? ranking.slice(0, 10) : [];
-  renderRankingList(rankingList, entries, ownerDocument);
+  const remoteRanking = rankingMode === "remote";
+  setText("result-ranking-title", remoteRanking ? "カメレオンJP公式ランキング TOP10" : "端末内ランキング TOP10");
+  setText("result-ranking-meta", remoteRanking ? "スコア / プレイ回数" : "スコア / 最大連鎖");
+  setText(
+    "result-ranking-note",
+    rankingNote || (remoteRanking
+      ? "カメレオンJPの実験場と共有している現在のランキングです。"
+      : "公式ランキングを取得できないため、この端末の記録を表示しています。"),
+  );
+  renderRankingList(rankingList, entries, ownerDocument, { mode: remoteRanking ? "remote" : "local" });
   const legacyEntries = Array.isArray(legacyRanking) ? legacyRanking.slice(0, 10) : [];
   const legacySection = root.querySelector("#legacy-ranking");
   if (legacySection) legacySection.hidden = legacyEntries.length === 0;
@@ -233,6 +249,7 @@ export const renderResult = (root, state, {
     hint: resultHintFor(state),
     shareText,
     ranking: entries,
+    rankingMode: remoteRanking ? "remote" : "local",
     legacyRanking: legacyEntries,
   };
 };

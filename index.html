@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#080b18" />
     <meta name="description" content="HANABIN - 花火の連鎖を60秒でつなぐスコアアタック" />
+    <link rel="canonical" href="https://chameleonjp-lab.github.io/hanabin/" />
     <title>HANABIN</title>
     <link rel="stylesheet" href="./styles/base.css" />
     <link rel="stylesheet" href="./styles/game.css" />
@@ -270,11 +271,13 @@
           <p id="result-hint" class="result-hint">次の波の予告を使ってみましょう。</p>
           <section class="result-ranking" aria-labelledby="result-ranking-title">
             <div class="result-ranking__heading">
-              <h3 id="result-ranking-title">現在のルールのランキング TOP10</h3>
-              <span>スコア / 最大連鎖</span>
+              <h3 id="result-ranking-title">カメレオンJP公式ランキング TOP10</h3>
+              <span id="result-ranking-meta">スコア / プレイ回数</span>
             </div>
             <ol id="result-ranking-list" class="result-ranking__list"></ol>
-            <p id="result-ranking-note" class="result-ranking__note">現在のルールで作った記録だけを表示しています。</p>
+            <p id="result-ranking-status" class="result-ranking__status" role="status" aria-live="polite">ランキングを読み込んでいます…</p>
+            <button id="ranking-retry-button" class="secondary-button result-ranking__retry" type="button" hidden>ランキングを再取得</button>
+            <p id="result-ranking-note" class="result-ranking__note">カメレオンJPの実験場と共有している現在のランキングです。</p>
           </section>
           <section id="legacy-ranking" class="result-ranking result-ranking--legacy" hidden aria-labelledby="legacy-ranking-title">
             <div class="result-ranking__heading">

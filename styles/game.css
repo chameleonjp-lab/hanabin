@@ -981,6 +981,19 @@
   font-size: 0.65rem;
 }
 
+.result-ranking__status {
+  min-height: 1.1em;
+  margin: 8px 0 0;
+  color: var(--game-green);
+  font-size: 0.65rem;
+  line-height: 1.45;
+}
+
+.result-ranking__status[data-state="retryable_failed"],
+.result-ranking__status[data-state="permanent_failed"] {
+  color: #ffd166;
+}
+
 .result-ranking__list {
   display: grid;
   gap: 4px;
@@ -1043,6 +1056,13 @@
 .result-ranking__note {
   margin: 9px 0 0;
   line-height: 1.45;
+}
+
+.result-ranking__retry {
+  min-height: 34px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  font-size: 0.68rem;
 }
 
 .result-ranking--legacy {
