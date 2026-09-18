@@ -25,17 +25,13 @@ const checks = [
   [RELEASE_MANIFEST.storageFormatVersion === STORAGE_FORMAT_VERSION, "release storage version mismatch"],
   [RELEASE_MANIFEST.profileStorageKey === PROFILE_STORAGE_KEY, "profile storage key mismatch"],
   [RELEASE_MANIFEST.runtimeDependencies === 0, "MVP must have no runtime dependencies"],
-  [/branches:\s*\[main\]/u.test(pagesWorkflow), "Pages must publish from main only"],
+  [/workflow_run:\s*[\s\S]*workflows:\s*\["CI Core",\s*"CI Browser"\]/u.test(pagesWorkflow), "Pages must wait for Core and Browser CI"],
+  [/head_branch == 'main'/u.test(pagesWorkflow), "Pages must publish the main branch only"],
+  [/actions:\s*read/u.test(pagesWorkflow), "Pages must read the exact CI run status"],
+  [pagesWorkflow.includes("scripts/check-ci-gate.mjs"), "Pages must verify the exact CI revision"],
+  [/needs:\s+gate/u.test(pagesWorkflow), "Pages build must depend on the CI gate"],
   [/actions\/upload-pages-artifact@[0-9a-f]{40}\s+#\s+v4/u.test(pagesWorkflow), "Pages artifact action is missing or not SHA-pinned"],
   [/actions\/deploy-pages@[0-9a-f]{40}\s+#\s+v4/u.test(pagesWorkflow), "Pages deploy action is missing or not SHA-pinned"],
-  [pagesWorkflow.includes("- index.html"), "index.html must trigger Pages"],
-  [pagesWorkflow.includes('- "styles/**"'), "styles must trigger Pages"],
-  [pagesWorkflow.includes('- "src/**"'), "src must trigger Pages"],
-  [pagesWorkflow.includes("- .github/workflows/pages.yml"), "Pages workflow changes must trigger Pages"],
-  [pagesWorkflow.includes("- .github/workflows/public-release.yml"), "public smoke workflow changes must trigger Pages"],
-  [pagesWorkflow.includes("- playwright.public.config.mjs"), "public smoke config changes must trigger Pages"],
-  [pagesWorkflow.includes("- scripts/check-pages-source.mjs"), "Pages source check changes must trigger Pages"],
-  [pagesWorkflow.includes("- tests/e2e/m7-public-release.spec.mjs"), "public smoke test changes must trigger Pages"],
 ];
 
 const failures = checks.filter(([ok]) => !ok).map(([, message]) => message);
@@ -46,7 +42,7 @@ if (failures.length) {
   console.log(JSON.stringify({
     release: RELEASE_MANIFEST,
     packageVersion: packageJson.version,
-    pagesWorkflow: "main-only limited-artifact workflow contract",
+    pagesWorkflow: "main-only exact-sha CI-gated limited-artifact workflow contract",
     pagesRemoteSetting: "checked separately through GitHub Pages API",
   }, null, 2));
 }

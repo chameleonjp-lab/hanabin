@@ -153,7 +153,7 @@ export class SoundController {
           // Audio is an enhancement; ignore browser-specific lifecycle errors.
         }
       }
-    } else if (this.context?.state === "suspended") {
+    } else if (this.context && this.context.state !== "running" && this.context.state !== "closed") {
       void this.resumeContext(this.context);
     }
     return this.enabled;
@@ -172,11 +172,11 @@ export class SoundController {
 
   async resumeContext(context = this.context) {
     if (!context || context.state === "closed") return false;
-    if (context.state !== "suspended") return true;
+    if (context.state === "running") return true;
     if (typeof context.resume !== "function") return false;
     try {
       await context.resume();
-      return context.state !== "suspended" && context.state !== "closed";
+      return context.state === "running";
     } catch {
       return false;
     }
@@ -287,7 +287,7 @@ export class SoundController {
     if (timestamp - last < CUE_INTERVAL_MS[cue]) return false;
     const context = this.ensureContext();
     if (!context?.createOscillator || !context?.createGain || context.state === "closed") return false;
-    if (context.state === "suspended") void this.resumeContext(context);
+    if (context.state !== "running") void this.resumeContext(context);
     const output = this.ensureOutput(context);
     if (!output) return false;
     const pitchMultiplier = pitchMultiplierFor(cue, options);

@@ -2,6 +2,7 @@ import {
   COLORS,
   DEFAULT_RULES,
   directExplosionRadiusForSelection,
+  isWaveWithinRun,
 } from "../config/rules.js";
 import { colorName, colorValue, colorSymbol } from "../render/competitive-layer.js";
 import { forecastSuccessForAction } from "./forecast-feedback.js";
@@ -55,7 +56,7 @@ export const forecastReadinessFor = (state = {}, rules = DEFAULT_RULES) => {
   const bridgeCount = selectedEntities.filter((entity) =>
     forecastWaveIndex !== null && entity.forecastForWaveIndex === forecastWaveIndex,
   ).length;
-  const windowOpen = Boolean(nextWave &&
+  const windowOpen = Boolean(isWaveWithinRun(nextWave, rules) &&
     Number.isFinite(leadTicks) &&
     leadTicks >= 1 &&
     leadTicks <= rules.forecastPlanLeadTicks);

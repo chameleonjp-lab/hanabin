@@ -11,7 +11,7 @@ export const GAME_VERSION = "M4";
 // Choice guarantees are part of the deterministic gameplay contract. Keep a
 // new rule fingerprint so old replays and cached best scores cannot be mixed
 // with runs that can receive a runtime choice reserve.
-export const RULE_VERSION = "m4-gameplay-3";
+export const RULE_VERSION = "m4-gameplay-4";
 export const INPUT_SCHEMA_VERSION = "m2-input-1";
 
 export const COLORS = Object.freeze(["red", "blue", "green", "yellow"]);
@@ -196,6 +196,19 @@ export const DEFAULT_RULES = Object.freeze({
   colors: Object.freeze([...BASE_RULES.colors]),
   score: Object.freeze({ ...BASE_RULES.score }),
 });
+
+/**
+ * A forecast is actionable only when the advertised wave can still arrive
+ * before the fixed session boundary. Keep this rule shared by the core and
+ * the HUD so the player-facing cue cannot disagree with scoring.
+ */
+export const isWaveWithinRun = (wave, rules = DEFAULT_RULES) => {
+  const fireTick = Number(wave?.fireTick);
+  const maxTicks = Number(rules?.maxTicks);
+  return Number.isInteger(fireTick) && Number.isInteger(maxTicks) &&
+    fireTick >= 0 && fireTick <= maxTicks;
+};
+
 const RESOLVED_RULES = new WeakSet([DEFAULT_RULES]);
 
 const finiteInteger = (value, fallback, { min = -Infinity, max = Infinity } = {}) => {

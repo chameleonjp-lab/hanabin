@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { DEFAULT_RULES } from "../../src/config/rules.js";
 
 const BOARD_WIDTH = 16_000;
 const BOARD_HEIGHT = 9_000;
@@ -229,7 +230,7 @@ test("M6 home practice can return home, repeat twice, and then enter the real ga
       name: "",
       bestScore: 0,
       bestChain: 0,
-      bestRuleVersion: "m4-gameplay-3",
+      bestRuleVersion: DEFAULT_RULES.ruleVersion,
       quality: "high",
       qualityManual: false,
       soundEnabled: false,
@@ -506,6 +507,7 @@ test("M6 profile name is rendered as text, best record is saved, and share URL i
 });
 
 test("HBA-02 an older tab cannot lower the latest same-rule best", async ({ page, context }) => {
+  const currentRuleVersion = DEFAULT_RULES.ruleVersion;
   await openPage(page);
   await page.locator("#start-button").click();
   await page.locator("#practice-skip").click();
@@ -513,15 +515,15 @@ test("HBA-02 an older tab cannot lower the latest same-rule best", async ({ page
 
   const newerTab = await context.newPage();
   await newerTab.goto("/?e2e=1");
-  await newerTab.evaluate(() => {
+  await newerTab.evaluate((ruleVersion) => {
     const current = JSON.parse(localStorage.getItem("hanabin:profile:v1") ?? "{}");
     localStorage.setItem("hanabin:profile:v1", JSON.stringify({
       ...current,
       bestScore: 10_000,
       bestChain: 8,
-      bestRuleVersion: "m4-gameplay-3",
+      bestRuleVersion: ruleVersion,
     }));
-  });
+  }, currentRuleVersion);
 
   await callApi(page, "advanceTicks", 3_600);
   await callApi(page, "settleTerminal");
@@ -529,7 +531,7 @@ test("HBA-02 an older tab cannot lower the latest same-rule best", async ({ page
   expect(persisted).toMatchObject({
     bestScore: 10_000,
     bestChain: 8,
-    bestRuleVersion: "m4-gameplay-3",
+    bestRuleVersion: currentRuleVersion,
   });
   await newerTab.close();
 });
@@ -579,7 +581,7 @@ test("HBA-05 keeps legacy ranking records out of the current-rule ranking", asyn
   expect(savedRanking).toEqual(expect.arrayContaining([
     expect.objectContaining({ name: "旧ルール", ruleVersion: "m4-gameplay-1" }),
     expect.objectContaining({ name: "版不明", ruleVersion: "" }),
-    expect.objectContaining({ name: "現在のプレイヤー", ruleVersion: "m4-gameplay-3" }),
+    expect.objectContaining({ name: "現在のプレイヤー", ruleVersion: DEFAULT_RULES.ruleVersion }),
   ]));
 });
 
@@ -617,7 +619,7 @@ test("M6 resets an old-rule best while preserving player preferences", async ({ 
     name: "花子",
     bestScore: 0,
     bestChain: 0,
-    bestRuleVersion: "m4-gameplay-3",
+    bestRuleVersion: DEFAULT_RULES.ruleVersion,
     quality: "medium",
     qualityManual: true,
     soundEnabled: true,
