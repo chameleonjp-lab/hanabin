@@ -6,6 +6,9 @@ import {
   createGame,
   applyInputFrame,
   advanceGame,
+  detonate,
+  isWaveWithinRun,
+  selectEntity,
   snapshotGame,
   validateGame,
   generateWave,
@@ -90,11 +93,36 @@ test("three acquisitions can detonate and target IDs cannot score twice", () => 
   assert.deepEqual(validateGame(state), []);
 });
 
+test("forecast preparation closes when the next wave is beyond the session boundary", () => {
+  const state = createGame(1);
+  advanceGame(state, 3_585);
+  const nextWave = state.upcomingWaves[0];
+  assert.equal(nextWave.fireTick, 3_630);
+  assert.equal(isWaveWithinRun(nextWave, DEFAULT_RULES), false);
+
+  const targets = state.fireworks
+    .filter((entity) => entity.status === "active" &&
+      entity.forecastForWaveIndex === nextWave.waveIndex &&
+      entity.color === nextWave.primaryColor)
+    .slice(0, DEFAULT_RULES.forecastPlanSelectionCount);
+  assert.equal(targets.length, DEFAULT_RULES.forecastPlanSelectionCount);
+
+  for (const [index, target] of targets.entries()) {
+    if (index > 0) advanceGame(state, state.tick + DEFAULT_RULES.minHoldTicks);
+    selectEntity(state, target.id, DEFAULT_RULES, { x: target.x, y: target.y });
+  }
+
+  assert.equal(detonate(state, DEFAULT_RULES, state.actionCount), true);
+  assert.equal(state.bonusEvents.at(-1)?.forecastPlanAmount ?? 0, 0);
+  assert.equal(state.bonusEvents.some((event) => event.forecastPlanAmount > 0), false);
+  assert.deepEqual(validateGame(state), []);
+});
+
 test("replay metadata is strict and a complete replay is deterministic", () => {
   assert.throws(() => createReplayLog({ seed: 1, rules: DEFAULT_RULES, frames: [] }), /Invalid replay/);
   assert.ok(validateReplayLog({ seed: 1, ruleVersion: DEFAULT_RULES.ruleVersion, inputSchemaVersion: DEFAULT_RULES.inputSchemaVersion, maxTicks: 3_600, frames: [] }).length);
   const simulation = runSimulation(44, { strategy: "shortest-three" });
-  assert.equal(simulation.replay.ruleVersion, "m4-gameplay-3");
+  assert.equal(simulation.replay.ruleVersion, DEFAULT_RULES.ruleVersion);
   assert.equal(simulation.replay.frames.length, 3_600);
   const legacyReplay = replayGame({
     ...simulation.replay,

@@ -1,20 +1,13 @@
 name: Deploy GitHub Pages
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - index.html
-      - "styles/**"
-      - "src/**"
-      - .github/workflows/pages.yml
-      - .github/workflows/public-release.yml
-      - playwright.public.config.mjs
-      - scripts/check-pages-source.mjs
-      - tests/e2e/m7-public-release.spec.mjs
+  workflow_run:
+    workflows: ["CI Core", "CI Browser"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -24,12 +17,54 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  gate:
+    name: Require Core and Browser CI
+    if: >-
+      ${{
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.conclusion == 'success'
+        )
+      }}
+    runs-on: ubuntu-latest
+    outputs:
+      target_sha: ${{ steps.target.outputs.sha }}
+    steps:
+      - name: Check out the tested revision
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.0.0
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+      - name: Resolve target revision
+        id: target
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          DEFAULT_SHA: ${{ github.sha }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            target_sha="$WORKFLOW_RUN_SHA"
+          else
+            target_sha="$DEFAULT_SHA"
+          fi
+          test -n "$target_sha"
+          echo "sha=$target_sha" >> "$GITHUB_OUTPUT"
+      - name: Verify required CI runs for the exact revision
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_SHA: ${{ steps.target.outputs.sha }}
+          REQUIRED_WORKFLOWS: CI Core,CI Browser
+        run: node scripts/check-ci-gate.mjs
+
   build:
     name: Prepare static game files
+    needs: gate
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.0.0
+        with:
+          ref: ${{ needs.gate.outputs.target_sha }}
       - name: Configure GitHub Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
       - name: Prepare public artifact
@@ -47,7 +82,7 @@ jobs:
 
   deploy:
     name: Deploy to GitHub Pages
-    if: ${{ github.ref == 'refs/heads/main' }}
+    if: ${{ needs.build.result == 'success' }}
     needs: build
     runs-on: ubuntu-latest
     environment:

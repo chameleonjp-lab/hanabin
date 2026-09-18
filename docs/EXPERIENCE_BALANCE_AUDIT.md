@@ -1,6 +1,8 @@
 # HANABIN 操作体験・演出品質・ゲームバランス監査
 
-更新日: 2026年8月29日
+更新日: 2026年9月18日
+
+> 2026年9月18日追補: 終了tickを越える予告を得点対象にしない境界条件、非標準状態からの音声復帰、Pages公開前のCI完了待機、公開URLでの実選択スモークを修正した。追補ブランチのルール版は`m4-gameplay-4`であり、下記7.1の`m4-gameplay-3`数値は変更前の履歴基準として扱う。初見5人の受入は対象外、iPhone 17 Pro / Safari実機はこの環境から実施できないため未確認のままとする。
 
 ## 1. 判定範囲と現在地
 
@@ -13,7 +15,7 @@
 | 自動確認 | PR #36の[CI Core #89](https://github.com/chameleonjp-lab/hanabin/actions/runs/33253942472)と[CI Browser #89](https://github.com/chameleonjp-lab/hanabin/actions/runs/33253942468)、マージ後の[CI Core #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047169)と[CI Browser #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047156)が成功した。Chromium / WebKit Touchを含むが、実機の代用にはしない |
 | 実機確認 | **iPhone 17 Pro / Safariでは未確認**。タップ感度、指で隠れる量、長押し、音量、持続性能を合格扱いにしない |
 | 競技結果 | PC・touch・reduced-motionの差は表示と音だけで、同じルール版・seed・入力なら判定と得点を変えない。経路情報を含む入力は固定tickで再生する |
-| バランス変更 | `main`のルール版は`m4-gameplay-3`。4個以上の選択肢保証を含み、旧版の得点比較へ混ぜない |
+| バランス変更 | 現行ブランチのルール版は`m4-gameplay-4`。4個以上の選択肢保証と終了tick境界を含み、旧版の得点比較へ混ぜない |
 
 PR #36で縦画面にも対応した。論理16:9盤面を時計回りに90度表示し、論理上側を画面右、下側を画面左へ置く。マージ後Pagesの公開版反映は確認済みだが、iPhone 17 Pro / Safariでの実機確認は未完了である。
 
@@ -154,9 +156,9 @@ DPR係数は、端末DPRを先に1〜2へ制限した値へ掛け、その結果
 
 新仕様はPCとtouchで共通である。ルール版とfingerprintを更新し、旧ルールの保存最高得点と単純比較しない。表示・SEのリッチさによって予告成立や+150の対象が変わることもない。
 
-### 7.1 現行 main（m4-gameplay-3）の全量バランス再検証
+### 7.1 変更前main（m4-gameplay-3）の全量バランス再検証（履歴基準）
 
-現行 `main` の選択肢保証を含む `m4-gameplay-3` で、同じ1,000 seedを8戦略で各3,600 tick、省略せずに実行した。全戦略で `simulationFault=0`、状態不変条件違反0となり、保存入力の再生結果も一致した。
+変更前 `main` の選択肢保証を含む `m4-gameplay-3` で、同じ1,000 seedを8戦略で各3,600 tick、省略せずに実行した履歴である。全戦略で `simulationFault=0`、状態不変条件違反0となり、保存入力の再生結果も一致した。現行`m4-gameplay-4`の再検証結果は、この追補の自動シミュレーション証跡へ反映する。
 
 | 戦略 | 平均 | 中央値 | p10 | p90 | 平均最大連鎖 | 平均起爆 | 平均予告成立 |
 |---|---:|---:|---:|---:|---:|---:|---:|

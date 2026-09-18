@@ -1,4 +1,8 @@
 import { expect, test } from "@playwright/test";
+import { createGame } from "../../src/core/engine.js";
+
+const BOARD_WIDTH = 16_000;
+const BOARD_HEIGHT = 9_000;
 
 const diagnosticsFor = (page) => {
   const diagnostics = {
@@ -31,7 +35,7 @@ const assertClean = (diagnostics) => {
   expect(diagnostics.failedRequests).toEqual([]);
 };
 
-test("published Pages reaches the result screen through the real terminal flow", async ({ page }) => {
+test("published Pages scores a real selection and reaches the result screen", async ({ page }) => {
   test.setTimeout(110_000);
   const diagnostics = diagnosticsFor(page);
 
@@ -47,6 +51,34 @@ test("published Pages reaches the result screen through the real terminal flow",
   await expect(page.locator("#countdown-screen")).toBeVisible();
   await expect(page.locator("#play-screen")).toBeVisible({ timeout: 10_000 });
   await expect(page.locator("#hud-time")).toBeVisible();
+
+  // The production page intentionally exposes no test-state bridge. Use the
+  // documented deterministic first seed to perform a real pointer selection
+  // against the same fixed-point targets the game renders.
+  const initialState = createGame(1);
+  const targets = initialState.fireworks
+    .filter((entity) => entity.status === "active" &&
+      entity.color === initialState.waves[0].primaryColor)
+    .slice(0, 3);
+  expect(targets).toHaveLength(3);
+  const canvas = page.locator("#game-canvas");
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  const pointForTarget = (target) => ({
+    x: box.x + target.x / BOARD_WIDTH * box.width,
+    y: box.y + target.y / BOARD_HEIGHT * box.height,
+  });
+
+  await page.mouse.move(pointForTarget(targets[0]).x, pointForTarget(targets[0]).y);
+  await page.mouse.down();
+  for (const target of targets) {
+    const point = pointForTarget(target);
+    await page.mouse.move(point.x, point.y);
+    await page.waitForTimeout(90);
+  }
+  await expect(page.locator("#hud-selection-count")).toHaveText("3", { timeout: 3_000 });
+  await page.mouse.up();
+  await expect(page.locator("#hud-score")).not.toHaveText("0", { timeout: 3_000 });
 
   await expect(page.locator("#result-screen")).toBeVisible({ timeout: 90_000 });
   await expect(page.locator("#result-score")).toBeVisible();

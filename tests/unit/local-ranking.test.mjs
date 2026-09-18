@@ -6,6 +6,7 @@ import {
   RANKING_STORAGE_KEY,
   createRankingStore,
 } from "../../src/storage/local-ranking.js";
+import { DEFAULT_RULES } from "../../src/config/rules.js";
 
 const fakeStorage = (initial = null) => {
   let value = initial;
@@ -50,14 +51,15 @@ test("local ranking survives malformed storage through an in-memory fallback", (
 });
 
 test("local ranking separates current and legacy rule records without guessing missing versions", () => {
+  const currentRuleVersion = DEFAULT_RULES.ruleVersion;
   const storage = fakeStorage(JSON.stringify([
     { name: "旧ルール", score: 10_000, maxChain: 8, createdAt: 1, ruleVersion: "m4-gameplay-1" },
     { name: "版不明", score: 9_000, maxChain: 7, createdAt: 2 },
-    { name: "現行", score: 100, maxChain: 1, createdAt: 3, ruleVersion: "m4-gameplay-3" },
+    { name: "現行", score: 100, maxChain: 1, createdAt: 3, ruleVersion: currentRuleVersion },
   ]));
   const store = createRankingStore(storage, "test-ranking", {
     now: () => 4,
-    ruleVersion: "m4-gameplay-3",
+    ruleVersion: currentRuleVersion,
   });
 
   assert.deepEqual(store.list(), [{
@@ -65,7 +67,7 @@ test("local ranking separates current and legacy rule records without guessing m
     score: 100,
     maxChain: 1,
     createdAt: 3,
-    ruleVersion: "m4-gameplay-3",
+    ruleVersion: currentRuleVersion,
   }]);
   assert.deepEqual(store.legacyList(), [
     {
@@ -89,13 +91,13 @@ test("local ranking separates current and legacy rule records without guessing m
   assert.equal(saved.length, 4);
   assert.ok(saved.some((entry) => entry.name === "旧ルール" && entry.ruleVersion === "m4-gameplay-1"));
   assert.ok(saved.some((entry) => entry.name === "版不明" && entry.ruleVersion === ""));
-  assert.deepEqual(store.list().map((entry) => entry.ruleVersion), ["m4-gameplay-3", "m4-gameplay-3"]);
+  assert.deepEqual(store.list().map((entry) => entry.ruleVersion), [currentRuleVersion, currentRuleVersion]);
 });
 
 test("local ranking reads the latest current-rule records for each tab", () => {
   const storage = fakeStorage();
-  const tabA = createRankingStore(storage, "shared-ranking", { ruleVersion: "m4-gameplay-3" });
-  const tabB = createRankingStore(storage, "shared-ranking", { ruleVersion: "m4-gameplay-3" });
+  const tabA = createRankingStore(storage, "shared-ranking", { ruleVersion: DEFAULT_RULES.ruleVersion });
+  const tabB = createRankingStore(storage, "shared-ranking", { ruleVersion: DEFAULT_RULES.ruleVersion });
 
   tabA.record({ name: "高得点", score: 10_000, maxChain: 8 });
   assert.equal(tabB.list()[0].score, 10_000);
@@ -111,7 +113,7 @@ test("local ranking keeps versioned in-memory entries when storage writes fail",
   };
   const store = createRankingStore(storage, "failed-ranking", {
     now: () => 0,
-    ruleVersion: "m4-gameplay-3",
+    ruleVersion: DEFAULT_RULES.ruleVersion,
   });
 
   assert.deepEqual(store.record({ name: "保存失敗", score: 321, maxChain: 4 }), [{
@@ -119,7 +121,7 @@ test("local ranking keeps versioned in-memory entries when storage writes fail",
     score: 321,
     maxChain: 4,
     createdAt: 0,
-    ruleVersion: "m4-gameplay-3",
+    ruleVersion: DEFAULT_RULES.ruleVersion,
   }]);
-  assert.equal(store.list()[0].ruleVersion, "m4-gameplay-3");
+  assert.equal(store.list()[0].ruleVersion, DEFAULT_RULES.ruleVersion);
 });

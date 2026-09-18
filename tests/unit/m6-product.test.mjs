@@ -20,6 +20,7 @@ import { DEFAULT_RULES } from "../../src/config/rules.js";
 import { GameController, isRecordableResult } from "../../src/game/controller.js";
 import { explosionRangeRows, scoreGuideModel } from "../../src/ui/rules-guide.js";
 import {
+  forecastReadinessFor,
   inputFailureMessageFor,
   selectionBlastCueFor,
   updatePlayMessage,
@@ -170,14 +171,14 @@ test("profile best updates compare the latest persisted value before saving", ()
     name: "古い画面",
     bestScore: 0,
     bestChain: 0,
-    bestRuleVersion: "m4-gameplay-3",
+    bestRuleVersion: DEFAULT_RULES.ruleVersion,
   });
-  newTab.updateBest({ score: 10_000, maxChain: 8, ruleVersion: "m4-gameplay-3" });
+  newTab.updateBest({ score: 10_000, maxChain: 8, ruleVersion: DEFAULT_RULES.ruleVersion });
 
   const afterOldTabFinishes = oldTab.updateBest({
     score: 0,
     maxChain: 0,
-    ruleVersion: "m4-gameplay-3",
+    ruleVersion: DEFAULT_RULES.ruleVersion,
   });
 
   assert.equal(afterOldTabFinishes.bestScore, 10_000);
@@ -188,7 +189,7 @@ test("profile best updates compare the latest persisted value before saving", ()
   const currentRuleProfile = staleRuleTab.updateBest({
     score: 11_000,
     maxChain: 9,
-    ruleVersion: "m4-gameplay-3",
+    ruleVersion: DEFAULT_RULES.ruleVersion,
   });
   assert.equal(currentRuleProfile.bestScore, 11_000);
   assert.deepEqual(staleRuleTab.updateBest({
@@ -243,7 +244,7 @@ test("controller does not persist a finished result whose replay mismatches", ()
     legacyList() { return []; },
     record() { rankingRecords += 1; },
   };
-  controller.rules = { ruleVersion: "m4-gameplay-3" };
+  controller.rules = { ruleVersion: DEFAULT_RULES.ruleVersion };
   controller.lastPersistedResultKey = "";
   controller.lastBestScore = false;
   controller.resultStatus = resultStatus;
@@ -425,6 +426,34 @@ test("sound unlock resumes WebKit-style suspended audio and survives off-on", as
   assert.ok(stats.resumes >= 2);
   assert.equal(stats.suspends, 1);
   sound.destroy();
+});
+
+test("sound unlock does not report a non-running interrupted context as ready", async () => {
+  const { context, stats } = fakeAudioContext({ initialState: "interrupted" });
+  context.resume = async () => {
+    stats.resumes += 1;
+  };
+  const sound = new SoundController({ enabled: true, contextFactory: () => context });
+
+  assert.equal(await sound.unlock(), false);
+  assert.equal(stats.resumes, 1);
+  assert.equal(context.state, "interrupted");
+  sound.destroy();
+});
+
+test("forecast HUD closes when the next wave cannot arrive before the run ends", () => {
+  const readiness = forecastReadinessFor({
+    tick: 3_597,
+    upcomingWaves: [{
+      waveId: "wave-20",
+      waveIndex: 20,
+      fireTick: 3_630,
+      primaryColor: 0,
+    }],
+  }, DEFAULT_RULES);
+
+  assert.equal(readiness.windowOpen, false);
+  assert.equal(readiness.status, "window-closed");
 });
 
 test("desktop sound is layered while all sound variants obey their voice ceiling", () => {

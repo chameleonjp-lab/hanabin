@@ -1,6 +1,7 @@
 import {
   DEFAULT_RULES,
   directExplosionRadiusForSelection,
+  isWaveWithinRun,
   mergeRules,
   scoreForColor,
   selectionDurationMultiplierPercent,
@@ -1153,7 +1154,7 @@ export const detonate = (state, rulesArg = DEFAULT_RULES, actionId = state.actio
     nextWave && entity.forecastForWaveIndex === nextWave.waveIndex,
   ).length;
   const forecastLeadTicks = nextWave ? nextWave.fireTick - state.tick : null;
-  const isForecastPlan = Boolean(nextWave &&
+  const isForecastPlan = Boolean(isWaveWithinRun(nextWave, rules) &&
     Number.isInteger(forecastLeadTicks) &&
     forecastLeadTicks >= 1 &&
     forecastLeadTicks <= rules.forecastPlanLeadTicks &&

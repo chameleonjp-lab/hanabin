@@ -120,7 +120,7 @@ test("the public Pages artifact contains only the static game entry files", asyn
 test("the Pages workflow pins every third-party action to an immutable commit", async () => {
   const workflow = await readProjectFile(".github/workflows/pages.yml");
   const actionUses = workflow.match(/^\s+uses:\s+actions\/[^@]+@[0-9a-f]{40}(?:\s+#\s+v\d+(?:\.\d+){0,2})?\s*$/gm) ?? [];
-  assert.equal(actionUses.length, 4);
+  assert.equal(actionUses.length, 5);
   assert.ok(actionUses.every((line) => /@[0-9a-f]{40}(?:\s+#\s+v\d)/.test(line)));
   assert.doesNotMatch(workflow, /uses:\s+actions\/[^@]+@v\d/);
 });
