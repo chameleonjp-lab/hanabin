@@ -507,6 +507,7 @@ test("M6 profile name is rendered as text, best record is saved, and share URL i
 });
 
 test("HBA-02 an older tab cannot lower the latest same-rule best", async ({ page, context }) => {
+  const currentRuleVersion = DEFAULT_RULES.ruleVersion;
   await openPage(page);
   await page.locator("#start-button").click();
   await page.locator("#practice-skip").click();
@@ -514,15 +515,15 @@ test("HBA-02 an older tab cannot lower the latest same-rule best", async ({ page
 
   const newerTab = await context.newPage();
   await newerTab.goto("/?e2e=1");
-  await newerTab.evaluate(() => {
+  await newerTab.evaluate((ruleVersion) => {
     const current = JSON.parse(localStorage.getItem("hanabin:profile:v1") ?? "{}");
     localStorage.setItem("hanabin:profile:v1", JSON.stringify({
       ...current,
       bestScore: 10_000,
       bestChain: 8,
-      bestRuleVersion: DEFAULT_RULES.ruleVersion,
+      bestRuleVersion: ruleVersion,
     }));
-  });
+  }, currentRuleVersion);
 
   await callApi(page, "advanceTicks", 3_600);
   await callApi(page, "settleTerminal");
@@ -530,7 +531,7 @@ test("HBA-02 an older tab cannot lower the latest same-rule best", async ({ page
   expect(persisted).toMatchObject({
     bestScore: 10_000,
     bestChain: 8,
-    bestRuleVersion: DEFAULT_RULES.ruleVersion,
+    bestRuleVersion: currentRuleVersion,
   });
   await newerTab.close();
 });
