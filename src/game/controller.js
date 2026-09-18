@@ -6,6 +6,11 @@ import { SoundController } from "../audio/sound.js";
 import { detectPresentationExperience } from "../presentation/experience.js";
 import { createProfileStore, sanitizePlayerName } from "../storage/local-storage.js";
 import { createRankingStore } from "../storage/local-ranking.js";
+import {
+  createRankingClient,
+  createRequestId,
+  RANKING_STATES,
+} from "../ranking/client.js";
 import { GameSession } from "./session.js";
 import { PresentationEventTracker } from "./presentation-events.js";
 import { updateHud, updatePlayMessage } from "../ui/hud.js";
@@ -61,6 +66,7 @@ export class GameController {
     canvas,
     rules = DEFAULT_RULES,
     seed = 1,
+    rankingClient = null,
   } = {}) {
     if (!root || !canvas) throw new TypeError("GameController requires root and canvas");
     this.root = root;
@@ -72,6 +78,7 @@ export class GameController {
     this.rankingStore = createRankingStore(undefined, undefined, {
       ruleVersion: this.rules.ruleVersion,
     });
+    this.rankingClient = rankingClient ?? createRankingClient();
     this.profile = this.profileStore.load();
     if (this.profile.bestRuleVersion !== this.rules.ruleVersion) {
       this.profile = this.profileStore.update({
@@ -146,6 +153,8 @@ export class GameController {
     this.shareButton = root.querySelector("#share-button");
     this.shareStatus = root.querySelector("#share-status");
     this.resultStatus = root.querySelector("#result-status");
+    this.resultRankingStatus = root.querySelector("#result-ranking-status");
+    this.rankingRetryButton = root.querySelector("#ranking-retry-button");
     this.startButton = root.querySelector("#start-button");
     this.practiceButton = root.querySelector("#practice-button");
     this.practiceHomeButton = root.querySelector("#practice-home");
@@ -161,6 +170,19 @@ export class GameController {
     this.pauseRulesOpen = false;
     this.pointerHintText = "";
     this.pointerHintUntilMs = 0;
+    this.rankingPlay = null;
+    this.rankingStartRequest = null;
+    this.rankingStartPromise = null;
+    this.rankingStartState = RANKING_STATES.idle;
+    this.rankingStatus = RANKING_STATES.idle;
+    this.rankingEntries = [];
+    this.rankingEntriesResultKey = "";
+    this.rankingSyncKey = "";
+    this.rankingSyncPromise = null;
+    this.rankingSubmission = null;
+    this.rankingSubmissionSubmitted = false;
+    this.currentResultKey = "";
+    this.lifecycleToken = 0;
     this.tutorial = new TutorialController(root.querySelector("#practice-screen"), {
       rules: this.rules,
       sound: this.sound,
@@ -211,6 +233,9 @@ export class GameController {
     this.retryButton?.addEventListener("click", () => {
       void this.sound.unlock();
       this.requestStart();
+    });
+    this.rankingRetryButton?.addEventListener("click", () => {
+      void this.retryRanking();
     });
     this.homeButton?.addEventListener("click", () => this.goHome());
     this.shareButton?.addEventListener("click", () => this.shareResult());
@@ -434,6 +459,163 @@ export class GameController {
     const seed = this.pendingStartSeed;
     this.pendingStartSeed = null;
     return this.start(seed);
+  }
+
+  rankingNoteFor(hasRemoteRanking = false) {
+    if (hasRemoteRanking) return "カメレオンJPの実験場と共有している現在のランキングです。";
+    if (this.deterministicTestMode) return "テスト用のため、端末内ランキングを表示しています。";
+    if (this.rankingStatus === RANKING_STATES.submitting) return "結果をカメレオンJPの実験場へ送信しています。";
+    if ([RANKING_STATES.retryableFailed, RANKING_STATES.permanentFailed].includes(this.rankingStatus)) {
+      return "オンラインランキングを取得できないため、この端末の記録を表示しています。";
+    }
+    return "カメレオンJPの実験場からランキングを取得しています。";
+  }
+
+  updateRankingUi() {
+    const hasRemoteRanking = this.rankingEntriesResultKey === this.currentResultKey &&
+      Array.isArray(this.rankingEntries);
+    if (this.resultRankingStatus) {
+      const retired = this.session?.state?.status === "retired";
+      const messages = {
+        [RANKING_STATES.idle]: "ランキングを読み込んでいます…",
+        [RANKING_STATES.starting]: "プレイ開始を記録しています…",
+        [RANKING_STATES.submitting]: "プレイ回数とスコアを連携しています…",
+        [RANKING_STATES.submitted]: retired
+          ? "プレイ回数を記録しました。リタイアはランキング対象外です。"
+          : "カメレオンJP公式ランキングを表示しています。",
+        [RANKING_STATES.retryableFailed]: "ランキング連携に失敗しました。結果は保持されています。",
+        [RANKING_STATES.permanentFailed]: "この結果はランキングへ登録できませんでした。",
+      };
+      this.resultRankingStatus.textContent = messages[this.rankingStatus] ?? messages[RANKING_STATES.idle];
+      this.resultRankingStatus.dataset.state = this.rankingStatus;
+    }
+    if (this.rankingRetryButton) {
+      const retryable = this.rankingStatus === RANKING_STATES.retryableFailed;
+      this.rankingRetryButton.hidden = !retryable;
+      this.rankingRetryButton.disabled = Boolean(this.rankingSyncPromise);
+    }
+    return hasRemoteRanking;
+  }
+
+  renderCurrentResult(state = this.session?.state) {
+    if (!state) return null;
+    const remote = this.rankingEntriesResultKey === this.currentResultKey &&
+      Array.isArray(this.rankingEntries);
+    const localRanking = this.rankingStore?.list?.() ?? [];
+    const legacyRanking = this.rankingStore?.legacyList?.() ?? [];
+    const rendered = renderResult(this.root, state, {
+      profile: this.profile,
+      publicUrl: publicUrlFor(),
+      isBestScore: this.lastBestScore,
+      isRetired: state.status === "retired",
+      ranking: remote ? this.rankingEntries : localRanking,
+      legacyRanking,
+      rankingMode: remote ? "remote" : "local",
+      rankingNote: this.rankingNoteFor(remote),
+      isReplayValid: this.session.replayCheck?.ok === true,
+    });
+    this.updateRankingUi();
+    if (this.resultStatus) this.resultStatus.dataset.retired = state.status === "retired" ? "true" : "false";
+    if (this.resultReplay) {
+      const invalid = Boolean(state.simulationFault) ||
+        (state.status === "finished" && this.session.replayCheck?.ok !== true);
+      this.resultReplay.dataset.fault = invalid ? "true" : "false";
+      this.resultReplay.textContent = invalid
+        ? "このプレイは無効です"
+        : state.status === "retired"
+          ? "リタイアしたため、記録には残していません（ランキング登録なし・プレイ回数は開始時に記録）"
+        : this.session.replayCheck?.ok ? "プレイ結果を確認しました" : "プレイ結果を確認できませんでした";
+    }
+    return rendered;
+  }
+
+  async syncRankingResult(state, resultKey) {
+    const play = this.rankingPlay;
+    if (!play || !this.rankingClient) return null;
+    const check = this.session?.replayCheck;
+    const recordable = isRecordableResult(state, check);
+    const score = Math.max(0, Math.trunc(state.finalScore ?? state.score ?? 0));
+    const reachedWave = Math.max(1, Math.trunc(Number(state.stats?.wavesSpawned) || 1));
+    const resultType = recordable ? "game_over" : "retire";
+    const isCurrentRun = () => this.rankingPlay?.playId === play.playId &&
+      this.currentResultKey === resultKey;
+    let submission = this.rankingSubmission?.playId === play.playId
+      ? this.rankingSubmission
+      : null;
+    let submissionSubmitted = submission !== null && this.rankingSubmissionSubmitted === true;
+    try {
+      if (recordable && !submission) {
+        const saved = this.rankingClient.loadPendingSubmission?.();
+        const sameRun = saved?.playId === play.playId &&
+          saved?.displayName === play.displayName &&
+          Number(saved?.score) === score;
+        submission = sameRun
+          ? saved
+          : {
+            submissionId: createRequestId(),
+            playId: play.playId,
+            displayName: play.displayName,
+            score,
+          };
+        if (isCurrentRun()) this.rankingSubmission = submission;
+        this.rankingClient.savePendingSubmission?.(submission);
+      }
+
+      await this.rankingClient.finishPlay({
+        playId: play.playId,
+        displayName: play.displayName,
+        resultType,
+        reachedWave,
+        score: recordable ? score : 0,
+      });
+
+      if (recordable && !submissionSubmitted) {
+        await this.rankingClient.submitScore({
+          playId: play.playId,
+          submissionId: submission.submissionId,
+          displayName: play.displayName,
+          score,
+        });
+        submissionSubmitted = true;
+        this.rankingClient.clearPendingSubmission?.(submission.submissionId);
+        if (isCurrentRun()) this.rankingSubmissionSubmitted = true;
+      }
+
+      const entries = await this.rankingClient.fetchTopRanking(10);
+      if (isCurrentRun()) {
+        this.rankingEntries = entries;
+        this.rankingEntriesResultKey = resultKey;
+        this.rankingStatus = RANKING_STATES.submitted;
+      }
+    } catch (error) {
+      if (isCurrentRun()) {
+        this.rankingStatus = error?.retryable === false
+          ? RANKING_STATES.permanentFailed
+          : RANKING_STATES.retryableFailed;
+      }
+    }
+    if (isCurrentRun()) this.populateResult();
+    return isCurrentRun() ? this.rankingStatus : null;
+  }
+
+  beginRankingSync(state, resultKey, { force = false } = {}) {
+    if (this.deterministicTestMode || !this.rankingClient || !this.rankingPlay) return null;
+    if (this.rankingSyncPromise && !force) return this.rankingSyncPromise;
+    this.rankingSyncKey = resultKey;
+    this.rankingStatus = RANKING_STATES.submitting;
+    this.updateRankingUi();
+    const promise = this.syncRankingResult(state, resultKey);
+    this.rankingSyncPromise = promise?.finally(() => {
+      if (this.currentResultKey === resultKey) this.updateRankingUi();
+      if (this.rankingSyncKey === resultKey) this.rankingSyncPromise = null;
+    }) ?? null;
+    return this.rankingSyncPromise;
+  }
+
+  retryRanking() {
+    if (!this.currentResultKey || !this.session?.state) return null;
+    if (this.rankingSyncPromise) return this.rankingSyncPromise;
+    return this.beginRankingSync(this.session.state, this.currentResultKey, { force: true });
   }
 
   updateResumePresentation(remainingSeconds = null) {
@@ -682,6 +864,66 @@ export class GameController {
 
   start(seed = null) {
     if (this.destroyed) return null;
+    if (this.deterministicTestMode || !this.rankingClient || typeof this.rankingClient.startPlay !== "function") {
+      return this.startGameplay(seed);
+    }
+    if (this.rankingStartPromise) return this.rankingStartPromise;
+    const displayName = String(this.profile?.name ?? "").trim();
+    if (!displayName) {
+      if (this.status) this.status.textContent = "名前を入力してから開始してください";
+      return null;
+    }
+    if (this.rankingStartRequest && this.rankingStartRequest.displayName !== displayName) {
+      if (this.status) this.status.textContent = "開始記録の再試行は、最初に入力した名前で行ってください";
+      return null;
+    }
+    try {
+      this.rankingStartRequest ??= {
+        startId: createRequestId(),
+        displayName,
+      };
+    } catch (error) {
+      this.rankingStartState = RANKING_STATES.permanentFailed;
+      if (this.status) this.status.textContent = error?.message ?? "開始記録を準備できませんでした";
+      return null;
+    }
+    const requestToken = this.lifecycleToken;
+    this.rankingStartState = RANKING_STATES.starting;
+    if (this.startButton) this.startButton.disabled = true;
+    if (this.status) this.status.textContent = "プレイ開始をランキングへ記録しています…";
+    const operation = (async () => {
+      try {
+        const started = await this.rankingClient.startPlay(this.rankingStartRequest);
+        if (this.destroyed || requestToken !== this.lifecycleToken) return null;
+        this.rankingPlay = {
+          playId: started.playId,
+          startId: started.startId,
+          displayName: started.displayName || displayName,
+        };
+        this.rankingStartRequest = null;
+        this.rankingStartState = RANKING_STATES.idle;
+        return this.startGameplay(seed);
+      } catch (error) {
+        this.rankingStartState = error?.retryable === false
+          ? RANKING_STATES.permanentFailed
+          : RANKING_STATES.retryableFailed;
+        if (this.status) {
+          this.status.textContent = error?.retryable === false
+            ? "ランキング連携を確認できないため開始できません。再試行してください"
+            : "ランキング連携に失敗しました。再試行してください";
+        }
+        return null;
+      } finally {
+        if (this.rankingStartPromise === operation) this.rankingStartPromise = null;
+        if (this.startButton) this.startButton.disabled = false;
+      }
+    })();
+    this.rankingStartPromise = operation;
+    return operation;
+  }
+
+  startGameplay(seed = null) {
+    if (this.destroyed) return null;
     if (seed !== null && Number.isFinite(Number(seed))) {
       this.nextSeed = Math.trunc(Number(seed)) >>> 0 || 1;
     }
@@ -706,6 +948,14 @@ export class GameController {
     this.pointerHintUntilMs = 0;
     this.lastPersistedResultKey = "";
     this.lastBestScore = false;
+    this.currentResultKey = "";
+    this.rankingEntries = [];
+    this.rankingEntriesResultKey = "";
+    this.rankingSyncKey = "";
+    this.rankingSyncPromise = null;
+    this.rankingStatus = RANKING_STATES.idle;
+    this.rankingSubmission = null;
+    this.rankingSubmissionSubmitted = false;
     this.shareStatus && (this.shareStatus.textContent = "");
     this.setPauseRules(false);
     this.setPauseMenu(false);
@@ -718,6 +968,8 @@ export class GameController {
 
   goHome() {
     if (this.destroyed) return;
+    this.lifecycleToken += 1;
+    this.currentResultKey = "";
     this.pointer.clear();
     this.clockPaused = false;
     this.userPaused = false;
@@ -894,26 +1146,13 @@ export class GameController {
       }
       this.lastPersistedResultKey = resultKey;
     }
-    renderResult(this.root, state, {
-      profile: this.profile,
-      publicUrl: publicUrlFor(),
-      isBestScore: this.lastBestScore,
-      isRetired: state.status === "retired",
-      ranking: this.rankingStore.list(),
-      legacyRanking: this.rankingStore.legacyList(),
-      isReplayValid: check?.ok === true,
-    });
-    if (this.resultStatus) this.resultStatus.dataset.retired = state.status === "retired" ? "true" : "false";
-    if (this.resultReplay) {
-      const invalid = Boolean(state.simulationFault) ||
-        (state.status === "finished" && check?.ok !== true);
-      this.resultReplay.dataset.fault = invalid ? "true" : "false";
-      this.resultReplay.textContent = invalid
-        ? "このプレイは無効です"
-        : state.status === "retired"
-          ? "リタイアしたため、記録には残していません"
-        : check?.ok ? "プレイ結果を確認しました" : "プレイ結果を確認できませんでした";
-    }
+    this.currentResultKey = resultKey;
+    this.renderCurrentResult(state);
+    const shouldSync = this.rankingSyncKey !== resultKey &&
+      !this.deterministicTestMode &&
+      Boolean(this.rankingPlay) &&
+      typeof this.rankingClient?.finishPlay === "function";
+    if (shouldSync) this.beginRankingSync(state, resultKey);
   }
 
   render() {

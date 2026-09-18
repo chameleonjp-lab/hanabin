@@ -4,7 +4,7 @@
 
 2026年9月8日、PR #46までのmainを対象に、[Astra Highのゲーム品質監査・改善実装計画](./docs/ASTRA_QUALITY_AUDIT_PLAN_2026-09-08.md)を作成しました。再現できた問題、条件付きの課題、試遊で判断する案を分け、6件の改善PRと完了条件を定めています。今回の変更は文書と監査証跡のみで、製品の修正は未着手です。
 
-M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未完了で、公開URL専用の実時間終端検査とGitHub Pagesの公開元修正は完了していますが、iPhone 17 Proの実機確認と初見5人の試遊が残っています。追加要件（選択肢保証、一時停止、名前必須、結果導線、PC操作、縦画面、端末内TOP10）はPR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)で`main`へマージ済みです。高速なぞり、Pointer Capture失敗時のwindowフォールバック、Pages ActionsのSHA固定、予告・連鎖の視覚フィードバック、時間帯別プレイ曲線計測はPR [#42](https://github.com/chameleonjp-lab/hanabin/pull/42)まで`main`へ反映済みです。現在はルール数値を変えずに、縦画面の予告位置表示と、iPhone 17 Pro／初見5人の受入へ進んでいます。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)へ整理しています。
+M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未完了で、公開URL専用の実時間終端検査とGitHub Pagesの公開元修正は完了していますが、iPhone 17 Proの実機確認が残っています。初見5人の試遊は受入対象外です。追加要件（選択肢保証、一時停止、名前必須、結果導線、PC操作、縦画面、端末内TOP10）はPR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)で`main`へマージ済みです。高速なぞり、Pointer Capture失敗時のwindowフォールバック、Pages ActionsのSHA固定、予告・連鎖の視覚フィードバック、時間帯別プレイ曲線計測はPR [#42](https://github.com/chameleonjp-lab/hanabin/pull/42)まで`main`へ反映済みです。現在はルール数値を変えずに、縦画面の予告位置表示とiPhone 17 Pro実機確認へ進んでいます。詳細は[`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)へ整理しています。
 
 2026年8月23日の操作感度、PC/touch演出、効果音、得点表示、予告バランスの後続修正はPull Request [#34](https://github.com/chameleonjp-lab/hanabin/pull/34)で`main`へマージされ、公開Pagesへ反映済みです。追加要件を含むPR [#36](https://github.com/chameleonjp-lab/hanabin/pull/36)もマージされ、[CI Core #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047169)、[CI Browser #90](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047156)、[Deploy GitHub Pages #24](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256047185)、[Public Release Smoke #19](https://github.com/chameleonjp-lab/hanabin/actions/runs/33256066052)が成功しています。iPhone 17 Pro / Safari実機と初見5人の試遊は未確認です。実装済み範囲と実機未確認項目は[`docs/EXPERIENCE_BALANCE_AUDIT.md`](./docs/EXPERIENCE_BALANCE_AUDIT.md)を正本とします。
 
@@ -30,6 +30,8 @@ M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未�
   M6の初回練習、保存、結果、共有、音、中断復帰の境界と検査を記録します。
 - [`docs/MVP_RELEASE_REPORT.md`](./docs/MVP_RELEASE_REPORT.md)
   M7の自動検査、公開版固定情報、GitHub Pages、実機検査、初見試遊の結果を記録します。
+- [`docs/SUPABASE_RANKING_RELEASE.md`](./docs/SUPABASE_RANKING_RELEASE.md)
+  Supabase共通RPCの呼び出し順、開始時プレイカウント、公開前ゲートを記録します。
 - [`docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md`](./docs/M7_MANUAL_ACCEPTANCE_CHECKLIST.md)
   iPhone 17 Pro（横・縦画面）、初見5人、Pages設定の確認結果を、未確認と実測値を分けて記録します。
 - [`docs/POST_MVP_HARDENING_PLAN.md`](./docs/POST_MVP_HARDENING_PLAN.md)
@@ -68,7 +70,7 @@ M1〜M7の実装コードは`main`へマージ済みです。M7の受入は未�
 - 作業用ブランチとDraft Pull Requestを使います。
 - 一つのPull Requestは、ブラウザまたは試験結果で確認できるまとまりにします。
 - ゲーム設計審査を通過するまで、豪華な花火演出を優先しません。
-- オンライン公式ランキングは、サーバー再計算と不正対策を実装した後に追加します。現在の結果画面には端末内TOP10だけを表示します。
+- オンライン公式ランキングはSupabaseの共有RPCへ接続しています。プレイ開始時に開始セッションを記録し、結果画面下部へカメレオンJP実験場のTOP10を表示します。通信できない場合は結果を保持し、再試行できます。
 
 ## 現在の状態
 

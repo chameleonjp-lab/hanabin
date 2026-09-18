@@ -72,6 +72,7 @@ jobs:
           rm -rf site
           mkdir -p site
           cp index.html site/
+          cp ranking-manifest.json site/
           cp -R styles site/
           cp -R src site/
           touch site/.nojekyll

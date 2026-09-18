@@ -22,11 +22,16 @@ test("static page has the M1 loading contract", async () => {
   assert.match(html, /id="pause-rules-button"/);
   assert.match(html, /id="home-button"/);
   assert.match(html, /id="result-ranking-list"/);
+  assert.match(html, /id="result-ranking-status"/);
+  assert.match(html, /id="ranking-retry-button"/);
   assert.doesNotMatch(html, /id="result-experiment-link"/);
   assert.match(html, /id="legacy-ranking"/);
   assert.match(html, /id="legacy-ranking-list"/);
   assert.doesNotMatch(html, /PCリッチ演出|スマホ軽量演出|負荷を抑えた演出|実験場へ/);
-  assert.doesNotMatch(html, /<(?:script|link)[^>]+(?:src|href)=["']https?:\/\//i);
+  assert.doesNotMatch(
+    html,
+    /<(?:script|link)[^>]+(?:src|href)=["']https?:\/\/(?!chameleonjp-lab\.github\.io\/hanabin\/)/i,
+  );
 });
 
 test("public files do not load a CDN or external font", async () => {
@@ -36,7 +41,8 @@ test("public files do not load a CDN or external font", async () => {
     await readProjectFile("styles/game.css"),
   ].join("\n");
   assert.doesNotMatch(`${html}\n${css}`, /(?:cdn|googleapis|fonts\.google|use\.typekit|@import\s+url)/i);
-  assert.doesNotMatch(`${html}\n${css}`, /https?:\/\//i);
+  const withoutCanonical = `${html}\n${css}`.replaceAll("https://chameleonjp-lab.github.io/hanabin/", "");
+  assert.doesNotMatch(withoutCanonical, /https?:\/\//i);
 });
 
 test("layout includes viewport fallbacks and all safe-area insets", async () => {
@@ -70,6 +76,8 @@ test("M1 entry files exist without a build step", async () => {
     "src/audio/sound.js",
     "src/storage/local-storage.js",
     "src/storage/local-ranking.js",
+    "src/config/ranking.js",
+    "src/ranking/client.js",
     "src/config/release.js",
     "src/ui/screens.js",
     "scripts/serve.mjs",
@@ -78,6 +86,11 @@ test("M1 entry files exist without a build step", async () => {
   ]) {
     await assert.doesNotReject(access(resolve(projectRoot, relativePath)), relativePath);
   }
+  const manifest = JSON.parse(await readProjectFile("ranking-manifest.json"));
+  assert.equal(manifest.game_id, "hanabin");
+  assert.equal(manifest.play_count.count_at, "start");
+  assert.equal(manifest.play_count.idempotency, true);
+  assert.equal(manifest.submission.idempotency, true);
 });
 
 test("runtime dependency remains empty", async () => {
@@ -112,6 +125,7 @@ test("the public Pages artifact contains only the static game entry files", asyn
   const workflow = await readProjectFile(".github/workflows/pages.yml");
 
   assert.match(workflow, /cp index\.html site\//);
+  assert.match(workflow, /cp ranking-manifest\.json site\//);
   assert.match(workflow, /cp -R styles site\//);
   assert.match(workflow, /cp -R src site\//);
   assert.doesNotMatch(workflow, /cp .*README|cp .*tests|cp .*\.github/u);
