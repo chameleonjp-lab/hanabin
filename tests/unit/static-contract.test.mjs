@@ -88,6 +88,9 @@ test("M1 entry files exist without a build step", async () => {
   }
   const manifest = JSON.parse(await readProjectFile("ranking-manifest.json"));
   assert.equal(manifest.game_id, "hanabin");
+  assert.equal(manifest.title, "ハナビン");
+  assert.equal(manifest.share_text, "ハナビンで花火の連鎖スコアを競おう。");
+  assert.equal(manifest.ranking_entries[0].title, "ハナビン");
   assert.equal(manifest.play_count.count_at, "start");
   assert.equal(manifest.play_count.idempotency, true);
   assert.equal(manifest.submission.idempotency, true);
