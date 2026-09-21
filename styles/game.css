@@ -17,6 +17,23 @@
   padding: clamp(16px, 3vw, 32px);
 }
 
+/* The document is intentionally fixed; long non-game screens must therefore
+   keep their own bounded scroll region inside the app card. */
+.app-shell[data-screen="home"],
+.app-shell[data-screen="practice"],
+.app-shell[data-screen="result"] {
+  place-items: stretch;
+}
+
+.app-shell[data-screen="home"] .game-app,
+.app-shell[data-screen="practice"] .game-app,
+.app-shell[data-screen="result"] .game-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+}
+
 .app-shell[data-screen="play"] {
   touch-action: none;
   overscroll-behavior: none;
@@ -65,6 +82,37 @@
   background:
     radial-gradient(circle at 50% 10%, rgba(121, 230, 255, 0.13), transparent 42%),
     rgba(7, 12, 29, 0.72);
+}
+
+.screen--home {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.home-scroll {
+  display: grid;
+  flex: 1 1 auto;
+  align-content: start;
+  justify-items: center;
+  gap: 20px;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: clamp(24px, 5vw, 58px) clamp(16px, 5vw, 56px);
+  scrollbar-gutter: stable;
+}
+
+.screen--home .home-actions {
+  flex: 0 0 auto;
+  width: 100%;
+  padding: 12px clamp(16px, 5vw, 56px) max(12px, var(--safe-bottom));
+  border-top: 1px solid rgba(146, 188, 255, 0.18);
+  background: linear-gradient(180deg, rgba(7, 12, 29, 0.58), rgba(7, 12, 29, 0.94) 30%);
 }
 
 .home-intro {
@@ -323,10 +371,14 @@
   display: grid;
   justify-items: center;
   gap: 16px;
+  min-height: 0;
   max-width: 760px;
   margin-right: auto;
   margin-left: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: clamp(24px, 5vw, 58px) clamp(16px, 5vw, 56px);
+  scrollbar-gutter: stable;
   border: 1px solid var(--game-border);
   border-radius: 24px;
   background:
@@ -1207,6 +1259,13 @@
   .screen--home,
   .screen--result {
     border-radius: 18px;
+  }
+
+  .screen--home {
+    padding: 0;
+  }
+
+  .home-scroll {
     padding: 28px 14px;
   }
 

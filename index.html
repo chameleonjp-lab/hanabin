@@ -55,71 +55,73 @@
         </p>
 
         <section id="home-screen" class="screen screen--home" data-screen="home" aria-labelledby="home-title">
-          <div class="home-intro">
-            <p class="home-kicker">60秒 SCORE ATTACK</p>
-            <h2 id="home-title">同じ色を3つつないで、連鎖を起こす</h2>
-            <p>同じ色の花火を1本指でつなぎ、指を離すと爆発します。爆発が近くの花火に届くほど高得点です。</p>
-          </div>
-          <div class="profile-panel" aria-label="プレイヤー設定">
-            <div class="profile-panel__heading">
-              <span class="hud-label">PLAYER SETTINGS</span>
-              <span id="profile-best-label" class="profile-best-label">現在のルールでのベスト</span>
+          <div class="home-scroll">
+            <div class="home-intro">
+              <p class="home-kicker">60秒 SCORE ATTACK</p>
+              <h2 id="home-title">同じ色を3つつないで、連鎖を起こす</h2>
+              <p>同じ色の花火を1本指でつなぎ、指を離すと爆発します。爆発が近くの花火に届くほど高得点です。</p>
             </div>
-            <label class="field-row" for="player-name">
-              <span>名前（必須・12文字まで）</span>
-              <input id="player-name" name="player-name" type="text" maxlength="12" autocomplete="nickname" inputmode="text" placeholder="プレイヤー名" required aria-required="true" />
-            </label>
-            <p id="profile-error" class="field-error" role="alert" hidden>名前は1〜12文字で入力してください。</p>
-            <div class="profile-settings-grid">
-              <label class="field-row" for="quality-select">
-                <span>演出品質</span>
-                <select id="quality-select" name="quality">
-                  <option value="auto">自動</option>
-                  <option value="high">高</option>
-                  <option value="medium">中</option>
-                  <option value="low">低</option>
-                </select>
+            <div class="profile-panel" aria-label="プレイヤー設定">
+              <div class="profile-panel__heading">
+                <span class="hud-label">PLAYER SETTINGS</span>
+                <span id="profile-best-label" class="profile-best-label">現在のルールでのベスト</span>
+              </div>
+              <label class="field-row" for="player-name">
+                <span>名前（必須・12文字まで）</span>
+                <input id="player-name" name="player-name" type="text" maxlength="12" autocomplete="nickname" inputmode="text" placeholder="プレイヤー名" required aria-required="true" />
               </label>
-              <label class="toggle-row" for="sound-toggle">
-                <input id="sound-toggle" type="checkbox" />
-                <span>音を有効にする</span>
-              </label>
+              <p id="profile-error" class="field-error" role="alert" hidden>名前は1〜12文字で入力してください。</p>
+              <div class="profile-settings-grid">
+                <label class="field-row" for="quality-select">
+                  <span>演出品質</span>
+                  <select id="quality-select" name="quality">
+                    <option value="auto">自動</option>
+                    <option value="high">高</option>
+                    <option value="medium">中</option>
+                    <option value="low">低</option>
+                  </select>
+                </label>
+                <label class="toggle-row" for="sound-toggle">
+                  <input id="sound-toggle" type="checkbox" />
+                  <span>音を有効にする</span>
+                </label>
+              </div>
+              <p id="quality-active-label" class="quality-active-label">自動調整：高</p>
+              <div class="profile-best" aria-label="自己ベスト記録">
+                <span>SCORE <strong id="home-best-score">0</strong></span>
+                <span>CHAIN <strong id="home-best-chain">0</strong></span>
+              </div>
             </div>
-            <p id="quality-active-label" class="quality-active-label">自動調整：高</p>
-            <div class="profile-best" aria-label="自己ベスト記録">
-              <span>SCORE <strong id="home-best-score">0</strong></span>
-              <span>CHAIN <strong id="home-best-chain">0</strong></span>
+            <div class="home-rules" aria-label="操作の要点">
+              <span><i class="rule-dot rule-dot--cyan" aria-hidden="true"></i>同じ色を3つ以上つなぐ</span>
+              <span><i class="rule-dot rule-dot--gold" aria-hidden="true"></i>指を離すと爆発</span>
+              <span><i class="rule-dot rule-dot--pink" aria-hidden="true"></i>近くへ広がるほど高得点</span>
             </div>
+            <details id="score-guide" class="score-guide">
+              <summary>得点・爆発範囲を確認</summary>
+              <div class="score-guide__body">
+                <h3>加点</h3>
+                <ul>
+                  <li id="rule-direct"></li>
+                  <li id="rule-preparation"></li>
+                  <li id="rule-chain"></li>
+                  <li id="rule-inclusion"></li>
+                  <li id="rule-forecast"></li>
+                  <li id="rule-choices"></li>
+                </ul>
+                <h3>減点</h3>
+                <p id="rule-penalty"></p>
+                <h3>操作と爆発範囲</h3>
+                <p id="rule-selection"></p>
+                <p id="rule-explosion-ranges"></p>
+              </div>
+            </details>
+            <p class="home-hint">詳しい操作と得点は「得点・爆発範囲を確認」で見られます。</p>
           </div>
-          <div class="home-rules" aria-label="操作の要点">
-            <span><i class="rule-dot rule-dot--cyan" aria-hidden="true"></i>同じ色を3つ以上つなぐ</span>
-            <span><i class="rule-dot rule-dot--gold" aria-hidden="true"></i>指を離すと爆発</span>
-            <span><i class="rule-dot rule-dot--pink" aria-hidden="true"></i>近くへ広がるほど高得点</span>
-          </div>
-          <details id="score-guide" class="score-guide">
-            <summary>得点・爆発範囲を確認</summary>
-            <div class="score-guide__body">
-              <h3>加点</h3>
-              <ul>
-                <li id="rule-direct"></li>
-                <li id="rule-preparation"></li>
-                <li id="rule-chain"></li>
-                <li id="rule-inclusion"></li>
-                <li id="rule-forecast"></li>
-                <li id="rule-choices"></li>
-              </ul>
-              <h3>減点</h3>
-              <p id="rule-penalty"></p>
-              <h3>操作と爆発範囲</h3>
-              <p id="rule-selection"></p>
-              <p id="rule-explosion-ranges"></p>
-            </div>
-          </details>
           <div class="home-actions">
             <button id="start-button" class="primary-button" type="button">ゲームを開始</button>
             <button id="practice-button" class="secondary-button" type="button">操作練習</button>
           </div>
-          <p class="home-hint">詳しい操作と得点は「得点・爆発範囲を確認」で見られます。</p>
         </section>
 
         <section id="practice-screen" class="screen screen--practice" data-screen="practice" hidden aria-labelledby="practice-title">
