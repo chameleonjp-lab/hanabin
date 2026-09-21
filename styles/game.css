@@ -20,13 +20,11 @@
 /* The document is intentionally fixed; long non-game screens must therefore
    keep their own bounded scroll region inside the app card. */
 .app-shell[data-screen="home"],
-.app-shell[data-screen="practice"],
 .app-shell[data-screen="result"] {
   place-items: stretch;
 }
 
 .app-shell[data-screen="home"] .game-app,
-.app-shell[data-screen="practice"] .game-app,
 .app-shell[data-screen="result"] .game-app {
   display: flex;
   flex-direction: column;
@@ -371,14 +369,10 @@
   display: grid;
   justify-items: center;
   gap: 16px;
-  min-height: 0;
   max-width: 760px;
   margin-right: auto;
   margin-left: auto;
-  overflow-y: auto;
-  overscroll-behavior: contain;
   padding: clamp(24px, 5vw, 58px) clamp(16px, 5vw, 56px);
-  scrollbar-gutter: stable;
   border: 1px solid var(--game-border);
   border-radius: 24px;
   background:
