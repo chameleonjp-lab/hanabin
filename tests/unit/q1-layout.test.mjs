@@ -16,6 +16,20 @@ test("the document stays fixed while long panels own their own scroll", () => {
   assert.match(gameStyles, /\.screen--practice\s*\{[\s\S]*overflow-y:\s*auto/);
 });
 
+test("home keeps the start action visible while its content scrolls", () => {
+  const homeScrollIndex = html.indexOf('<div class="home-scroll">');
+  const homeActionsIndex = html.indexOf('<div class="home-actions">');
+  assert.ok(homeScrollIndex >= 0 && homeActionsIndex > homeScrollIndex);
+  assert.doesNotMatch(html.slice(homeScrollIndex, homeActionsIndex), /class="home-actions"/);
+  assert.match(
+    gameStyles,
+    /\.app-shell\[data-screen="home"\][\s\S]*\.game-app\s*\{[\s\S]*display:\s*flex[\s\S]*flex-direction:\s*column/,
+  );
+  assert.match(gameStyles, /\.screen--home\s*\{[\s\S]*overflow:\s*hidden/);
+  assert.match(gameStyles, /\.home-scroll\s*\{[\s\S]*overflow-y:\s*auto/);
+  assert.match(gameStyles, /\.screen--home \.home-actions\s*\{[\s\S]*flex:\s*0 0 auto/);
+});
+
 test("mobile play and practice layouts reserve visible action space", () => {
   const practiceActionIndex = html.indexOf('<div class="practice-actions">');
   const practiceBoardIndex = html.indexOf('id="practice-board"');
