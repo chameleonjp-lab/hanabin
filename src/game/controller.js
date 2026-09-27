@@ -179,6 +179,7 @@ export class GameController {
     this.rankingEntriesResultKey = "";
     this.rankingSyncKey = "";
     this.rankingSyncPromise = null;
+    this.rankingResumePromise = null;
     this.rankingSubmission = null;
     this.rankingSubmissionSubmitted = false;
     this.currentResultKey = "";
@@ -205,6 +206,7 @@ export class GameController {
     this.deterministicTestMode = false;
     this.destroyed = false;
     this.renderCount = 0;
+    this.rankingResumePromise = this.resumePendingRankingSubmission();
     this.boundVisibility = () => this.handleVisibilityChange();
     this.boundPageShow = () => this.handlePageShow();
     this.boundResize = () => {
@@ -550,12 +552,18 @@ export class GameController {
           saved?.displayName === play.displayName &&
           Number(saved?.score) === score;
         submission = sameRun
-          ? saved
+          ? {
+            ...saved,
+            resultType,
+            reachedWave,
+          }
           : {
             submissionId: createRequestId(),
             playId: play.playId,
             displayName: play.displayName,
             score,
+            resultType,
+            reachedWave,
           };
         if (isCurrentRun()) this.rankingSubmission = submission;
         this.rankingClient.savePendingSubmission?.(submission);
@@ -596,6 +604,53 @@ export class GameController {
     }
     if (isCurrentRun()) this.populateResult();
     return isCurrentRun() ? this.rankingStatus : null;
+  }
+
+  async resumePendingRankingSubmission() {
+    const pending = this.rankingClient?.loadPendingSubmission?.();
+    if (!pending) return true;
+
+    const resultType = ["clear", "game_over"].includes(String(pending.resultType ?? "").trim().toLowerCase())
+      ? String(pending.resultType).trim().toLowerCase()
+      : "game_over";
+    const score = Math.max(0, Math.trunc(Number(pending.score) || 0));
+    const reachedWave = Math.max(1, Math.trunc(Number(pending.reachedWave) || 1));
+
+    try {
+      await this.rankingClient.finishPlay({
+        playId: pending.playId,
+        displayName: pending.displayName,
+        resultType,
+        reachedWave,
+        score,
+      });
+      await this.rankingClient.submitScore({
+        playId: pending.playId,
+        submissionId: pending.submissionId,
+        displayName: pending.displayName,
+        score,
+      });
+      this.rankingClient.clearPendingSubmission?.(pending.submissionId);
+    } catch (error) {
+      // Keep transient failures for the next load or explicit start retry.
+      // An invalid/expired record cannot be repaired and must not block new play.
+      if (error?.retryable === false) {
+        this.rankingClient.clearPendingSubmission?.(pending.submissionId);
+      }
+    }
+
+    return !this.rankingClient.loadPendingSubmission?.();
+  }
+
+  async ensurePendingRankingSubmission() {
+    if (this.rankingResumePromise) {
+      await this.rankingResumePromise;
+      this.rankingResumePromise = null;
+    }
+
+    if (!this.rankingClient?.loadPendingSubmission?.()) return true;
+    await this.resumePendingRankingSubmission();
+    return !this.rankingClient.loadPendingSubmission?.();
   }
 
   beginRankingSync(state, resultKey, { force = false } = {}) {
@@ -893,6 +948,11 @@ export class GameController {
     if (this.status) this.status.textContent = "プレイ開始をランキングへ記録しています…";
     const operation = (async () => {
       try {
+        if (!await this.ensurePendingRankingSubmission()) {
+          this.rankingStartState = RANKING_STATES.retryableFailed;
+          if (this.status) this.status.textContent = "前回のランキング記録を送信できるまで開始できません。再試行してください";
+          return null;
+        }
         const started = await this.rankingClient.startPlay(this.rankingStartRequest);
         if (this.destroyed || requestToken !== this.lifecycleToken) return null;
         this.rankingPlay = {
