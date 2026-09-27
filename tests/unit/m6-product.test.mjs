@@ -208,6 +208,46 @@ test("completed results are recordable only after a matching replay check", () =
   assert.equal(isRecordableResult({ status: "retired", simulationFault: null }, { ok: true }), false);
 });
 
+test("reload resumes a pending ranking submission before allowing a new play", async () => {
+  const pending = {
+    submissionId: "33333333-3333-4333-8333-333333333333",
+    playId: "22222222-2222-4222-8222-222222222222",
+    displayName: "花火",
+    score: 1_234,
+    resultType: "game_over",
+    reachedWave: 4,
+  };
+  const calls = [];
+  let stored = pending;
+  const controller = Object.create(GameController.prototype);
+  controller.rankingClient = {
+    loadPendingSubmission() { return stored; },
+    finishPlay(request) { calls.push(["finish", request]); return Promise.resolve({ accepted: true }); },
+    submitScore(request) { calls.push(["submit", request]); return Promise.resolve({ accepted: true }); },
+    clearPendingSubmission(id) {
+      if (stored?.submissionId === id) stored = null;
+    },
+  };
+
+  assert.equal(await controller.resumePendingRankingSubmission(), true);
+  assert.deepEqual(calls, [
+    ["finish", {
+      playId: pending.playId,
+      displayName: pending.displayName,
+      resultType: "game_over",
+      reachedWave: 4,
+      score: 1_234,
+    }],
+    ["submit", {
+      playId: pending.playId,
+      submissionId: pending.submissionId,
+      displayName: pending.displayName,
+      score: 1_234,
+    }],
+  ]);
+  assert.equal(stored, null);
+});
+
 test("controller does not persist a finished result whose replay mismatches", () => {
   const resultStatus = { dataset: {}, textContent: "" };
   const resultReplay = { dataset: {}, textContent: "" };
