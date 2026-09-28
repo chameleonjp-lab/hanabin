@@ -268,8 +268,11 @@ for (const viewport of portraitViewports.slice(1)) {
     expect(canvas.x + canvas.width).toBeLessThanOrEqual(frame.x + frame.width + 1);
     expect(canvas.y + canvas.height).toBeLessThanOrEqual(frame.y + frame.height + 1);
     const model = await callApi(page, "renderModel");
-    expect(Number(model.canvas.dataset.cssWidth)).toBeCloseTo(canvas.width, 0);
-    expect(Number(model.canvas.dataset.cssHeight)).toBeCloseTo(canvas.height, 0);
+    // CanvasRenderer rounds the CSS rect to an integer backing size. Allow
+    // that one-pixel renderer quantization when the layout itself is a half
+    // pixel wide on a fractional viewport calculation.
+    expect(Math.abs(Number(model.canvas.dataset.cssWidth) - canvas.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(Number(model.canvas.dataset.cssHeight) - canvas.height)).toBeLessThanOrEqual(1);
     expect(Number(model.canvas.dataset.displayEntityRadius)).toBeGreaterThan(0);
     assertClean(diagnostics);
   });
