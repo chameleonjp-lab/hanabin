@@ -235,6 +235,23 @@ test("M3 portrait viewport keeps a playable board with clockwise logical mapping
   assertClean(diagnostics);
 });
 
+test("M3 clears a lifecycle interruption queued before the first playable tick", async ({ page }) => {
+  const diagnostics = await openPage(page, viewports[0]);
+  await page.locator("#start-button").click();
+  await page.locator("#practice-skip").click();
+
+  // A mobile browser can notify orientation/lifecycle while the canvas is
+  // still hidden during the countdown. That marker must not consume the
+  // user's first real tap once the board becomes visible.
+  await page.evaluate(() => window.dispatchEvent(new Event("orientationchange")));
+  await callApi(page, "advanceTicks", 1);
+  const snapshot = await callApi(page, "snapshot");
+  const model = await callApi(page, "renderModel");
+  expect(snapshot.inputFrames.at(-1)?.interrupted ?? false).toBe(false);
+  expect(model.clock.paused).toBe(false);
+  assertClean(diagnostics);
+});
+
 for (const viewport of portraitViewports.slice(1)) {
   test(`M3 portrait canvas keeps one board ratio at ${viewport.name}`, async ({ page }) => {
     const diagnostics = await openPage(page, viewport);
@@ -251,8 +268,11 @@ for (const viewport of portraitViewports.slice(1)) {
     expect(canvas.x + canvas.width).toBeLessThanOrEqual(frame.x + frame.width + 1);
     expect(canvas.y + canvas.height).toBeLessThanOrEqual(frame.y + frame.height + 1);
     const model = await callApi(page, "renderModel");
-    expect(Number(model.canvas.dataset.cssWidth)).toBeCloseTo(canvas.width, 0);
-    expect(Number(model.canvas.dataset.cssHeight)).toBeCloseTo(canvas.height, 0);
+    // CanvasRenderer rounds the CSS rect to an integer backing size. Allow
+    // that one-pixel renderer quantization when the layout itself is a half
+    // pixel wide on a fractional viewport calculation.
+    expect(Math.abs(Number(model.canvas.dataset.cssWidth) - canvas.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(Number(model.canvas.dataset.cssHeight) - canvas.height)).toBeLessThanOrEqual(1);
     expect(Number(model.canvas.dataset.displayEntityRadius)).toBeGreaterThan(0);
     assertClean(diagnostics);
   });
@@ -689,7 +709,7 @@ test("M3 touch reticle renders the exact touch aim sampled by the game", async (
 });
 
 for (const viewport of [viewports[0], { name: "393x852 portrait", width: 393, height: 852 }]) {
-  test(`M3 reserves a separate 44px pause target from HUD at ${viewport.name}`, async ({ page }) => {
+  test(`M3 keeps play controls and feedback outside the board at ${viewport.name}`, async ({ page }) => {
     const diagnostics = await openPage(page, viewport);
     await beginPlaying(page);
     const geometry = await page.evaluate(() => {
@@ -704,23 +724,24 @@ for (const viewport of [viewports[0], { name: "393x852 portrait", width: 393, he
           height: box.height,
         };
       };
+      const canvas = rect(document.querySelector("#game-canvas"));
       const pause = rect(document.querySelector("#pause-button"));
       const hud = [...document.querySelectorAll("#game-hud > .hud-pill, #game-hud > .hud-forecast")]
         .map((element) => ({ id: element.id || element.className, box: rect(element) }));
-      return { pause, hud };
+      const message = rect(document.querySelector("#play-message"));
+      return { canvas, pause, hud, message };
     });
     expect(geometry.pause.width).toBeGreaterThanOrEqual(44);
     expect(geometry.pause.height).toBeGreaterThanOrEqual(44);
-    for (const item of geometry.hud) {
-      const overlapWidth = Math.max(
-        0,
-        Math.min(geometry.pause.right, item.box.right) - Math.max(geometry.pause.left, item.box.left),
-      );
-      const overlapHeight = Math.max(
-        0,
-        Math.min(geometry.pause.bottom, item.box.bottom) - Math.max(geometry.pause.top, item.box.top),
-      );
-      expect(overlapWidth * overlapHeight, `${item.id} overlaps pause target`).toBe(0);
+    const overlapArea = (left, right) => Math.max(
+      0,
+      Math.min(left.right, right.right) - Math.max(left.left, right.left),
+    ) * Math.max(
+      0,
+      Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top),
+    );
+    for (const item of [...geometry.hud, { id: "pause-button", box: geometry.pause }, { id: "play-message", box: geometry.message }]) {
+      expect(overlapArea(geometry.canvas, item.box), `${item.id} overlaps board input surface`).toBe(0);
     }
     assertClean(diagnostics);
   });
