@@ -772,6 +772,16 @@ export class GameController {
     } else if (phase === "countdown") {
       if (this.status) this.status.textContent = "開始準備中…";
     } else if (phase === "playing") {
+      // The canvas is hidden during the countdown.  A mobile browser can
+      // still deliver a lifecycle/orientation boundary while that hidden
+      // surface is being revealed, leaving one stale interrupt marker in the
+      // sampler.  Starting the first playable tick with that marker makes a
+      // normal tap look cancelled.  No real player gesture can exist before
+      // the play canvas becomes visible, so reset that boundary here.
+      if (previous === "countdown") {
+        this.pointer.clear();
+        this.interruptPending = false;
+      }
       if (this.status) this.status.textContent = "プレイ中 — 60秒";
     } else if (phase === "finalizing") {
       if (this.status) this.status.textContent = "連鎖を確定中…";

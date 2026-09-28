@@ -68,15 +68,34 @@ test("portrait play frame derives its height from one shared aspect-ratio budget
   );
 });
 
-test("HUD layout reserves the pause button's 44px target column", () => {
-  const frameStyles = gameStyles.slice(gameStyles.indexOf(".game-frame {"));
-  assert.match(frameStyles, /--pause-control-width:\s*clamp\(96px, 10vw, 120px\)/);
+test("play HUD, pause, and feedback stay outside the input surface", () => {
+  const playStart = html.indexOf('<section id="play-screen"');
+  const playEnd = html.indexOf('</section>', playStart);
+  const playMarkup = html.slice(playStart, playEnd);
+  const frameStart = playMarkup.indexOf('class="game-frame"');
+  const beforeFrame = playMarkup.slice(0, frameStart);
+
+  assert.ok(playStart >= 0 && playEnd > playStart);
+  assert.ok(beforeFrame.includes('class="play-toolbar"'));
+  assert.ok(beforeFrame.includes('id="game-hud"'));
+  assert.ok(beforeFrame.includes('id="pause-button"'));
+  assert.match(playMarkup, /<\/div>\s*<div id="play-message" class="play-message"/);
   assert.match(
-    frameStyles,
-    /\.game-hud\s*\{[\s\S]*right:\s*calc\(clamp\(8px, 1\.6vw, 18px\) \+ var\(--pause-control-width\) \+ 8px\)/,
+    gameStyles,
+    /\.play-toolbar \.game-hud\s*\{[\s\S]*position:\s*static[\s\S]*pointer-events:\s*none/,
   );
-  assert.match(frameStyles, /\.pause-button\s*\{[\s\S]*width:\s*var\(--pause-control-width\)/);
-  assert.match(frameStyles, /\.pause-button\s*\{[\s\S]*min-height:\s*44px/);
+  assert.match(
+    gameStyles,
+    /\.play-toolbar \.pause-button\s*\{[\s\S]*position:\s*static[\s\S]*min-height:\s*44px/,
+  );
+  assert.match(
+    gameStyles,
+    /\.play-stage > \.game-frame\s*\{[\s\S]*aspect-ratio:\s*16 \/ 9/,
+  );
+  assert.match(
+    gameStyles,
+    /\.play-stage > \.play-message\s*\{[\s\S]*position:\s*static/,
+  );
 });
 
 test("browser gesture fixtures use direct target coordinates without inverse offset", () => {

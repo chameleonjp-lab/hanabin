@@ -161,68 +161,72 @@
         </section>
 
         <section id="play-screen" class="screen screen--play" data-screen="play" hidden aria-label="ゲーム画面">
-          <div class="game-frame" id="game-frame">
-            <canvas
-              id="game-canvas"
-              width="1600"
-              height="900"
-              data-board-width="16000"
-              data-board-height="9000"
-              aria-label="花火を選ぶキャンバス"
-            ></canvas>
-            <div id="game-hud" class="game-hud" aria-live="off">
-              <div class="hud-pill hud-pill--score">
-                <span class="hud-label">SCORE</span>
-                <strong id="hud-score">0</strong>
-              </div>
-              <div class="hud-pill hud-pill--time">
-                <span class="hud-label">TIME</span>
-                <strong id="hud-time">60.0</strong>
-              </div>
-              <div class="hud-pill hud-pill--combo">
-                <span class="hud-label">CHAIN</span>
-                <strong id="hud-combo">0</strong>
-              </div>
-              <div class="hud-pill hud-pill--selection" id="hud-selection" data-selection-count="0">
-                <span class="hud-label">SELECTION</span>
-                <span id="hud-selection-color" class="forecast-swatch" aria-hidden="true">—</span>
-                <strong id="hud-selection-count">0</strong>
-                <span id="hud-selection-time" class="hud-subvalue">—</span>
-              </div>
-              <div class="hud-pill hud-pill--blast" aria-label="現在の爆発範囲">
-                <span class="hud-label">RANGE</span>
-                <strong id="hud-blast-range">3個で 1,800</strong>
-              </div>
-              <div class="hud-pill hud-pill--choices" aria-label="現在選べる同色グループ">
-                <span class="hud-label">CHOICES</span>
-                <strong id="hud-choice-count" data-minimum="4">4</strong>
-              </div>
-              <div class="hud-forecast" id="hud-forecast" aria-label="次の2波の予告">
-                <span class="hud-label">NEXT WAVES</span>
-                <span id="hud-forecast-items">—</span>
-              </div>
-            </div>
-            <button id="pause-button" class="pause-button secondary-button" type="button">一時停止</button>
-            <div id="pause-menu" class="pause-menu" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
-              <div class="pause-menu__card">
-                <p class="home-kicker">GAME PAUSED</p>
-                <h2 id="pause-title">一時停止</h2>
-                <p id="pause-message">プレイを一時停止しています。</p>
-                <div class="pause-menu__actions">
-                  <button id="pause-resume-button" class="primary-button" type="button">再開</button>
-                  <button id="pause-retire-button" class="secondary-button" type="button">リタイア</button>
-                  <button id="pause-rules-button" class="secondary-button" type="button" aria-expanded="false" aria-controls="pause-rules-panel">ルール説明</button>
+          <div class="play-stage">
+            <div class="play-toolbar">
+              <div id="game-hud" class="game-hud" aria-live="off">
+                <div class="hud-pill hud-pill--score">
+                  <span class="hud-label">SCORE</span>
+                  <strong id="hud-score">0</strong>
                 </div>
-                <div id="pause-rules-panel" class="pause-rules" hidden>
-                  <p>同じ色を3つ以上、1本指で押したままつなぎます。外輪が一周するまで待ってから離すと起爆し、2.5秒で自動判定されます。</p>
-                  <p>CHOICESは現在つなげる同色グループの最大数です。常に4個以上を目標に補充します。</p>
+                <div class="hud-pill hud-pill--time">
+                  <span class="hud-label">TIME</span>
+                  <strong id="hud-time">60.0</strong>
+                </div>
+                <div class="hud-pill hud-pill--combo">
+                  <span class="hud-label">CHAIN</span>
+                  <strong id="hud-combo">0</strong>
+                </div>
+                <div class="hud-pill hud-pill--selection" id="hud-selection" data-selection-count="0">
+                  <span class="hud-label">SELECTION</span>
+                  <span id="hud-selection-color" class="forecast-swatch" aria-hidden="true">—</span>
+                  <strong id="hud-selection-count">0</strong>
+                  <span id="hud-selection-time" class="hud-subvalue">—</span>
+                </div>
+                <div class="hud-pill hud-pill--blast" aria-label="現在の爆発範囲">
+                  <span class="hud-label">RANGE</span>
+                  <strong id="hud-blast-range">3個で 1,800</strong>
+                </div>
+                <div class="hud-pill hud-pill--choices" aria-label="現在選べる同色グループ">
+                  <span class="hud-label">CHOICES</span>
+                  <strong id="hud-choice-count" data-minimum="4">4</strong>
+                </div>
+                <div class="hud-forecast" id="hud-forecast" aria-label="次の2波の予告">
+                  <span class="hud-label">NEXT WAVES</span>
+                  <span id="hud-forecast-items">—</span>
                 </div>
               </div>
+              <button id="pause-button" class="pause-button secondary-button" type="button">一時停止</button>
             </div>
-            <div id="resume-overlay" class="resume-overlay" hidden aria-live="assertive">
-              <span>再開準備中</span>
-              <strong id="resume-value">3</strong>
-              <small>現在の選択は解除されました</small>
+            <div class="game-frame" id="game-frame">
+              <canvas
+                id="game-canvas"
+                width="1600"
+                height="900"
+                data-board-width="16000"
+                data-board-height="9000"
+                aria-label="花火を選ぶキャンバス"
+              ></canvas>
+              <div id="pause-menu" class="pause-menu" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
+                <div class="pause-menu__card">
+                  <p class="home-kicker">GAME PAUSED</p>
+                  <h2 id="pause-title">一時停止</h2>
+                  <p id="pause-message">プレイを一時停止しています。</p>
+                  <div class="pause-menu__actions">
+                    <button id="pause-resume-button" class="primary-button" type="button">再開</button>
+                    <button id="pause-retire-button" class="secondary-button" type="button">リタイア</button>
+                    <button id="pause-rules-button" class="secondary-button" type="button" aria-expanded="false" aria-controls="pause-rules-panel">ルール説明</button>
+                  </div>
+                  <div id="pause-rules-panel" class="pause-rules" hidden>
+                    <p>同じ色を3つ以上、1本指で押したままつなぎます。外輪が一周するまで待ってから離すと起爆し、2.5秒で自動判定されます。</p>
+                    <p>CHOICESは現在つなげる同色グループの最大数です。常に4個以上を目標に補充します。</p>
+                  </div>
+                </div>
+              </div>
+              <div id="resume-overlay" class="resume-overlay" hidden aria-live="assertive">
+                <span>再開準備中</span>
+                <strong id="resume-value">3</strong>
+                <small>現在の選択は解除されました</small>
+              </div>
             </div>
             <div id="play-message" class="play-message" aria-live="polite"></div>
           </div>
