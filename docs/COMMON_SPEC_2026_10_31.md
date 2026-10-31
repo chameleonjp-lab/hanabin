@@ -6,7 +6,7 @@ HANABIN（ハナビン）は現行実験場DB `public.games` で `game_slug=hana
 
 基準コミット `84bf952f7daf9bd6e557b8cc4e9233728aee4ae0`、着手時の関連オープンPRなし。既存仕様/監査/CI/Pagesを読み、60秒・選択2.5秒・同色3つ以上・配点・不正記録/リタイア条件・再生検証を変更していない。Supabase `mlpnjgezrnhdxsxolyzj`、game_slug、`start_game_play_v1` / `finish_game_play_v1` / `submit_score_idempotent_v1`、既存client_versionを保持する。
 
-既存profile、自己ベスト、音設定、端末TOP10、legacy rankingを削除/初期化しない。旧pendingキー `hanabin:ranking-pending:v1` を残し、複数の確定結果を上書きしない新しい `hanabin:ranking-pending:v1:queue:v2` を追加して併読する。選択言語は `hanabin.language.v1`。音量は既存profileへ追加し、保存済みsoundEnabled=false/soundVolume=0を有効値として読む。
+既存profile、自己ベスト、音設定、端末TOP10、legacy rankingを削除/初期化しない。旧pendingキー `hanabin:ranking-pending:v1` を残し、複数の確定結果を上書きしないUUIDごとの `hanabin:ranking-pending:v1:entry:v3:<ID>` に保存する。旧v1単一レコードとv2配列は併読し、ACKはID別のtombstoneで除外する。複数タブが別の確定結果を書いても配列全体を上書きしない。選択言語は `hanabin.language.v1`。音量は既存profileへ追加し、保存済みsoundEnabled=false/soundVolume=0を有効値として読む。
 
 別originの旧ページのlocalStorageを自動移行する実装ではない。旧データはそのページに残り、同一originの既存保存は継続する。ゲーム/参加者の識別値やサーバースコアはURLと一緒に変更しない。
 

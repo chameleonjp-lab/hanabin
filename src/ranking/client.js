@@ -217,23 +217,46 @@ export const createRankingClient = ({
     return globalThis.fetch(...args);
   });
   const pendingStore = createPendingSubmissionStore(storage, config.pendingSubmissionStorageKey);
-  // Keep the old single-record key readable. The additive queue prevents a
-  // second offline play from overwriting an earlier, finalized result.
-  const queueStore = createPendingSubmissionStore(storage, `${config.pendingSubmissionStorageKey}:queue:v2`);
+  const oldQueueStore = createPendingSubmissionStore(storage, `${config.pendingSubmissionStorageKey}:queue:v2`);
+  const backend = storageLike(storage);
+  const entryPrefix = `${config.pendingSubmissionStorageKey}:entry:v3:`;
+  const memoryEntries = new Map();
+  const acknowledged = new Set();
   const listPendingSubmissions = () => {
-    const legacy = pendingStore.load();
-    const queued = queueStore.load();
-    const values = [...(legacy?.submissionId ? [legacy] : []), ...(Array.isArray(queued) ? queued : [])];
-    return [...new Map(values.filter(item => item?.submissionId).map(item => [item.submissionId, item])).values()];
+    const legacy = pendingStore.load(), oldQueue = oldQueueStore.load();
+    const rows = [...(legacy?.submissionId ? [legacy] : []), ...(Array.isArray(oldQueue) ? oldQueue : [])];
+    const values = new Map(rows.filter(item => item?.submissionId).map(item => [item.submissionId, item]));
+    for (const [id, item] of memoryEntries) values.set(id, item);
+    try {
+      const keys = Array.from({length: backend?.length ?? 0}, (_, index) => backend.key(index));
+      for (const key of keys) {
+        if (!key?.startsWith(entryPrefix)) continue;
+        try {
+          const value = JSON.parse(backend.getItem(key)), id = decodeURIComponent(key.slice(entryPrefix.length));
+          if (value?.acknowledged === true) { acknowledged.add(id); values.delete(id); }
+          else if (value?.submissionId === id) { values.set(id, value); memoryEntries.set(id, value); }
+        } catch { /* Leave corrupt records untouched. */ }
+      }
+    } catch { /* Memory-only operation remains available. */ }
+    for (const id of acknowledged) values.delete(id);
+    return [...values.values()].map(clone);
   };
   const savePendingSubmission = value => {
     if (!value?.submissionId) return null;
-    const values = listPendingSubmissions();
-    const index = values.findIndex(item => item.submissionId === value.submissionId);
-    if (index < 0) values.push(clone(value));
-    else values[index] = clone(value);
-    queueStore.save(values);
+    const id = value.submissionId;
+    if (acknowledged.has(id)) return clone(value);
+    memoryEntries.set(id, clone(value));
+    try { backend?.setItem(entryPrefix + encodeURIComponent(id), JSON.stringify(value)); } catch {}
     return clone(value);
+  };
+  const clearPendingSubmission = submissionId => {
+    if (!submissionId) return null;
+    const current = listPendingSubmissions().find(item => item.submissionId === submissionId) ?? null;
+    acknowledged.add(submissionId);memoryEntries.delete(submissionId);
+    // A per-ID tombstone acknowledges v1/v2 legacy data without rewriting an
+    // array that another tab may still be reading. No other play's key changes.
+    try { backend?.setItem(entryPrefix + encodeURIComponent(submissionId), JSON.stringify({acknowledged:true})); } catch {}
+    return current;
   };
 
   const requestRpc = async (rpcName, body) => {
@@ -378,15 +401,7 @@ export const createRankingClient = ({
     listPendingSubmissions,
     loadPendingSubmission: () => listPendingSubmissions()[0] ?? null,
     savePendingSubmission,
-    clearPendingSubmission: (submissionId = null) => {
-      const values = listPendingSubmissions();
-      const current = values.find(item => item.submissionId === submissionId) ?? null;
-      // Clearing a response can only remove the acknowledged play.
-      if (!submissionId) return null;
-      queueStore.save(values.filter(item => item.submissionId !== submissionId));
-      if (pendingStore.load()?.submissionId === submissionId) pendingStore.clear();
-      return current;
-    },
+    clearPendingSubmission,
   };
 };
 

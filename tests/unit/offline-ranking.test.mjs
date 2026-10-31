@@ -51,13 +51,13 @@ test('old asynchronous submission cannot replace a later result or its participa
 });
 
 test('additive pending queue imports the legacy record and clears only acknowledged IDs across reload',()=>{
- const values=new Map();const storage={getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)};
+ const values=new Map();const storage={get length(){return values.size;},key:index=>[...values.keys()][index],getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)};
  const legacy={submissionId:'legacy',playId:'old',displayName:'旧名',score:12};storage.setItem(RANKING_CONFIG.pendingSubmissionStorageKey,JSON.stringify(legacy));
  const c=createRankingClient({storage});c.savePendingSubmission({submissionId:'one',startId:'start-one',displayName:'名前1',score:34});c.savePendingSubmission({submissionId:'two',startId:'start-two',displayName:'名前2',score:56});
  assert.deepEqual(c.listPendingSubmissions().map(value=>value.submissionId),['legacy','one','two']);c.clearPendingSubmission('one');
  const reloaded=createRankingClient({storage});assert.deepEqual(reloaded.listPendingSubmissions().map(value=>value.submissionId),['legacy','two']);
  assert.deepEqual(JSON.parse(storage.getItem(RANKING_CONFIG.pendingSubmissionStorageKey)),legacy);reloaded.clearPendingSubmission('legacy');
- assert.equal(storage.getItem(RANKING_CONFIG.pendingSubmissionStorageKey),null);assert.equal(reloaded.loadPendingSubmission().submissionId,'two');
+ assert.notEqual(storage.getItem(RANKING_CONFIG.pendingSubmissionStorageKey),null); // Legacy data remains acknowledged by an ID tombstone.assert.equal(reloaded.loadPendingSubmission().submissionId,'two');
 });
 
 test('reload resumes a finalized offline play using captured IDs; retired results never submit scores',async()=>{
@@ -78,4 +78,19 @@ test('an old completion cannot clear a newer synchronization with the same resul
  const second=c.beginRankingSync(finished,'same',{force:true});
  old.resolve();await first;assert.equal(c.rankingSyncPromise,second);assert.equal(updates,2);
  current.resolve();await second;assert.equal(c.rankingSyncPromise,null);assert.equal(updates,3);
+});
+
+test('separate clients preserve independent pending IDs and acknowledge only one legacy or new record',()=>{
+ const values=new Map();const writes=[];const storage={get length(){return values.size;},key:i=>[...values.keys()][i],getItem:k=>values.get(k)??null,setItem(k,v){writes.push(k);values.set(k,v);},removeItem:k=>values.delete(k)};
+ const key=RANKING_CONFIG.pendingSubmissionStorageKey;
+ storage.setItem(key,JSON.stringify({submissionId:'legacy',playId:'old',score:1}));
+ storage.setItem(key+':queue:v2',JSON.stringify([{submissionId:'v2',playId:'old-v2',score:2}]));
+ const a=createRankingClient({storage}),b=createRankingClient({storage});
+ a.savePendingSubmission({submissionId:'a',playId:'play-a',score:3});b.savePendingSubmission({submissionId:'b',playId:'play-b',score:4});
+ const beforeV1=storage.getItem(key),beforeV2=storage.getItem(key+':queue:v2');writes.length=0;
+ a.clearPendingSubmission('a');b.savePendingSubmission({submissionId:'c',playId:'play-c',score:5});
+ a.clearPendingSubmission('legacy');a.clearPendingSubmission('v2');
+ assert.ok(writes.every(k=>k.includes(':entry:v3:')));assert.equal(storage.getItem(key),beforeV1);assert.equal(storage.getItem(key+':queue:v2'),beforeV2);
+ assert.deepEqual(createRankingClient({storage}).listPendingSubmissions().map(x=>x.submissionId).sort(),['b','c']);
+ assert.deepEqual(b.listPendingSubmissions().map(x=>x.submissionId).sort(),['b','c']);
 });
