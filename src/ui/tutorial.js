@@ -1,3 +1,4 @@
+import { t, getLocale } from '../i18n/index.js';
 import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
@@ -912,7 +913,7 @@ export class TutorialController {
       ctx.setLineDash([]);
       ctx.fillStyle = this.chainCaptured ? "#75f0bb" : "#ffd166";
       ctx.font = `800 ${Math.max(10, radius * 0.7)}px sans-serif`;
-      ctx.fillText(this.chainCaptured ? "巻き込み成功" : "巻き込み", point.x, point.y + radius * 2.35);
+      ctx.fillText(this.chainCaptured ? t("巻き込み成功") : t("巻き込み"), point.x, point.y + radius * 2.35);
       ctx.restore();
     }
 
@@ -981,72 +982,72 @@ export class TutorialController {
     canvas.dataset.practiceLastFailure = this.lastFailureReason;
     if (this.stageElement) {
       this.stageElement.textContent = boardState === "stage-transition"
-        ? "STEP 1 / 2 · 基本操作 成功"
+        ? t("STEP 1 / 2 · 基本操作 成功")
         : this.state === "success"
-          ? "STEP 2 / 2 · 巻き込み成功"
+          ? t("STEP 2 / 2 · 巻き込み成功")
           : this.stage === 2
-            ? "STEP 2 / 2 · 動く花火を巻き込む"
-            : "STEP 1 / 2 · まずは3つつなぐ";
+            ? t("STEP 2 / 2 · 動く花火を巻き込む")
+            : t("STEP 1 / 2 · まずは3つつなぐ");
     }
     if (this.valueElement) {
       this.valueElement.textContent = boardState === "ready"
-        ? `${this.durationSeconds}秒`
+        ? t("{0}秒", [this.durationSeconds])
         : boardState === "running"
           ? String(Math.max(1, Math.ceil(this.remainingSeconds)))
           : boardState === "stage-transition"
             ? "1 / 2"
           : boardState === "expired"
-            ? "再挑戦"
+            ? t("再挑戦")
             : boardState === "success"
-              ? "成功"
-              : "準備OK";
+              ? t("成功")
+              : t("準備OK");
     }
     if (this.messageElement) {
       this.messageElement.textContent = !interactionAllowed
-        ? "現在の画面では練習できません。画面を確認してください。"
+        ? t("現在の画面では練習できません。画面を確認してください。")
         : boardState === "ready"
-        ? "まずは静止した同じ色を3つつなぎます。成功すると、動く花火の巻き込みへ進みます。"
+        ? t("まずは静止した同じ色を3つつなぎます。成功すると、動く花火の巻き込みへ進みます。")
         : boardState === "running"
           ? this.stage === 2
-            ? "動く同じ色を3つつなぎ、黄色へ届く位置で離します。"
-            : "押したまま、同じ色を3つつないでから離します。"
+            ? t("動く同じ色を3つつなぎ、黄色へ届く位置で離します。")
+            : t("押したまま、同じ色を3つつないでから離します。")
           : boardState === "stage-transition"
-            ? "次は動く3つをつなぎ、黄色へ届かせます。"
+            ? t("次は動く3つをつなぎ、黄色へ届かせます。")
           : boardState === "expired"
             ? this.stage === 2
-              ? "練習を中断しました。動く3つをつないで、近くの花火へ届かせてみましょう。"
-              : "練習を中断しました。もう一度、3つをつないでみましょう。"
+              ? t("練習を中断しました。動く3つをつないで、近くの花火へ届かせてみましょう。")
+              : t("練習を中断しました。もう一度、3つをつないでみましょう。")
             : boardState === "success"
-              ? "成功！爆発が近くの花火へ届きました。本番へ進めます。"
-              : "練習を飛ばして、本番へ進みます。";
+              ? t("成功！爆発が近くの花火へ届きました。本番へ進めます。")
+              : t("練習を飛ばして、本番へ進みます。");
     }
     if (this.progressElement) this.progressElement.textContent = `${this.selectedIds.length} / ${PRACTICE_TARGET_COUNT}`;
     if (this.feedbackElement) {
       this.feedbackElement.textContent = !interactionAllowed
-        ? "画面を確認すると練習を再開できます"
+        ? t("画面を確認すると練習を再開できます")
         : boardState === "success"
-        ? "巻き込み成功：近くの花火にも爆発が届きました"
+        ? t("巻き込み成功：近くの花火にも爆発が届きました")
         : boardState === "expired"
-          ? "もう一度挑戦できます"
+          ? t("もう一度挑戦できます")
           : this.lastFailureReason === "secondary-pointer-ignored"
-            ? "2本目の指は無効です。最初の1本だけで操作してください"
+            ? t("2本目の指は無効です。最初の1本だけで操作してください")
             : this.lastFailureReason === "chain-out-of-range"
-              ? "爆発が届きませんでした。黄色い花火へ近づいてから離してください"
+              ? t("爆発が届きませんでした。黄色い花火へ近づいてから離してください")
             : this.selectedIds.length === 0
-              ? "外輪が一周して選択数が増えるまで、各花火で短く止めてください"
+              ? t("外輪が一周して選択数が増えるまで、各花火で短く止めてください")
               : this.selectedIds.length >= this.rules.minSelection
                 ? this.stage === 2
-                  ? `${this.selectedIds.length}個選択中。近くの花火へ届く位置で離します`
-                  : `${this.selectedIds.length}個選択中。離すか2.5秒で自動起爆します`
-                : `${this.selectedIds.length}個選択中。3個未満のまま2.5秒になると取消です`;
+                  ? t("{0}個選択中。近くの花火へ届く位置で離します", [this.selectedIds.length])
+                  : t("{0}個選択中。離すか2.5秒で自動起爆します", [this.selectedIds.length])
+                : t("{0}個選択中。3個未満のまま2.5秒になると取消です", [this.selectedIds.length]);
     }
     if (this.startButton) {
       const canBegin = ["ready", "expired", "success"].includes(boardState);
       this.startButton.hidden = !canBegin;
       this.startButton.disabled = !canBegin || !interactionAllowed;
       this.startButton.textContent = ["expired", "success"].includes(boardState)
-        ? "もう一度練習する"
-        : "練習を始める";
+        ? t("もう一度練習する")
+        : t("練習を始める");
     }
     if (this.continueButton) {
       this.continueButton.hidden = boardState !== "success";

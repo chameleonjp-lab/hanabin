@@ -1,3 +1,4 @@
+import { t, getLocale } from '../i18n/index.js';
 import {
   COLORS,
   DEFAULT_RULES,
@@ -12,7 +13,7 @@ import { chainTargetsWithinDirectRadius } from "../core/chain-eligibility.js";
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const byId = (root, id) => root?.querySelector?.(`#${id}`) ?? null;
 
-const formatScore = (value) => Math.max(0, Math.trunc(Number(value) || 0)).toLocaleString("ja-JP");
+const formatScore = (value) => Math.max(0, Math.trunc(Number(value) || 0)).toLocaleString(getLocale());
 const formatSeconds = (value) => Math.max(0, Number(value) || 0).toFixed(1);
 const positionLabels = Object.freeze({ left: "左", center: "中央", right: "右" });
 const portraitPositionLabels = Object.freeze({
@@ -85,17 +86,17 @@ export const forecastReadinessFor = (state = {}, rules = DEFAULT_RULES) => {
 };
 
 const forecastCueTextFor = (readiness = {}) => {
-  if (readiness.status === "ready") return "予告準備OK";
-  if (readiness.status === "window-open") return "今なら予告準備";
-  if (readiness.status === "wrong-color") return "予告色を選択";
+  if (readiness.status === "ready") return t("予告準備OK");
+  if (readiness.status === "window-open") return t("今なら予告準備");
+  if (readiness.status === "wrong-color") return t("予告色を選択");
   if (readiness.status !== "progress") return "";
   if (readiness.selectedCount > readiness.requiredSelectionCount) {
-    return `ちょうど${readiness.requiredSelectionCount}個に調整`;
+    return t("ちょうど{0}個に調整", [readiness.requiredSelectionCount]);
   }
   const remaining = [];
-  if (readiness.selectionRemaining > 0) remaining.push(`あと${readiness.selectionRemaining}個`);
-  if (readiness.bridgeRemaining > 0) remaining.push(`金色の輪あと${readiness.bridgeRemaining}個`);
-  return remaining.join("・") || `ちょうど${readiness.requiredSelectionCount}個`;
+  if (readiness.selectionRemaining > 0) remaining.push(t("あと{0}個", [readiness.selectionRemaining]));
+  if (readiness.bridgeRemaining > 0) remaining.push(t("金色の輪あと{0}個", [readiness.bridgeRemaining]));
+  return remaining.join("・") || t("ちょうど{0}個", [readiness.requiredSelectionCount]);
 };
 
 const INPUT_FAILURE_MESSAGES = Object.freeze({
@@ -115,7 +116,7 @@ const INPUT_FAILURE_MESSAGES = Object.freeze({
   "release-rejected": "起爆できませんでした。もう一度選びます",
 });
 
-export const inputFailureMessageFor = (reason) => INPUT_FAILURE_MESSAGES[reason] ?? "花火の中心を狙います";
+export const inputFailureMessageFor = (reason) => t(INPUT_FAILURE_MESSAGES[reason] ?? "花火の中心を狙います");
 
 /**
  * Explain when the current selection already reaches another active firework.
@@ -141,7 +142,7 @@ export const selectionBlastCueFor = (state = {}, rules = DEFAULT_RULES) => {
     rules,
   }).length > 0;
   return reachesAnother
-    ? `この位置なら${selectedIds.length}個でも近くの花火に届きます`
+    ? t("この位置なら{0}個でも近くの花火に届きます", [selectedIds.length])
     : "";
 };
 
@@ -150,8 +151,8 @@ export const blastRangeForSelection = (count = 0, rules = DEFAULT_RULES) => {
   const effectiveCount = Math.max(rules.minimumSelection, selectedCount);
   const radius = directExplosionRadiusForSelection(effectiveCount, rules);
   const label = selectedCount < rules.minimumSelection
-    ? `3個で ${radius.toLocaleString("ja-JP")}`
-    : `${radius.toLocaleString("ja-JP")}`;
+    ? t("3個で {0}", [radius.toLocaleString(getLocale())])
+    : `${radius.toLocaleString(getLocale())}`;
   return { count: selectedCount, radius, label };
 };
 
@@ -171,7 +172,7 @@ export const forecastMarkup = (
     const color = colorName(wave.primaryColor);
     const value = colorValue(wave.primaryColor);
     const symbol = colorSymbol(wave.primaryColor);
-    const position = labels[wave.position] ?? "—";
+    const position = t(labels[wave.position] ?? "—");
     const fireTick = Number(wave.fireTick);
     const seconds = Number.isFinite(fireTick)
       ? formatSeconds((fireTick - (Number(currentTick) || 0)) / rules.tickRate)
@@ -192,9 +193,9 @@ export const forecastMarkup = (
       : "";
     return `<span class="${classes.join(" ")}" data-wave-index="${index}" data-wave-color="${color}"${readinessAttributes}>` +
       `<i class="forecast-swatch" style="color:${value}" aria-hidden="true">${symbol}</i>` +
-      `<span class="forecast-order">${index + 1}波</span>` +
+      t("<span class=\"forecast-order\">{0}波</span>", [index + 1]) +
       `<span class="forecast-position" data-wave-position="${wave.position ?? ""}">${position}</span>` +
-      `<span class="forecast-arrival" data-wave-fire-tick="${Number.isFinite(fireTick) ? fireTick : ""}">あと${seconds}s</span>` +
+      t("<span class=\"forecast-arrival\" data-wave-fire-tick=\"{0}\">あと{1}s</span>", [Number.isFinite(fireTick) ? fireTick : "", seconds]) +
       (cue ? `<span class="forecast-cue">${cue}</span>` : "") +
       `</span>`;
   }).join("");
@@ -202,15 +203,15 @@ export const forecastMarkup = (
 
 const selectionInterruptionMessageFor = (reason) => {
   if (reason === "release-below-minimum") {
-    return "3個未満のため取消。外輪が一周するまで押してなぞりましょう";
+    return t("3個未満のため取消。外輪が一周するまで押してなぞりましょう");
   }
   if (reason === "selection-timeout") {
-    return "時間切れで取消。3個以上なら離すか2.5秒で起爆します";
+    return t("時間切れで取消。3個以上なら離すか2.5秒で起爆します");
   }
   if (["target-expired", "target-offscreen"].includes(reason)) {
     return inputFailureMessageFor(reason);
   }
-  return "操作を中断しました。1本指でもう一度なぞりましょう";
+  return t("操作を中断しました。1本指でもう一度なぞりましょう");
 };
 
 /** Update only DOM presentation; state remains owned by GameSession. */
@@ -302,8 +303,8 @@ export const updateHud = (root, state, {
 export const updatePlayMessage = (element, state, phase = "playing", rules = DEFAULT_RULES) => {
   if (!element) return;
   let message = "";
-  if (phase === "finalizing") message = "最後の連鎖を確定中…";
-  else if (state?.simulationFault) message = "判定エラー：このプレイは無効です";
+  if (phase === "finalizing") message = t("最後の連鎖を確定中…");
+  else if (state?.simulationFault) message = t("判定エラー：このプレイは無効です");
   else if (["selection-cleared", "selection-cancelled"].includes(state?.lastAction?.type)) {
     message = selectionInterruptionMessageFor(state.lastAction.reason);
   } else if (state?.lastAction?.type === "ignored" && state.pointerPressed) {
@@ -311,19 +312,19 @@ export const updatePlayMessage = (element, state, phase = "playing", rules = DEF
   } else if (state?.lastAction?.type === "detonate") {
     const forecastSuccess = forecastSuccessForAction(state, state.lastAction.actionId);
     if (forecastSuccess) {
-      message = "予告成功！次の波を先回りしました";
+      message = t("予告成功！次の波を先回りしました");
     } else {
       const count = Number(state.lastAction.count) || 0;
-      message = count > 0 ? `${count}個の連鎖` : "連鎖を探しましょう";
+      message = count > 0 ? t("{0}個の連鎖", [count]) : t("連鎖を探しましょう");
     }
   } else if (state?.selectedIds?.length >= 3) {
-    message = selectionBlastCueFor(state, rules) || "指を離すか2.5秒で自動起爆";
+    message = selectionBlastCueFor(state, rules) || t("指を離すか2.5秒で自動起爆");
   } else if (state?.selectedIds?.length === 2) {
-    message = "あと1個つないで起爆";
+    message = t("あと1個つないで起爆");
   } else if (state?.selectedIds?.length === 1) {
-    message = "あと2個。同じ色をそのままなぞる";
+    message = t("あと2個。同じ色をそのままなぞる");
   } else if (state?.pointerPressed) {
-    message = "外輪が一周して選択数が増えるまで短く押してください";
+    message = t("外輪が一周して選択数が増えるまで短く押してください");
   }
   if (element.textContent !== message) element.textContent = message;
 };

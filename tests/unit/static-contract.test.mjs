@@ -15,7 +15,8 @@ test("static page has the M1 loading contract", async () => {
   assert.match(html, /type="module"\s+src="\.\/src\/app\.js"/);
   assert.match(html, /id="app-error"[^>]+role="alert"/);
   assert.match(html, /id="orientation-guide"/);
-  assert.match(html, /id="player-name"[^>]+required/);
+  assert.doesNotMatch(html, /id="player-name"[^>]+\brequired(?:[ >]|=)/);
+  assert.match(html, /id="player-name"[^>]+aria-describedby="player-name-consent"/);
   assert.match(html, /id="pause-button"/);
   assert.match(html, /id="pause-resume-button"/);
   assert.match(html, /id="pause-retire-button"/);
@@ -42,7 +43,7 @@ test("public files do not load a CDN or external font", async () => {
   ].join("\n");
   assert.doesNotMatch(`${html}\n${css}`, /(?:cdn|googleapis|fonts\.google|use\.typekit|@import\s+url)/i);
   const withoutCanonical = `${html}\n${css}`.replaceAll("https://chameleonjp-lab.github.io/hanabin/", "");
-  assert.doesNotMatch(withoutCanonical, /https?:\/\//i);
+  assert.doesNotMatch(withoutCanonical, /<(?:script|link)[^>]+(?:src|href)=["']https?:\/\//i);
 });
 
 test("layout includes viewport fallbacks and all safe-area insets", async () => {

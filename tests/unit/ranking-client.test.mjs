@@ -7,6 +7,7 @@ import {
   normalizeRankingRows,
   RankingClientError,
 } from "../../src/ranking/client.js";
+import { setLanguage } from "../../src/i18n/index.js";
 import { RANKING_CONFIG } from "../../src/config/ranking.js";
 
 const ids = {
@@ -125,4 +126,11 @@ test("server and network failures preserve retryability", async () => {
     () => client.fetchTopRanking(),
     (error) => error instanceof RankingClientError && error.retryable === true && error.status === 503,
   );
+});
+
+test("localized rejection labels never become internal error identifiers", async()=>{
+ const client=createRankingClient({storage:null,fetchImpl:async()=>response({accepted:false})});
+ setLanguage('ko',{storage:null});
+ try {await assert.rejects(()=>client.startPlay({startId:ids.start,displayName:'Player'}),error=>error.code==='request_rejected');}
+ finally {setLanguage('ja',{storage:null});}
 });

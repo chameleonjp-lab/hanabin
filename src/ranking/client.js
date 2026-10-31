@@ -1,3 +1,4 @@
+import { t } from '../i18n/index.js';
 import {
   RANKING_CONFIG,
   SUPABASE_PUBLISHABLE_KEY,
@@ -103,7 +104,7 @@ export const createRequestId = () => {
     const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
   }
-  throw new RankingClientError("このブラウザでは安全な開始IDを作成できません。", {
+  throw new RankingClientError(t("このブラウザでは安全な開始IDを作成できません。"), {
     code: "uuid_unavailable",
     retryable: false,
   });
@@ -111,7 +112,7 @@ export const createRequestId = () => {
 
 const requireUuid = (value, label) => {
   if (typeof value !== "string" || !UUID_PATTERN.test(value)) {
-    throw new RankingClientError(`${label}が不正です。`, {
+    throw new RankingClientError(t("{0}が不正です。", [label]), {
       code: "invalid_uuid",
       retryable: false,
     });
@@ -121,26 +122,26 @@ const requireUuid = (value, label) => {
 
 const requireName = (value) => {
   if (typeof value !== "string") {
-    throw new RankingClientError("プレイヤー名が不正です。", { retryable: false, code: "invalid_name" });
+    throw new RankingClientError(t("プレイヤー名が不正です。"), { retryable: false, code: "invalid_name" });
   }
   const name = value.trim();
   if (name.length < 1 || name.length > 20 || /[\u0000-\u001f\u007f-\u009f]/u.test(name)) {
-    throw new RankingClientError("プレイヤー名が不正です。", { retryable: false, code: "invalid_name" });
+    throw new RankingClientError(t("プレイヤー名が不正です。"), { retryable: false, code: "invalid_name" });
   }
   return name;
 };
 
 const acceptedPayload = (payload, label) => {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    throw new RankingClientError(`${label}の応答形式が不正です。`, {
+    throw new RankingClientError(t("{0}の応答形式が不正です。", [label]), {
       code: "invalid_response",
       retryable: true,
       payload,
     });
   }
   if (payload.accepted !== true) {
-    const reason = reasonFrom(payload, `${label}_rejected`);
-    throw new RankingClientError(`${label}を記録できませんでした。`, {
+    const reason = reasonFrom(payload, "request_rejected");
+    throw new RankingClientError(t("{0}を記録できませんでした。", [label]), {
       code: reason,
       retryable: isRetryableReason(reason),
       payload,
@@ -155,7 +156,7 @@ export const normalizeRankingRows = (payload, limit = 10) => {
     rankNo: Math.max(1, finiteInteger(row?.rank_no, index + 1)),
     name: typeof row?.display_name === "string" && row.display_name.trim()
       ? row.display_name.trim()
-      : "名無し",
+      : t("名無し"),
     score: Math.max(0, finiteInteger(row?.best_score)),
     firstScore: Math.max(0, finiteInteger(row?.first_score)),
     playCount: Math.max(0, finiteInteger(row?.play_count)),
@@ -208,7 +209,7 @@ export const createRankingClient = ({
 } = {}) => {
   const fetchFunction = fetchImpl ?? ((...args) => {
     if (typeof globalThis.fetch !== "function") {
-      throw new RankingClientError("通信機能を利用できません。", {
+      throw new RankingClientError(t("通信機能を利用できません。"), {
         code: "fetch_unavailable",
         retryable: false,
       });
@@ -216,6 +217,24 @@ export const createRankingClient = ({
     return globalThis.fetch(...args);
   });
   const pendingStore = createPendingSubmissionStore(storage, config.pendingSubmissionStorageKey);
+  // Keep the old single-record key readable. The additive queue prevents a
+  // second offline play from overwriting an earlier, finalized result.
+  const queueStore = createPendingSubmissionStore(storage, `${config.pendingSubmissionStorageKey}:queue:v2`);
+  const listPendingSubmissions = () => {
+    const legacy = pendingStore.load();
+    const queued = queueStore.load();
+    const values = [...(legacy?.submissionId ? [legacy] : []), ...(Array.isArray(queued) ? queued : [])];
+    return [...new Map(values.filter(item => item?.submissionId).map(item => [item.submissionId, item])).values()];
+  };
+  const savePendingSubmission = value => {
+    if (!value?.submissionId) return null;
+    const values = listPendingSubmissions();
+    const index = values.findIndex(item => item.submissionId === value.submissionId);
+    if (index < 0) values.push(clone(value));
+    else values[index] = clone(value);
+    queueStore.save(values);
+    return clone(value);
+  };
 
   const requestRpc = async (rpcName, body) => {
     const url = `${config.rpcBaseUrl}/${encodeURIComponent(rpcName)}`;
@@ -238,7 +257,7 @@ export const createRankingClient = ({
     } catch (error) {
       const aborted = error?.name === "AbortError";
       throw new RankingClientError(
-        aborted ? "ランキング通信がタイムアウトしました。" : "ランキング通信に失敗しました。",
+        aborted ? t("ランキング通信がタイムアウトしました。") : t("ランキング通信に失敗しました。"),
         {
           code: aborted ? "timeout" : "network_error",
           retryable: true,
@@ -251,7 +270,7 @@ export const createRankingClient = ({
     const payload = await responsePayload(response);
     if (!response.ok) {
       const reason = reasonFrom(payload, response.status >= 500 ? "service_unavailable" : "http_error");
-      throw new RankingClientError("ランキング通信が拒否されました。", {
+      throw new RankingClientError(t("ランキング通信が拒否されました。"), {
         code: reason,
         status: response.status,
         retryable: response.status === 408 || response.status === 409 || response.status === 429 || response.status >= 500,
@@ -262,7 +281,7 @@ export const createRankingClient = ({
   };
 
   const startPlay = async ({ startId, displayName }) => {
-    const safeStartId = requireUuid(startId, "開始ID");
+    const safeStartId = requireUuid(startId, t("開始ID"));
     const safeName = requireName(displayName);
     const payload = await requestRpc(config.startRpc, {
       p_start_id: safeStartId,
@@ -270,8 +289,8 @@ export const createRankingClient = ({
       p_game_slug: config.gameSlug,
       p_client_version: config.clientVersion,
     });
-    const accepted = acceptedPayload(payload, "プレイ開始");
-    const playId = requireUuid(accepted.play_id, "プレイID");
+    const accepted = acceptedPayload(payload, t("プレイ開始"));
+    const playId = requireUuid(accepted.play_id, t("プレイID"));
     return {
       accepted: true,
       duplicate: accepted.duplicate === true,
@@ -283,11 +302,11 @@ export const createRankingClient = ({
   };
 
   const finishPlay = async ({ playId, displayName, resultType, reachedWave, score }) => {
-    const safePlayId = requireUuid(playId, "プレイID");
+    const safePlayId = requireUuid(playId, t("プレイID"));
     const safeName = requireName(displayName);
     const safeResultType = String(resultType ?? "").trim().toLowerCase();
     if (!["clear", "game_over", "retire"].includes(safeResultType)) {
-      throw new RankingClientError("結果種別が不正です。", { retryable: false, code: "invalid_result_type" });
+      throw new RankingClientError(t("結果種別が不正です。"), { retryable: false, code: "invalid_result_type" });
     }
     const payload = await requestRpc(config.finishRpc, {
       p_play_id: safePlayId,
@@ -301,12 +320,12 @@ export const createRankingClient = ({
         ? Math.max(0, finiteInteger(score))
         : null,
     });
-    return acceptedPayload(payload, "プレイ結果");
+    return acceptedPayload(payload, t("プレイ結果"));
   };
 
   const submitScore = async ({ playId, submissionId, displayName, score }) => {
-    const safePlayId = requireUuid(playId, "プレイID");
-    const safeSubmissionId = requireUuid(submissionId, "送信ID");
+    const safePlayId = requireUuid(playId, t("プレイID"));
+    const safeSubmissionId = requireUuid(submissionId, t("送信ID"));
     const safeName = requireName(displayName);
     const payload = await requestRpc(config.submitRpc, {
       p_play_id: safePlayId,
@@ -319,7 +338,7 @@ export const createRankingClient = ({
     const row = Array.isArray(payload) ? payload[0] : payload;
     if (!row || row.accepted !== true) {
       const reason = reasonFrom(row, "score_submission_rejected");
-      throw new RankingClientError("スコアをランキングへ送信できませんでした。", {
+      throw new RankingClientError(t("スコアをランキングへ送信できませんでした。"), {
         code: reason,
         retryable: isRetryableReason(reason),
         payload,
@@ -327,8 +346,8 @@ export const createRankingClient = ({
     }
     return {
       accepted: true,
-      submissionId: requireUuid(row.result_submission_id ?? safeSubmissionId, "送信ID"),
-      playId: requireUuid(row.result_play_id ?? safePlayId, "プレイID"),
+      submissionId: requireUuid(row.result_submission_id ?? safeSubmissionId, t("送信ID")),
+      playId: requireUuid(row.result_play_id ?? safePlayId, t("プレイID")),
       score: Math.max(0, finiteInteger(row.result_best_score ?? score)),
       playCount: Math.max(0, finiteInteger(row.result_play_count)),
       wasDuplicate: row.was_duplicate === true,
@@ -341,7 +360,7 @@ export const createRankingClient = ({
       p_limit: Math.min(100, Math.max(1, Math.trunc(Number(limit) || 10))),
     });
     if (!Array.isArray(payload)) {
-      throw new RankingClientError("ランキングの応答形式が不正です。", {
+      throw new RankingClientError(t("ランキングの応答形式が不正です。"), {
         code: "invalid_ranking_response",
         retryable: true,
         payload,
@@ -356,11 +375,16 @@ export const createRankingClient = ({
     finishPlay,
     submitScore,
     fetchTopRanking,
-    loadPendingSubmission: () => pendingStore.load(),
-    savePendingSubmission: (value) => pendingStore.save(value),
+    listPendingSubmissions,
+    loadPendingSubmission: () => listPendingSubmissions()[0] ?? null,
+    savePendingSubmission,
     clearPendingSubmission: (submissionId = null) => {
-      const current = pendingStore.load();
-      if (!submissionId || current?.submissionId === submissionId) pendingStore.clear();
+      const values = listPendingSubmissions();
+      const current = values.find(item => item.submissionId === submissionId) ?? null;
+      // Clearing a response can only remove the acknowledged play.
+      if (!submissionId) return null;
+      queueStore.save(values.filter(item => item.submissionId !== submissionId));
+      if (pendingStore.load()?.submissionId === submissionId) pendingStore.clear();
       return current;
     },
   };

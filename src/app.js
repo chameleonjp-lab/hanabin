@@ -1,3 +1,5 @@
+import { renderRulesGuide } from './ui/rules-guide.js';
+import { t, initLanguageSettings } from './i18n/index.js';
 import { GameController } from "./game/controller.js";
 import { createOrientationGuide } from "./ui/orientation-guide.js";
 
@@ -16,6 +18,14 @@ try {
     root: app,
     canvas,
   });
+  initLanguageSettings(document, () => {
+    controller.updateQualityLabel();
+    controller.updateHomeBest();
+    controller.render();
+    renderRulesGuide(app);
+    if (controller.phase === "home") status.textContent = t("準備できました");
+  });
+  renderRulesGuide(app);
   createOrientationGuide(orientationGuide, ({ portrait, previousPortrait }) => {
     orientationGuide.dataset.orientation = portrait ? "portrait" : "landscape";
     controller.handleOrientation({ portrait, previousPortrait });
@@ -23,7 +33,7 @@ try {
 
   // Preserve M1's clean-load contract on the home screen. Gameplay phases
   // replace this status with their own short status text.
-  status.textContent = "準備できました";
+  status.textContent = t("準備できました");
   app.dataset.state = "home";
   app.dataset.screen = "home";
   errorPanel.hidden = true;
@@ -38,6 +48,6 @@ try {
   if (isE2E) window.__hanabinTest = controller.testApi();
   window.__hanabinAppReady = true;
 } catch (error) {
-  window.__hanabinShowError?.(error?.message ?? "ゲームの初期化に失敗しました。");
+  window.__hanabinShowError?.(t("ゲームの初期化に失敗しました。"));
   throw error;
 }

@@ -307,9 +307,9 @@ test("M6 result hint is one deterministic sentence and share URL is last", () =>
   assert.ok(hint.length > 0);
   assert.equal(hint.split("。 ").length, 1);
   const url = publicUrlFor({ href: "https://example.test/hanabin/?e2e=1#result" });
-  assert.equal(url, "https://example.test/hanabin/");
+  assert.equal(url, "https://chameleonjp-lab.github.io/hanabin/");
   const share = buildShareText({ name: "花子", score: 1_234, maxChain: 7, url });
-  assert.match(share, /^花子さんのHANABIN結果\nSCORE 1,234 \/ 最大連鎖 7\n/);
+  assert.match(share, /^HANABINプレイ結果\nSCORE 1,234 \/ 最大連鎖 7\n/);
   assert.equal(share.split("\n").at(-1), url);
 });
 
@@ -425,6 +425,7 @@ test("M6 sound is silent by default and only creates audio when enabled", () => 
   assert.equal(disabled.selection(), false);
   assert.equal(contexts, 0);
   const fakeContext = {
+    state: "running",
     currentTime: 0,
     destination: {},
     createOscillator() {
@@ -772,4 +773,29 @@ test("play feedback names the reason a held pointer did not acquire a target", (
     lastAction: { type: "ignored", reason: "target-outside-selection-geometry" },
   });
   assert.equal(element.textContent, "");
+});
+
+test("profile defaults sound on while preserving explicit false", () => {
+  assert.equal(normalizeProfile({}).soundEnabled,true);
+  assert.equal(normalizeProfile({soundEnabled:false}).soundEnabled,false);
+});
+
+test('volume defaults to a moderate level and explicit zero survives profile updates',()=>{
+ assert.equal(normalizeProfile({}).soundVolume,0.5);
+ assert.equal(normalizeProfile({soundVolume:0}).soundVolume,0);
+ assert.equal(normalizeProfile({soundVolume:NaN}).soundVolume,0.5);
+ const store=createProfileStore(fakeStorage(),'volume-test');
+ store.update({soundVolume:0,soundEnabled:false});store.update({name:'volume'});
+ assert.equal(store.load().soundVolume,0);assert.equal(store.load().soundEnabled,false);
+});
+
+test('volume zero creates no audio and suspended audio never queues an old effect',async()=>{
+ const {context,stats}=fakeAudioContext({initialState:'suspended'});
+ const sound=new SoundController({enabled:true,volume:0,contextFactory:()=>context});
+ assert.equal(await sound.unlock(),false);assert.equal(sound.selection(),false);assert.equal(stats.oscillators,0);
+ sound.setVolume(0.5);
+ assert.equal(sound.selection(),false);assert.equal(stats.oscillators,0);
+ await Promise.resolve();assert.equal(context.state,'running');assert.equal(sound.selection(),true);
+ sound.setVolume(0);assert.equal(sound.snapshot().activeVoices,0);assert.equal(sound.snapshot().volume,0);
+ sound.setEnabled(false);await sound.unlock();assert.equal(sound.selection(),false);sound.destroy();
 });
