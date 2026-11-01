@@ -94,3 +94,10 @@ test('separate clients preserve independent pending IDs and acknowledge only one
  assert.deepEqual(createRankingClient({storage}).listPendingSubmissions().map(x=>x.submissionId).sort(),['b','c']);
  assert.deepEqual(b.listPendingSubmissions().map(x=>x.submissionId).sort(),['b','c']);
 });
+
+
+test('storage rejection keeps result and prevents finish/submit until durable retry',async()=>{
+ let durable=false,finishes=0,submits=0;const c=makeController({async startPlay(){return{playId:'accepted-play'}},savePendingSubmission:value=>({...value,persisted:durable}),clearPendingSubmission(){},async finishPlay(){finishes++},async submitScore(){submits++},async fetchTopRanking(){return[]}});
+ c.start(1);await c.rankingPlay.startPromise;await c.syncRankingResult(finished,'result');assert.equal(finishes,0);assert.equal(submits,0);assert.equal(c.rankingStorageFailed,true);durable=true;await c.syncRankingResult(finished,'result');assert.equal(finishes,1);assert.equal(submits,1);assert.equal(c.rankingStorageFailed,false);
+});
+test('reload refuses malformed pending result without synthesizing a successful game',async()=>{let calls=0;const client=createRankingClient({storage:null,fetchImpl:async()=>{calls++;throw Error('network')}});client.savePendingSubmission({submissionId:'broken',score:'1',displayName:'A'});const c=makeController(client);await c.resumePendingRankingSubmission();assert.equal(calls,0)});

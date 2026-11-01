@@ -175,6 +175,7 @@ export class SoundController {
     if (this.context) return this.context;
     try {
       this.context = this.contextFactory?.() ?? null;
+      if(this.context){const context=this.context;context.onstatechange=()=>{if(context===this.context&&context.state!=='running'){this.stopAllVoices();this.lastPlayedAt.clear();}};}
     } catch {
       this.context = null;
     }
@@ -256,7 +257,7 @@ export class SoundController {
     try {
       oscillator = context.createOscillator();
       gainNode = context.createGain();
-      if (!oscillator?.connect || !oscillator?.start || !oscillator?.stop || !gainNode?.connect) return false;
+      if (!oscillator?.connect || !oscillator?.start || !oscillator?.stop || !gainNode?.connect) throw new Error("Incomplete audio nodes");
       const start = finite(context.currentTime) + Math.max(0, finite(layer.delay));
       const duration = Math.max(0.015, finite(layer.duration, 0.05));
       const frequency = Math.max(30, finite(layer.frequency, 440) * pitchMultiplier);
@@ -284,6 +285,8 @@ export class SoundController {
       return true;
     } catch {
       if (voice) this.activeVoices.delete(voice);
+      if (oscillator) oscillator.onended = null;
+      try { oscillator?.stop?.(); } catch {}
       disconnect(oscillator);
       disconnect(gainNode);
       return false;
@@ -374,3 +377,4 @@ export class SoundController {
 export { TONES };
 
 export default SoundController;
+

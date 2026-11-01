@@ -62,3 +62,23 @@ HANABIN（ハナビン）は現行実験場DB `public.games` で `game_slug=hana
 6. 問題時はrevert PRをmainへマージし、同じ検証/公開経路で前版へ戻す。既存profile/新旧pending/スコアの削除は不要。
 
 localStorageが拒否/容量不足の場合は同じタブのメモリだけで結果を保持する。保存失敗時の再読み込み後の復元は保証できない。保存拒否自体はゲーム開始/結果表示を止めない。
+
+
+## 2026-11-02 04:44 JST 後続監査（上記は変更前履歴）
+
+現有効登録と表示カードは `hanabin` / GitHub正式URLを指し、04:39 JSTに公開ホーム「HANABIN」「60秒 SCORE ATTACK」を確認。これは旧公開版の確認であり、このPR変更の公開確認ではない。PR66旧head `62fc0ae134f3a64e5c68c15eab2f9d453fc0407c` を保全し、main `84bf952f7daf9bd6e557b8cc4e9233728aee4ae0` と既存非Draft状態を維持する。
+
+### 今回の不足修正
+- UUID別pendingの同一ID異内容・破損原文を上書きしない。playIdは未取得から確定値への補完だけを認め、別playIdへの変更は停止。旧v1/v2記録は残す。
+- 確定結果の保存と同byte読み戻し成功前にfinish/score送信をしない。容量不足時は15言語で再読込しないよう警告し、同じ結果を表示したまま再保存/再送する。ゲーム開始記録の既存並行処理と公開スコア送信を区別する。
+- 再読込時、未確認のresultTypeを勝手にgame_overへ補正して送らず、正しい型/ID/範囲の記録だけを再送する。ゲーム内のreplay検証・正常結果判定を変えない。
+- 既存固有RPCの返却を照合。start/finishのjsonbは対象ID・ゲーム・結果などの一致を確認し、submitは1行11列のTABLE、要求playId/submissionId、正規化名と整数/boolean型を確認。ID欠落を要求値で埋めて成功扱いにしない。不正ランキングを推測順位・0点・空一覧へ補正しない。
+- 明示的なaccepted:false以外の欠損/不正ACKは同IDで再試行可能に保つ。応答本文の読み込みまでtimeoutを有効にし、headers後の停止で待ち続けない。
+- AudioContextが中断された時点で予約声を停止し、復帰後の古い音の再生を防ぐ。既存音量off/0・声数・間隔・ノード後片付けを維持。予定stop失敗でも即stopと各ノード切断を試す。
+- PR用Browser CIの再帰強制削除によるAPT掃除を取り除き、既存Playwright固定版の標準インストールのみを実行する。公開条件/権限は変えない。
+
+04:39 JSTのDB関数metadata読み取りで `start_game_play_v1`/`finish_game_play_v1` は既存jsonb、`submit_score_idempotent_v1` は既存TABLE11列を確認した。他ゲーム向けnormal9列RPCへ切り替えず、このゲームに新DB migrationを追加しない。本人識別方式は未確定のままであり、表示名由来キーによる厳密な別人30人の保証は未完了。
+
+検証の最新件数・固定head CIはPR追記を参照。Node全件/決定的simulation/Chromium+WebKitの既存シナリオを維持し、実clientとcontroller prototypeの固定結果fixtureでquota拒否→finish/submit0→回復同UUID1回→reload後新clientの明示resume追加0の全通信mockを追加（実60秒プレイ完走/画面操作全体の証明とは区別）。実DBへのテスト送信は0。元の60秒・同色3個・2.5秒・スコア式・retire/replay判定とcore/configは変更しない。
+
+残件: 本人identity・厳密30参加者、Pages Sourceの現時点設定照合、母語話者評価、実音/長時間、iPhone Safari実機、本人マージ後の配備確認。現在登録済みGitHub正式URLを旧Codebergへ戻さない。本人マージ→同SHA Core/Browser成功→既存配備→実URL確認、問題時revert PRの順。既存記録/旧pending/旧正常版は削除しない。

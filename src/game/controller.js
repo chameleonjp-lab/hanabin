@@ -508,7 +508,7 @@ export class GameController {
         [RANKING_STATES.retryableFailed]: t("ランキング連携に失敗しました。結果は保持されています。"),
         [RANKING_STATES.permanentFailed]: t("この結果はランキングへ登録できませんでした。"),
       };
-      this.resultRankingStatus.textContent = messages[this.rankingStatus] ?? messages[RANKING_STATES.idle];
+      this.resultRankingStatus.textContent = this.rankingStorageFailed ? t("端末に記録を保存できません。結果を失わないため、再読み込みせず保存できる状態で再送してください。") : messages[this.rankingStatus] ?? messages[RANKING_STATES.idle];
       this.resultRankingStatus.dataset.state = this.rankingStatus;
     }
     if (this.rankingRetryButton) {
@@ -551,6 +551,12 @@ export class GameController {
     return rendered;
   }
 
+  persistRankingSubmission(record) {
+    const saved=this.rankingClient.savePendingSubmission?.(record);
+    if(saved?.persisted===false){const error=new Error('Result storage unavailable');error.code='result_storage_unavailable';error.retryable=true;throw error;}
+    return saved;
+  }
+
   async syncRankingResult(state, resultKey) {
     const play = this.rankingPlay;
     if (!play || !this.rankingClient) return null;
@@ -584,13 +590,13 @@ export class GameController {
           playId: play.playId, displayName: play.displayName,
           score: recordable ? score : 0, resultType, reachedWave,
         };
-        this.rankingClient.savePendingSubmission?.(play.submission);
       }
+      this.persistRankingSubmission(play.submission);
       if (isCurrentRun()) this.rankingSubmission = play.submission;
       if (!await this.startRankingPlay(play)) throw play.startError ?? new Error("Ranking start unavailable");
       if (!play.submission.playId) {
         play.submission = { ...play.submission, playId: play.playId };
-        this.rankingClient.savePendingSubmission?.(play.submission);
+        this.persistRankingSubmission(play.submission);
       }
       if (!play.finished) {
         await this.rankingClient.finishPlay({ playId: play.playId, displayName: play.displayName,
@@ -613,6 +619,7 @@ export class GameController {
       if (isCurrentRun()) { this.rankingEntries = entries; this.rankingEntriesResultKey = resultKey; }
     } catch (error) { failure ??= error; }
     if (isCurrentRun()) {
+      this.rankingStorageFailed=failure?.code==='result_storage_unavailable';
       this.rankingStatus = !failure ? RANKING_STATES.submitted : failure.retryable === false
         ? RANKING_STATES.permanentFailed : RANKING_STATES.retryableFailed;
       this.populateResult();
@@ -643,15 +650,17 @@ export class GameController {
     const pending = this.rankingClient?.listPendingSubmissions?.() ??
       [this.rankingClient?.loadPendingSubmission?.()].filter(Boolean);
     for (const saved of pending) {
+      if(this.rankingClient.validatePendingSubmission && !this.rankingClient.validatePendingSubmission(saved))continue;
       const resultType = ["clear", "game_over", "retire"].includes(saved.resultType) ? saved.resultType : "game_over";
       const score = Math.max(0, Math.trunc(Number(saved.score) || 0));
       const reachedWave = Math.max(1, Math.trunc(Number(saved.reachedWave) || 1));
       let record = { ...saved };
       try {
+        this.persistRankingSubmission(record);
         if (!record.playId) {
           const started = await this.rankingClient.startPlay({ startId: record.startId, displayName: record.displayName });
           record = { ...record, playId: started.playId };
-          this.rankingClient.savePendingSubmission?.(record);
+          this.persistRankingSubmission(record);
         }
         await this.rankingClient.finishPlay({ playId: record.playId, displayName: record.displayName,
           resultType, reachedWave, score });
@@ -1351,3 +1360,4 @@ export class GameController {
 }
 
 export default GameController;
+

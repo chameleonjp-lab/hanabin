@@ -799,3 +799,8 @@ test('volume zero creates no audio and suspended audio never queues an old effec
  sound.setVolume(0);assert.equal(sound.snapshot().activeVoices,0);assert.equal(sound.snapshot().volume,0);
  sound.setEnabled(false);await sound.unlock();assert.equal(sound.selection(),false);sound.destroy();
 });
+
+
+test('external audio interruption releases voices before a later resume',()=>{
+ const {context}=fakeAudioContext();const sound=new SoundController({enabled:true,contextFactory:()=>context});assert.equal(sound.tap(),true);assert.equal(sound.activeVoices.size,1);context.state='interrupted';context.onstatechange?.();assert.equal(sound.activeVoices.size,0);sound.destroy();
+});
