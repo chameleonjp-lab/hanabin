@@ -13,6 +13,8 @@ export default defineConfig({
   use: {
     baseURL: "https://chameleonjp-lab.github.io/hanabin/",
     headless: true,
+    locale: "ja-JP",
+    serviceWorkers: "block",
     trace: "retain-on-failure",
   },
 });
