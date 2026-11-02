@@ -105,6 +105,8 @@ export const resultHintFor = (state = {}) => {
 // The public play page was verified independently of the repository name.
 export const CANONICAL_GAME_URL = "https://chameleonjp-lab.github.io/hanabin/";
 export const publicUrlFor = () => CANONICAL_GAME_URL;
+export const SHARE_TAGS = '#ハナビン #ゲーム制作';
+export const buildHomeShareText = () => `${t("ハナビン\n同じ色の花火をつなぎ、連鎖を広げよう。\nhttps://chameleonjp-lab.github.io/hanabin/")}\n${SHARE_TAGS}`;
 
 export const buildShareText = ({
   name = "",
@@ -113,7 +115,7 @@ export const buildShareText = ({
   url = publicUrlFor(),
 } = {}) => {
   const title = t("HANABINプレイ結果");
-  return t("{0}\nSCORE {1} / 最大連鎖 {2}\n{3}", [title, formatScore(score), Math.max(0, Math.trunc(Number(maxChain) || 0)), url]);
+  return `${t("{0}\nSCORE {1} / 最大連鎖 {2}\n{3}", [title, formatScore(score), Math.max(0, Math.trunc(Number(maxChain) || 0)), url])}\n${SHARE_TAGS}`;
 };
 
 export const openXComposer = (text, { windowObject = globalThis.window } = {}) => {

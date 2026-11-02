@@ -27,6 +27,13 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
       - name: Run browser tests
         run: npm run test:browser
+      - name: Upload anonymous game canvas source
+        if: ${{ success() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: anonymous-share-thumbnail-source
+          path: test-results/share-thumbnail/
+          if-no-files-found: error
       - name: Upload Playwright report on failure
         if: ${{ failure() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

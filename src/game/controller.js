@@ -15,7 +15,7 @@ import {
 import { GameSession } from "./session.js";
 import { PresentationEventTracker } from "./presentation-events.js";
 import { updateHud, updatePlayMessage } from "../ui/hud.js";
-import { copyShareText, openXComposer, publicUrlFor, renderResult } from "../ui/result.js";
+import { buildHomeShareText, copyShareText, openXComposer, publicUrlFor, renderResult } from "../ui/result.js";
 import { renderRulesGuide } from "../ui/rules-guide.js";
 import ScreenController from "../ui/screens.js";
 import { TutorialController } from "../ui/tutorial.js";
@@ -255,7 +255,7 @@ export class GameController {
     this.homeButton?.addEventListener("click", () => this.goHome());
     this.shareButton?.addEventListener("click", () => this.shareResult());
     root.querySelector('#home-share-button')?.addEventListener('click', async () => {
-      const text=t("ハナビン\n同じ色の花火をつなぎ、連鎖を広げよう。\nhttps://chameleonjp-lab.github.io/hanabin/");
+      const text=buildHomeShareText();
       if (!openXComposer(text) && !(await copyShareText(text))) window.prompt(t("共有文をコピー"), text);
     });
     this.pauseButton?.addEventListener("click", () => this.pauseGame());
