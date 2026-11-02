@@ -22,3 +22,5 @@ X weighted長は公式twitter/twitter-text config/v3.json（2026-11-02確認、U
 PR67（公開smokeの非送信化）は別単位であり本差分に複製しない。本PRをマージする前にPR67の安全化をマージする順序を推奨する（既存のmain公開smokeには名前付き本番通信の懸念が残る）。マージは本人のみ。本番smokeの手動再run、DB操作、記録削除は実施しない。今回branch限定の画像取得用pushtriggerはDraft作成前に元へ戻す。最終通常PR検査を重複起動しない。
 
 戻す場合はこの画像/meta/tag差分のみrevertし、採点/保存キー/既存スコア/PR67安全化は保持する。素材削除は今行っていない。
+
+本人の後続指定「Xがあれば独立した共有文コピーボタンは不要」について、既HTMLはhome/resultともXのみで独立copy UIなし。controllerのcopyはXを開けない場合だけの代替なので維持し、独立copyボタンが増えない回帰を追加した。

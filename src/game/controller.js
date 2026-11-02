@@ -609,7 +609,731 @@ export class GameController {
         play.submitted = true;
       }
       this.rankingClient.clearPendingSubmission?.(play.submission.submissionId);
-      if (isCurrentRun()) this.rankingSubmissionSubmitted = play.…7469 tokens truncated…   retire: () => this.retireGame(),
+      if (isCurrentRun()) this.rankingSubmissionSubmitted = play.submitted === true;
+    } catch (error) {
+      failure = error;
+    }
+    // Reading the leaderboard is independent of participation and submission.
+    try {
+      const entries = await this.rankingClient.fetchTopRanking(30);
+      if (isCurrentRun()) { this.rankingEntries = entries; this.rankingEntriesResultKey = resultKey; }
+    } catch (error) { failure ??= error; }
+    if (isCurrentRun()) {
+      this.rankingStorageFailed=failure?.code==='result_storage_unavailable';
+      this.rankingStatus = !failure ? RANKING_STATES.submitted : failure.retryable === false
+        ? RANKING_STATES.permanentFailed : RANKING_STATES.retryableFailed;
+      this.populateResult();
+    }
+    return isCurrentRun() ? this.rankingStatus : null;
+  }
+
+  startRankingPlay(play) {
+    if (play.playId) return Promise.resolve(play);
+    if (play.startPromise) return play.startPromise;
+    if (!play.startId || play.startError?.retryable === false) return Promise.resolve(null);
+    const operation = Promise.resolve().then(async () => {
+      try {
+        const started = await this.rankingClient.startPlay({ startId: play.startId, displayName: play.displayName });
+        play.playId = started.playId;
+        play.startError = null;
+        return play;
+      } catch (error) {
+        play.startError = error;
+        return null;
+      }
+    }).finally(() => { if (play.startPromise === operation) play.startPromise = null; });
+    play.startPromise = operation;
+    return operation;
+  }
+
+  async resumePendingRankingSubmission() {
+    const pending = this.rankingClient?.listPendingSubmissions?.() ??
+      [this.rankingClient?.loadPendingSubmission?.()].filter(Boolean);
+    for (const saved of pending) {
+      if(this.rankingClient.validatePendingSubmission && !this.rankingClient.validatePendingSubmission(saved))continue;
+      const resultType = ["clear", "game_over", "retire"].includes(saved.resultType) ? saved.resultType : "game_over";
+      const score = Math.max(0, Math.trunc(Number(saved.score) || 0));
+      const reachedWave = Math.max(1, Math.trunc(Number(saved.reachedWave) || 1));
+      let record = { ...saved };
+      try {
+        this.persistRankingSubmission(record);
+        if (!record.playId) {
+          const started = await this.rankingClient.startPlay({ startId: record.startId, displayName: record.displayName });
+          record = { ...record, playId: started.playId };
+          this.persistRankingSubmission(record);
+        }
+        await this.rankingClient.finishPlay({ playId: record.playId, displayName: record.displayName,
+          resultType, reachedWave, score });
+        if (resultType !== "retire") await this.rankingClient.submitScore({ playId: record.playId,
+          submissionId: record.submissionId, displayName: record.displayName, score });
+        this.rankingClient.clearPendingSubmission?.(record.submissionId);
+      } catch {
+        // Keep the original IDs and result for another reload or explicit retry.
+        // A failed old request never blocks another play.
+      }
+    }
+    return !this.rankingClient?.loadPendingSubmission?.();
+  }
+
+  beginRankingSync(state, resultKey, { force = false } = {}) {
+    if (this.deterministicTestMode || !this.rankingClient || !this.rankingPlay) return null;
+    if (this.rankingSyncPromise && !force) return this.rankingSyncPromise;
+    this.rankingSyncKey = resultKey;
+    this.rankingStatus = RANKING_STATES.submitting;
+    this.updateRankingUi();
+    const play = this.rankingPlay;
+    const promise = this.syncRankingResult(state, resultKey);
+    const tracked = promise?.finally(() => {
+      if (this.rankingPlay === play && this.currentResultKey === resultKey) this.updateRankingUi();
+      if (this.rankingSyncPromise === tracked) this.rankingSyncPromise = null;
+    }) ?? null;
+    this.rankingSyncPromise = tracked;
+    return this.rankingSyncPromise;
+  }
+
+  retryRanking() {
+    if (!this.currentResultKey || !this.session?.state) return null;
+    if (this.rankingSyncPromise) return this.rankingSyncPromise;
+    return this.beginRankingSync(this.session.state, this.currentResultKey, { force: true });
+  }
+
+  updateResumePresentation(remainingSeconds = null) {
+    if (!this.resumeOverlay) return;
+    const active = remainingSeconds !== null && remainingSeconds > 0;
+    this.resumeOverlay.hidden = !active;
+    if (active && this.resumeValue) this.resumeValue.textContent = String(Math.max(1, Math.ceil(remainingSeconds)));
+  }
+
+  isResumeGateActive() {
+    return !this.deterministicTestMode && this.resumeStartedMs !== null;
+  }
+
+  async shareResult() {
+    const text = this.shareButton?.dataset.shareText ?? "";
+    if (openXComposer(text)) { if (this.shareStatus) this.shareStatus.textContent = t("Xの投稿画面を開きました"); return true; }
+    const copied = await copyShareText(text);
+    if (!copied) window.prompt(t("共有文をコピー"), text);
+    if (this.shareStatus) this.shareStatus.textContent = copied ? t("共有文を準備しました") : t("共有文を準備できませんでした");
+    return copied;
+  }
+
+  setPauseMenu(open) {
+    const isOpen = open === true;
+    if (this.pauseMenu) this.pauseMenu.hidden = !isOpen;
+    if (this.pauseButton) this.pauseButton.hidden = isOpen || this.phase !== "playing";
+    if (!isOpen) this.setPauseRules(false);
+  }
+
+  setPauseRules(open) {
+    this.pauseRulesOpen = open === true;
+    if (this.pauseRulesPanel) this.pauseRulesPanel.hidden = !this.pauseRulesOpen;
+    if (this.pauseRulesButton) {
+      this.pauseRulesButton.setAttribute("aria-expanded", this.pauseRulesOpen ? "true" : "false");
+    }
+  }
+
+  togglePauseRules() {
+    if (!this.userPaused) return false;
+    this.setPauseRules(!this.pauseRulesOpen);
+    return this.pauseRulesOpen;
+  }
+
+  pauseGame() {
+    if (this.phase !== "playing" || this.userPaused) return false;
+    this.userPaused = true;
+    this.pointer.interrupt("user-pause");
+    this.pauseClock("user-pause");
+    this.setPauseMenu(true);
+    if (this.status) this.status.textContent = t("一時停止中");
+    this.render();
+    this.pauseResumeButton?.focus?.();
+    return true;
+  }
+
+  resumeGame() {
+    if (!this.userPaused) return false;
+    this.userPaused = false;
+    this.setPauseMenu(false);
+    this.resumeClock();
+    if (this.status) this.status.textContent = t("プレイ中 — 60秒");
+    this.render();
+    return true;
+  }
+
+  retireGame() {
+    if (this.phase !== "playing" || !this.userPaused) return false;
+    this.userPaused = false;
+    this.clockPaused = false;
+    this.resumePendingFrame = false;
+    this.resumeStartedMs = null;
+    this.interruptPending = false;
+    this.updateResumePresentation(null);
+    this.setPauseMenu(false);
+    this.stopLoop();
+    this.pointer.clear();
+    this.session.retire();
+    this.render();
+    return true;
+  }
+
+  get phase() {
+    return this.session.phase;
+  }
+
+  handlePhaseChange(phase, previous) {
+    const screenPhase = toScreenPhase(phase);
+    this.screens.show(screenPhase, toScreenPhase(previous));
+    // Keep the pause button synchronized on every phase transition. In
+    // particular, start() runs before the countdown/play transitions and must
+    // not leave the button hidden after the play screen becomes visible.
+    this.setPauseMenu(false);
+    // The play canvas is hidden during home, practice, and countdown. Resize
+    // it after the play screen becomes visible so the first rendered frame
+    // uses the real CSS geometry instead of the 1600x900 fallback.
+    if (screenPhase === "play") this.renderer.resize();
+    this.root.dataset.phase = phase;
+    this.transitions = this.screens.history();
+    if (phase === "home") {
+      if (this.status) this.status.textContent = t("準備できました");
+    } else if (phase === "countdown") {
+      if (this.status) this.status.textContent = t("開始準備中…");
+    } else if (phase === "playing") {
+      // The canvas is hidden during the countdown.  A mobile browser can
+      // still deliver a lifecycle/orientation boundary while that hidden
+      // surface is being revealed, leaving one stale interrupt marker in the
+      // sampler.  Starting the first playable tick with that marker makes a
+      // normal tap look cancelled.  No real player gesture can exist before
+      // the play canvas becomes visible, so reset that boundary here.
+      if (previous === "countdown") {
+        this.pointer.clear();
+        this.interruptPending = false;
+      }
+      if (this.status) this.status.textContent = t("プレイ中 — 60秒");
+    } else if (phase === "finalizing") {
+      if (this.status) this.status.textContent = t("連鎖を確定中…");
+      this.finalizeOnFrame = true;
+    } else if (phase === "result") {
+      if (this.status) this.status.textContent = t("プレイ結果");
+      this.populateResult();
+    } else if (phase === "fault") {
+      if (this.status) this.status.textContent = t("判定エラー");
+      this.populateResult();
+    }
+    this.render();
+  }
+
+  handlePointerInterrupt(reason) {
+    // No state is mutated here. The sampler's cancelled/interrupted marker is
+    // consumed by exactly one next fixed tick in GameSession.nextFrame().
+    this.interruptPending = true;
+    // Losing capture ends only the active gesture; it is not a page lifecycle
+    // boundary and must not stop the fixed-tick clock indefinitely.
+    if (["visibilitychange", "pagehide", "orientationchange"].includes(reason)) {
+      this.pauseClock(reason);
+    }
+    if (reason === "input-disabled" && this.phase === "finalizing" && !this.clockPaused) {
+      // A held pointer is released after the fixed tick boundary. The
+      // terminal presentation can now advance, but must remain visible until
+      // that release has happened so the boundary is observable.
+      this.ensureLoop();
+    }
+  }
+
+  isPortrait() {
+    return typeof window !== "undefined" && typeof window.matchMedia === "function" &&
+      window.matchMedia("(orientation: portrait)").matches;
+  }
+
+  inputAllowed() {
+    return this.phase === "playing" && !this.clockPaused && !this.userPaused &&
+      !this.isResumeGateActive() &&
+      (typeof document === "undefined" || document.visibilityState === "visible");
+  }
+
+  handleOrientation({ portrait, previousPortrait = null } = {}) {
+    const nextOrientation = portrait === true || this.isPortrait() ? "portrait" : "landscape";
+    const changed = this.orientation !== nextOrientation ||
+      (previousPortrait !== null && previousPortrait !== (nextOrientation === "portrait"));
+    // The orientation guide calls this method for both kinds of physical
+    // rotation: one that changes the portrait media query and one that keeps
+    // it unchanged (landscape-primary <-> landscape-secondary). The pointer
+    // adapter pauses on the browser notification in both cases, so the
+    // controller must also complete the resume boundary in both cases.
+    const orientationNotification = previousPortrait !== null;
+    this.orientation = nextOrientation;
+    this.renderer.setOrientation(nextOrientation);
+    this.pointer.setOrientation(nextOrientation);
+    this.tutorial?.setOrientation(nextOrientation);
+    this.renderer.resize();
+    if (this.screens.phase === "practice") this.tutorial?.resizeCanvas();
+    this.tutorial?.render();
+    if ((changed || orientationNotification) && ["countdown", "playing", "finalizing"].includes(this.phase)) {
+      // Rotation invalidates the in-flight pointer geometry. The pointer
+      // adapter may already have placed this marker from orientationchange;
+      // repeating it is idempotent and keeps direct test calls safe.
+      this.pointer.interrupt("orientationchange");
+      if (!this.userPaused) {
+        this.pauseClock("orientationchange");
+        if (typeof document === "undefined" || document.visibilityState === "visible") {
+          this.resumeClock();
+        }
+      }
+    }
+    this.render();
+  }
+
+  pauseClock() {
+    this.sound?.stopAllVoices?.();
+    if (this.phase === "countdown" && this.countdownPausedAtMs === null) {
+      this.countdownPausedAtMs = nowMs();
+    }
+    this.clockPaused = true;
+    this.resumePendingFrame = true;
+    this.resumeStartedMs = null;
+    this.updateResumePresentation(null);
+    this.lastFrameMs = null;
+    this.accumulatorMs = 0;
+    this.renderer.resetFrameObservation();
+    this.stopLoop();
+  }
+
+  resumeClock() {
+    if (this.userPaused || (document.visibilityState !== "visible" && !this.deterministicTestMode)) return;
+    if (this.phase === "countdown") {
+      if (this.countdownPausedAtMs !== null && this.countdownStartedMs !== null) {
+        this.countdownStartedMs += nowMs() - this.countdownPausedAtMs;
+      }
+      this.countdownPausedAtMs = null;
+      this.clockPaused = false;
+      this.lastFrameMs = null;
+      this.accumulatorMs = 0;
+      this.renderer.resetFrameObservation();
+      this.resumeStartedMs = null;
+      this.updateResumePresentation(null);
+      this.ensureLoop();
+      return;
+    }
+    // Page visibility can change while the two-frame terminal presentation is
+    // in progress. Resume that presentation without sampling another input
+    // frame or adding hidden time to the play clock.
+    if (this.phase === "finalizing") {
+      this.clockPaused = false;
+      this.lastFrameMs = null;
+      this.accumulatorMs = 0;
+      this.renderer.resetFrameObservation();
+      this.resumePendingFrame = false;
+      this.resumeStartedMs = null;
+      this.updateResumePresentation(null);
+      this.ensureLoop();
+      return;
+    }
+    if (this.phase !== "playing") return;
+    this.clockPaused = false;
+    this.lastFrameMs = null;
+    this.accumulatorMs = 0;
+    this.renderer.resetFrameObservation();
+    this.resumePendingFrame = true;
+    this.resumeStartedMs = this.deterministicTestMode ? null : nowMs();
+    if (this.resumeStartedMs !== null) this.updateResumePresentation(3);
+    if (!this.deterministicTestMode) this.ensureLoop();
+  }
+
+  handleVisibilityChange() {
+    if (document.visibilityState !== "visible") {
+      this.pauseClock("visibilitychange");
+      this.pointer.interrupt("visibilitychange");
+      return;
+    }
+    if (!this.clockPaused || this.userPaused) return;
+    // Start a new wall-clock interval. No elapsed hidden duration is added to
+    // the accumulator and no catch-up burst is generated.
+    this.resumeClock();
+  }
+
+  handlePageShow() {
+    if (document.visibilityState === "visible" && !this.userPaused) this.resumeClock();
+  }
+
+  start(seed = null) {
+    if (this.destroyed) return null;
+    const displayName = String(this.profile?.name ?? "").trim();
+    if (!displayName) {
+      this.rankingPlay = Object.freeze({ guest: true, displayName: "" });
+    } else if (this.deterministicTestMode || !this.rankingClient?.startPlay) {
+      this.rankingPlay = null;
+    } else {
+      const play = { displayName, startId: null, playId: null, startPromise: null, startError: null };
+      try { play.startId = createRequestId(); }
+      catch (error) { play.startError = error; }
+      this.rankingPlay = play;
+      // Sending the start record is parallel to gameplay, never a start gate.
+      void this.startRankingPlay(play);
+    }
+    this.rankingStartRequest = null;
+    return this.startGameplay(seed);
+  }
+
+  startGameplay(seed = null) {
+    if (this.destroyed) return null;
+    if (seed !== null && Number.isFinite(Number(seed))) {
+      this.nextSeed = Math.trunc(Number(seed)) >>> 0 || 1;
+    }
+    const runSeed = this.nextSeed;
+    this.nextSeed = (runSeed + 1) >>> 0 || 1;
+    this.pointer.clear();
+    this.clockPaused = false;
+    this.userPaused = false;
+    this.resumePendingFrame = false;
+    this.resumeStartedMs = null;
+    this.updateResumePresentation(null);
+    this.interruptPending = false;
+    this.accumulatorMs = 0;
+    this.lastFrameMs = null;
+    this.renderer.resetFrameObservation();
+    this.finalizeOnFrame = false;
+    this.resultOnFrame = false;
+    this.presentationEvents.reset();
+    this.presentationUpdateCount = 0;
+    this.presentationEventCounts = {};
+    this.pointerHintText = "";
+    this.pointerHintUntilMs = 0;
+    this.lastPersistedResultKey = "";
+    this.lastBestScore = false;
+    this.currentResultKey = "";
+    this.rankingEntries = [];
+    this.rankingEntriesResultKey = "";
+    this.rankingSyncKey = "";
+    this.rankingSyncPromise = null;
+    this.rankingStatus = RANKING_STATES.idle;
+    this.rankingSubmission = null;
+    this.rankingSubmissionSubmitted = false;
+    this.shareStatus && (this.shareStatus.textContent = "");
+    this.setPauseRules(false);
+    this.setPauseMenu(false);
+    this.countdownStartedMs = nowMs();
+    this.countdownPausedAtMs = null;
+    this.session.prepare(runSeed);
+    if (!this.deterministicTestMode) this.ensureLoop();
+    return this.session.state;
+  }
+
+  goHome() {
+    if (this.destroyed) return;
+    this.lifecycleToken += 1;
+    this.currentResultKey = "";
+    this.pointer.clear();
+    this.clockPaused = false;
+    this.userPaused = false;
+    this.resumePendingFrame = false;
+    this.resumeStartedMs = null;
+    this.updateResumePresentation(null);
+    this.interruptPending = false;
+    this.accumulatorMs = 0;
+    this.lastFrameMs = null;
+    this.renderer.resetFrameObservation();
+    this.countdownStartedMs = null;
+    this.countdownPausedAtMs = null;
+    this.finalizeOnFrame = false;
+    this.resultOnFrame = false;
+    this.pendingStartSeed = null;
+    this.practiceReturnsHome = false;
+    this.setPauseRules(false);
+    this.setPauseMenu(false);
+    this.presentationEvents.reset();
+    this.presentationUpdateCount = 0;
+    this.presentationEventCounts = {};
+    this.pointerHintText = "";
+    this.pointerHintUntilMs = 0;
+    this.tutorial.show();
+    this.session.goHome();
+    if (this.screens.phase !== "home") {
+      this.screens.show("home", this.screens.phase);
+      this.root.dataset.phase = "home";
+      this.transitions = this.screens.history();
+      if (this.status) this.status.textContent = t("準備できました");
+      this.render();
+    }
+    this.stopLoop();
+  }
+
+  ensureLoop() {
+    if (this.destroyed || this.rafId !== null) return;
+    this.running = true;
+    this.rafId = requestAnimationFrame((time) => this.frame(time));
+  }
+
+  stopLoop() {
+    if (this.rafId !== null) cancelAnimationFrame(this.rafId);
+    this.rafId = null;
+    this.running = false;
+  }
+
+  frame(timestamp) {
+    this.rafId = null;
+    if (this.destroyed) return;
+    const timestampMs = Number.isFinite(timestamp) ? timestamp : nowMs();
+    this.renderer.observeAnimationFrame(timestampMs);
+    if (this.phase === "countdown") {
+      if (this.clockPaused) {
+        this.render();
+        return;
+      }
+      const started = this.countdownStartedMs ?? timestampMs;
+      const remaining = Math.max(0, COUNTDOWN_SECONDS - (timestampMs - started) / 1000);
+      this.updateCountdownPresentation(remaining);
+      this.session.updateCountdown(remaining);
+      if (this.phase === "playing") {
+        this.lastFrameMs = timestampMs;
+        this.accumulatorMs = 0;
+      }
+      this.render();
+    } else if (this.phase === "playing") {
+      let resumeGateActive = false;
+      if (this.resumeStartedMs !== null) {
+        const remaining = Math.max(0, (this.resumeDurationMs - (timestampMs - this.resumeStartedMs)) / 1000);
+        if (remaining > 0) {
+          resumeGateActive = true;
+          this.updateResumePresentation(remaining);
+        } else {
+          this.resumeStartedMs = null;
+          this.updateResumePresentation(null);
+        }
+      }
+      if (resumeGateActive) {
+        this.render();
+      } else if (this.clockPaused) {
+        this.render();
+      } else if (this.resumePendingFrame) {
+        // One marked interrupt frame is the first tick after resume. It is
+        // sampled once; no wall-clock catch-up occurs.
+        this.session.nextFrame();
+        this.interruptPending = false;
+        this.resumePendingFrame = false;
+        this.lastFrameMs = timestampMs;
+        this.accumulatorMs = 0;
+      } else {
+        if (this.lastFrameMs === null) this.lastFrameMs = timestampMs;
+        const elapsed = Math.max(0, timestampMs - this.lastFrameMs);
+        this.lastFrameMs = timestampMs;
+        this.accumulatorMs += elapsed;
+        if (isClockBacklogUnsafe(this.accumulatorMs)) {
+          // A long visible main-thread stall provides no usable input samples.
+          // Record one explicit interruption and start a fresh clock interval
+          // instead of silently dropping ticks or entering a catch-up spiral.
+          this.pointer.interrupt("frame-backlog");
+          this.session.nextFrame();
+          this.interruptPending = false;
+          this.accumulatorMs = 0;
+        } else {
+          // Bound work per paint so a late visible frame cannot monopolize the
+          // browser. Safe backlog is retained and consumed by later paints.
+          let ticksThisFrame = 0;
+          while (this.accumulatorMs >= FRAME_MS && this.phase === "playing" &&
+              ticksThisFrame < MAX_TICKS_PER_FRAME) {
+            this.session.nextFrame();
+            this.accumulatorMs -= FRAME_MS;
+            ticksThisFrame += 1;
+          }
+        }
+      }
+      this.render();
+    } else if (this.phase === "finalizing") {
+      if (this.finalizeOnFrame) {
+        this.finalizeOnFrame = false;
+        this.session.finalize();
+        this.resultOnFrame = true;
+      } else if (this.resultOnFrame) {
+        this.resultOnFrame = false;
+        this.session.showResult();
+      }
+      this.render();
+    } else if (this.phase === "result" || this.phase === "fault" || this.phase === "home") {
+      this.render();
+    }
+
+    if (["countdown", "finalizing"].includes(this.phase) ||
+        (this.phase === "playing" && !this.clockPaused)) this.ensureLoop();
+    else this.running = false;
+  }
+
+  updateCountdownPresentation(remaining) {
+    if (!this.countdownValue || !this.countdownMessage) return;
+    const display = Math.max(1, Math.ceil(remaining));
+    this.countdownValue.textContent = remaining <= 0 ? t("GO") : String(display);
+    this.countdownMessage.textContent = remaining <= 0
+      ? t("花火を選びましょう")
+      : display === 1 ? t("あと少し…") : t("最初の花火を探しましょう");
+  }
+
+  populateResult() {
+    const state = this.session.state;
+    if (!state) return;
+    const stats = state.stats ?? {};
+    const score = Math.max(0, Math.trunc(state.finalScore ?? state.score ?? 0));
+    const maxChain = Math.max(0, Math.trunc(stats.maxChain ?? 0));
+    const check = this.session.replayCheck;
+    const replayKey = check?.ok === true ? "valid" : check?.reason ?? "unverified";
+    const resultKey = `${state.seed}:${state.actionCount}:${score}:${maxChain}:${state.status}:${state.simulationFault?.code ?? "ok"}:${replayKey}`;
+    if (resultKey !== this.lastPersistedResultKey) {
+      const recordable = isRecordableResult(state, check);
+      if (recordable) {
+        const latestProfile = this.profileStore.load();
+        const previousBest = latestProfile.bestRuleVersion === this.rules.ruleVersion
+          ? latestProfile.bestScore
+          : 0;
+        this.profile = this.profileStore.updateBest({
+          score,
+          maxChain,
+          ruleVersion: this.rules.ruleVersion,
+        });
+        this.lastBestScore = score > previousBest && this.profile.bestScore === score;
+        this.updateHomeBest();
+        this.rankingStore.record({
+          name: this.rankingPlay?.displayName ?? this.profile.name,
+          score,
+          maxChain,
+          ruleVersion: this.rules.ruleVersion,
+        });
+      }
+      this.lastPersistedResultKey = resultKey;
+    }
+    this.currentResultKey = resultKey;
+    this.renderCurrentResult(state);
+    const shouldSync = this.rankingSyncKey !== resultKey &&
+      !this.deterministicTestMode &&
+      Boolean(this.rankingPlay) &&
+      typeof this.rankingClient?.finishPlay === "function";
+    if (shouldSync) this.beginRankingSync(state, resultKey);
+  }
+
+  render() {
+    this.renderCount += 1;
+    this.canvas.dataset.renderCount = String(this.renderCount);
+    const state = this.session.state;
+    const phase = this.phase;
+    if (state && ["countdown", "playing", "finalizing"].includes(phase)) {
+      this.playPresentationEvents(state);
+    }
+    if (phase === "playing" || phase === "finalizing") {
+      this.renderer.render(state, { pointer: this.pointer.position, phase, rules: this.rules });
+      updateHud(this.hud, state, {
+        phase,
+        rules: this.session.rules,
+        remainingSeconds: this.session.getRemainingSeconds(),
+        orientation: this.orientation,
+      });
+      updatePlayMessage(this.playMessage, state, phase, this.rules);
+      if (this.playMessage && this.pointerHintText && nowMs() < this.pointerHintUntilMs) {
+        this.playMessage.textContent = this.pointerHintText;
+      }
+    } else if (state) {
+      this.renderer.render(state, { pointer: this.pointer.position, phase, rules: this.rules });
+    } else {
+      this.renderer.render(null, { pointer: this.pointer.position, phase });
+    }
+    if (phase === "result" || phase === "fault") this.populateResult();
+    this.updateQualityLabel();
+  }
+
+  /** Testable fixed-tick API; it does not expose target mutation methods. */
+  advanceTicks(count = 1) {
+    if (this.deterministicTestMode) this.stopLoop();
+    if (this.deterministicTestMode && this.clockPaused && !this.userPaused) this.resumeClock();
+    if (this.userPaused || this.clockPaused) return this.snapshot();
+    // The real practice requires a pointer gesture. Test callers must use the
+    // explicit skip path instead of silently completing it through ticks.
+    if (this.screens.phase === "practice") return this.snapshot();
+    if (this.phase === "home" || this.phase === "countdown") this.session.beginPlay();
+    let remaining = Math.max(0, Math.trunc(Number(count) || 0));
+    // A user pause still owns the same one-boundary input contract as a page
+    // resume. Consume the marked frame before deterministic test ticks so a
+    // held pointer cannot survive a pause merely because rAF is bypassed.
+    if (this.deterministicTestMode && this.resumePendingFrame) {
+      this.session.nextFrame();
+      this.interruptPending = false;
+      this.resumePendingFrame = false;
+      remaining = Math.max(0, remaining - 1);
+    }
+    const state = this.session.advanceTicks(remaining);
+    if (this.deterministicTestMode) {
+      this.resumePendingFrame = false;
+      this.interruptPending = false;
+    }
+    this.render();
+    return this.snapshot();
+  }
+
+  settleTerminal() {
+    if (this.deterministicTestMode) this.stopLoop();
+    if (this.userPaused || this.clockPaused) return this.snapshot();
+    const state = this.session.finishNow();
+    this.finalizeOnFrame = false;
+    this.resultOnFrame = false;
+    this.populateResult();
+    this.render();
+    return this.snapshot();
+  }
+
+  snapshot() {
+    return this.session.snapshot();
+  }
+
+  renderModel() {
+    return {
+      phase: this.phase,
+      clock: {
+        paused: this.clockPaused,
+        userPaused: this.userPaused,
+        running: this.running,
+        resumeRemainingSeconds: this.resumeStartedMs === null
+          ? 0
+          : Math.max(0, (this.resumeDurationMs - (nowMs() - this.resumeStartedMs)) / 1000),
+      },
+      profile: { ...this.profile },
+      experience: { ...this.experience },
+      presentation: {
+        updateCount: this.presentationUpdateCount,
+        eventCounts: { ...this.presentationEventCounts },
+      },
+      practice: this.tutorial.snapshot(),
+      state: this.session.snapshot(),
+      pointer: { ...this.pointer.position },
+      canvas: {
+        width: this.renderer.width,
+        height: this.renderer.height,
+        dataset: {
+          ...this.canvas.dataset,
+        },
+      },
+    };
+  }
+
+  recordedReplay() {
+    return clone(this.session.replay);
+  }
+
+  testApi() {
+    this.deterministicTestMode = true;
+    this.stopLoop();
+    // Browser tests explicitly choose a decoration profile. Keep the
+    // production auto-quality controller out of those comparisons so a fast
+    // test runner cannot raise a manually selected low profile mid-run.
+    this.renderer.qualityController.auto = false;
+    return {
+      snapshot: () => this.snapshot(),
+      advanceTicks: (count) => this.advanceTicks(count),
+      settleTerminal: () => this.settleTerminal(),
+      recordedReplay: () => this.recordedReplay(),
+      replay: (replay) => clone(replayGame(replay, { rules: this.session.rules })),
+      transitions: () => this.screens.history(),
+      renderModel: () => this.renderModel(),
+      setQuality: (level) => this.renderer.setQuality(level),
+      setQualityPreference: (value) => this.setQualityPreference(value),
+      setPlayerName: (name) => this.setPlayerName(name),
+      setSoundEnabled: (enabled) => this.setSoundEnabled(enabled),
+      pause: () => this.pauseGame(),
+      resume: () => this.resumeGame(),
+      retire: () => this.retireGame(),
       togglePauseRules: () => this.togglePauseRules(),
       skipPractice: () => this.tutorial.skip(),
       shareText: () => this.shareButton?.dataset.shareText ?? "",

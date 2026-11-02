@@ -39,3 +39,14 @@ test('social metadata points to one real fixed PNG with matching dimensions',asy
  assert.match(html,/property="og:image:width" content="1200"/);
  assert.match(html,/property="og:image:height" content="630"/);
 });
+
+test('home and result offer X only; copy remains an error fallback, not a separate control',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const html=await readFile(new URL('../../index.html',import.meta.url),'utf8');
+ for(const id of ['home-share-button','share-button'])assert.match(html,new RegExp(`<button[^>]+id="${id}"[^>]*><span[^>]*>Xでシェア<\\/span><\\/button>`));
+ assert.doesNotMatch(html,/<button\b[^>]*(?:id|class)="[^"]*copy[^>]*>/i);
+ assert.doesNotMatch(html,/<button\b[^>]*>[^<]*(?:共有文をコピー|コピー)[^<]*<\/button>/);
+ const controller=await readFile(new URL('../../src/game/controller.js',import.meta.url),'utf8');
+ assert.match(controller,/if \(!openXComposer\(text\) && !\(await copyShareText\(text\)\)\)/);
+ assert.match(controller,/if \(openXComposer\(text\)\) \{[^\n]*return true; \}\n    const copied = await copyShareText\(text\);/);
+});
