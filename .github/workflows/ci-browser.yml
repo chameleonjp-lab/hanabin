@@ -2,7 +2,7 @@ name: CI Browser
 
 on:
   push:
-    branches: [main, codex/share-thumbnail-20261102]
+    branches: [main]
   pull_request:
 
 permissions:

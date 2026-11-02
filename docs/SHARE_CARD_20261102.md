@@ -19,8 +19,10 @@ X weighted長は公式twitter/twitter-text config/v3.json（2026-11-02確認、U
 ## 検査と適用
 画像取得→実見→meta/tag設定→15言語縦とja/en/de横のhome/result可視・X intent配線・黒白・44px・中心hit・祖先opacity・touchタップ・結果保持の順。X popupはstub、ゲームはローカル、外部はdeny。iPhone実機、実際のXカード再取得/キャッシュ反映は本人マージ・公開後に確認する。現時点で公開済みとは報告しない。
 
-PR67（公開smokeの非送信化）は別単位であり本差分に複製しない。本PRをマージする前にPR67の安全化をマージする順序を推奨する（既存のmain公開smokeには名前付き本番通信の懸念が残る）。マージは本人のみ。本番smokeの手動再run、DB操作、記録削除は実施しない。今回branch限定の画像取得用pushtriggerはDraft作成前に元へ戻す。最終通常PR検査を重複起動しない。
+PR67（公開smokeの非送信化）は別単位であり本差分に複製しない。安全上の適用順序はPR67が先。2026-11-02 16:11 JSTに本人によるPR67 merge済みを現物確認し、main `d64bdf23108298d2eb942e704f135e379ae0fdbd` でこの依存は充足している。マージは本人のみ。本番smokeの手動再run、DB操作、記録削除は実施しない。今回branch限定の画像取得用pushtriggerは素材取得・branch検査後にmainのみへ戻した。最終通常PR検査を重複起動しない。
 
 戻す場合はこの画像/meta/tag差分のみrevertし、採点/保存キー/既存スコア/PR67安全化は保持する。素材削除は今行っていない。
 
 本人の後続指定「Xがあれば独立した共有文コピーボタンは不要」について、既HTMLはhome/resultともXのみで独立copy UIなし。controllerのcopyはXを開けない場合だけの代替なので維持し、独立copyボタンが増えない回帰を追加した。
+
+可視受入はスクロールでXボタンへ到達でき、ラベル/黒白/44px/中心hit/祖先opacityと1回だけのintent起動を確認するもの。ja/en/de代表24枚を実見。横画面等で結果全体が一画面に収まることは保証せず、iPhone実機確認とも区別する。
