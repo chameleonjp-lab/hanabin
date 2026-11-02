@@ -310,7 +310,8 @@ test("M6 result hint is one deterministic sentence and share URL is last", () =>
   assert.equal(url, "https://chameleonjp-lab.github.io/hanabin/");
   const share = buildShareText({ name: "花子", score: 1_234, maxChain: 7, url });
   assert.match(share, /^HANABINプレイ結果\nSCORE 1,234 \/ 最大連鎖 7\n/);
-  assert.equal(share.split("\n").at(-1), url);
+  assert.equal(share.split("\n").at(-2), url);
+  assert.equal(share.split("\n").at(-1), "#ハナビン #ゲーム制作");
 });
 
 test("M6 result hints use player-facing operation words instead of internal tick units", () => {
