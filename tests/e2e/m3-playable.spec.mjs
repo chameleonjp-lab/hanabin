@@ -197,8 +197,9 @@ for (const viewport of viewports) {
 test("M3 portrait viewport keeps a playable board with clockwise logical mapping", async ({ page }) => {
   const viewport = portraitViewports[0];
   const diagnostics = await openPage(page, viewport);
-  await expect(page.locator("#orientation-guide")).toBeVisible();
+  await expect(page.locator("#orientation-guide")).toBeHidden();
   await beginPlaying(page);
+  await expect(page.locator("#orientation-guide")).toBeVisible();
   await expect(page.locator("#play-screen")).toBeVisible();
   await expect(page.locator("#game-canvas")).toHaveAttribute("data-orientation", "portrait");
   await expect(page.locator("#game-hud")).toHaveAttribute("data-orientation", "portrait");

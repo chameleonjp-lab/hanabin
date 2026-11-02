@@ -106,7 +106,7 @@ const dispatchPracticePointer = (page, type, {
 
 test("M6 first practice can be skipped and then starts the real game", async ({ page }) => {
   await openPage(page);
-  expect(await page.locator("#sound-toggle").isChecked()).toBe(false);
+  expect(await page.locator("#sound-toggle").isChecked()).toBe(true);
   await page.locator("#start-button").click();
   await expect(page.locator("#practice-screen")).toBeVisible();
   await expect(page.locator("#practice-value")).toHaveText("18秒");
@@ -319,12 +319,13 @@ test("M6 practice keeps a one-tick press-and-sweep uncommitted and ignores a sec
   await expect(page.locator("#practice-progress")).toHaveText("0 / 3");
 });
 
-test("M6 requires a player name before opening practice", async ({ page }) => {
+test("M6 allows a blank name before opening practice", async ({ page }) => {
   await openPage(page);
   await page.locator("#player-name").fill("");
   await page.locator("#start-button").click();
-  await expect(page.locator("#profile-error")).toBeVisible();
-  await expect(page.locator("#home-screen")).toBeVisible();
+  await expect(page.locator("#profile-error")).toBeHidden();
+  await expect(page.locator("#practice-screen")).toBeVisible();
+  await page.locator("#practice-home").click();
 
   await page.locator("#player-name").fill("名前あり");
   await page.locator("#start-button").click();
@@ -355,7 +356,7 @@ test("M6 pause menu freezes ticks, explains rules, and supports retire", async (
   await page.locator("#pause-retire-button").click();
   await expect(page.locator("#result-screen")).toBeVisible();
   await expect(page.locator("#result-status")).toHaveText("リタイアしました");
-  await expect(page.locator("#result-replay")).toContainText("記録には残していません");
+  await expect(page.locator("#result-replay")).toHaveText("リタイアしました");
 });
 
 test("M6 result keeps the home route and local top-ten ranking visible", async ({ page }) => {
@@ -493,12 +494,7 @@ test("M6 profile name is rendered as text, best record is saved, and share URL i
   expect(await page.locator("#result-player-name b").count()).toBe(0);
   await expect(page.locator("#result-hint")).toContainText("4個目を足し");
   const share = await callApi(page, "shareText");
-  const expectedUrl = await page.evaluate(() => {
-    const url = new URL(location.href);
-    url.search = "";
-    url.hash = "";
-    return url.href;
-  });
+  const expectedUrl = "https://chameleonjp-lab.github.io/hanabin/";
   expect(share.endsWith(expectedUrl)).toBe(true);
 
   await page.locator("#home-button").click();
@@ -592,7 +588,7 @@ test("M6 damaged local profile data does not block startup", async ({ page }) =>
   await expect(page.locator("#app")).not.toHaveAttribute("data-state", "loading");
   await expect(page.locator("#home-best-score")).toHaveText("0");
   await expect(page.locator("#quality-select")).toHaveValue("auto");
-  expect(await page.locator("#sound-toggle").isChecked()).toBe(false);
+  expect(await page.locator("#sound-toggle").isChecked()).toBe(true);
 });
 
 test("M6 resets an old-rule best while preserving player preferences", async ({ page }) => {

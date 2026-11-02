@@ -4,23 +4,40 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#080b18" />
-    <meta name="description" content="HANABIN - 花火の連鎖を60秒でつなぐスコアアタック" />
+    <meta name="description" content="HANABIN - 花火の連鎖を60秒でつなぐスコアアタック"  data-i18n-attrs="{&quot;content&quot;: &quot;HANABIN - 花火の連鎖を60秒でつなぐスコアアタック&quot;}"/>
     <link rel="canonical" href="https://chameleonjp-lab.github.io/hanabin/" />
     <title>HANABIN</title>
     <link rel="stylesheet" href="./styles/base.css" />
     <link rel="stylesheet" href="./styles/game.css" />
     <script>
       (() => {
-        const showError = (message = "ページの読み込みに失敗しました。再読み込みしてください。") => {
+        // Keep the module-load failure readable even when the language module cannot load.
+        const bootMessages = {"ja":["読み込みに失敗しました","ページの読み込みに失敗しました。再読み込みしてください。"],"en":["Loading failed","The page could not load. Please reload it."],"es":["No se pudo cargar","No se pudo cargar la página. Vuelve a cargarla."],"pt-BR":["Falha ao carregar","Não foi possível carregar a página. Recarregue-a."],"zh-Hans":["加载失败","页面加载失败，请重新加载。"],"fr":["Échec du chargement","Impossible de charger la page. Rechargez-la."],"de":["Laden fehlgeschlagen","Die Seite konnte nicht geladen werden. Lade sie neu."],"ko":["불러오지 못했습니다","페이지를 불러오지 못했습니다. 새로고침해 주세요."],"ru":["Не удалось загрузить","Не удалось загрузить страницу. Перезагрузите её."],"it":["Caricamento non riuscito","Impossibile caricare la pagina. Ricaricala."],"zh-Hant":["載入失敗","頁面載入失敗，請重新載入。"],"id":["Gagal memuat","Gagal memuat halaman. Silakan muat ulang."],"tr":["Yükleme başarısız","Sayfa yüklenemedi. Lütfen yeniden yükleyin."],"vi":["Tải thất bại","Không tải được trang. Hãy tải lại."],"th":["โหลดไม่สำเร็จ","โหลดหน้าไม่สำเร็จ โปรดโหลดใหม่"]};
+        const bootLanguage = () => {
+          try { const saved = localStorage.getItem('hanabin.language.v1'); if (Object.hasOwn(bootMessages, saved)) return saved; } catch {}
+          for (const value of [...(navigator.languages || []), navigator.language]) {
+            const parts = String(value || '').toLowerCase().replaceAll('_', '-').split('-');
+            const traditional = parts.includes('hant') || (!parts.includes('hans') && parts.some(part => ['tw', 'hk', 'mo'].includes(part)));
+            const id = parts[0] === 'zh' ? (traditional ? 'zh-Hant' : 'zh-Hans') : parts[0] === 'pt' ? 'pt-BR' : parts[0];
+            if (Object.hasOwn(bootMessages, id)) return id;
+          }
+          return 'en';
+        };
+        const showError = (message) => {
+          const language = bootLanguage();
+          const labels = bootMessages[language];
+          document.documentElement.lang = language;
           const status = document.querySelector("#app-status");
           const error = document.querySelector("#app-error");
           if (status) {
-            status.textContent = "読み込みに失敗しました";
+            status.textContent = labels[0];
           }
           if (error) {
             error.hidden = false;
+            const heading = error.querySelector("h2");
+            if (heading) heading.textContent = labels[0];
             const detail = error.querySelector("[data-error-detail]");
-            if (detail) detail.textContent = message;
+            if (detail) detail.textContent = message || labels[1];
           }
         };
 
@@ -45,62 +62,65 @@
         <header class="game-header">
           <div>
             <p class="eyebrow">HANABIN</p>
-            <h1 id="app-title">花火の連鎖をつなぐ</h1>
+            <h1 id="app-title"><span data-i18n="花火の連鎖をつなぐ">花火の連鎖をつなぐ</span></h1>
           </div>
-          <p id="app-status" class="status" role="status" aria-live="polite">読み込み中…</p>
+          <p id="app-status" class="status" role="status" aria-live="polite"><span data-i18n="読み込み中…">読み込み中…</span></p>
         </header>
 
         <p id="orientation-guide" class="orientation-guide" hidden>
-          縦画面では、上側が右、下側が左です。
+          <span data-i18n="縦画面では、上側が右、下側が左です。">縦画面では、上側が右、下側が左です。</span>
         </p>
 
         <section id="home-screen" class="screen screen--home" data-screen="home" aria-labelledby="home-title">
           <div class="home-scroll">
             <div class="home-intro">
-              <p class="home-kicker">60秒 SCORE ATTACK</p>
-              <h2 id="home-title">同じ色を3つつないで、連鎖を起こす</h2>
-              <p>同じ色の花火を1本指でつなぎ、指を離すと爆発します。爆発が近くの花火に届くほど高得点です。</p>
+              <p class="home-kicker"><span data-i18n="60秒 SCORE ATTACK">60秒 SCORE ATTACK</span></p>
+              <h2 id="home-title"><span data-i18n="同じ色を3つつないで、連鎖を起こす">同じ色を3つつないで、連鎖を起こす</span></h2>
             </div>
-            <div class="profile-panel" aria-label="プレイヤー設定">
+            <label class="language-setting"><span data-i18n="言語">言語</span><select id="language-select" aria-label="言語" data-i18n-attrs="{&quot;aria-label&quot;:&quot;言語&quot;}"></select></label>
+            <div class="profile-panel" aria-label="プレイヤー設定" data-i18n-attrs="{&quot;aria-label&quot;: &quot;プレイヤー設定&quot;}">
               <div class="profile-panel__heading">
-                <span class="hud-label">PLAYER SETTINGS</span>
-                <span id="profile-best-label" class="profile-best-label">現在のルールでのベスト</span>
+                <span class="hud-label"><span data-i18n="プレイヤー設定">PLAYER SETTINGS</span></span>
+                <span id="profile-best-label" class="profile-best-label"><span data-i18n="現在のルールでのベスト">現在のルールでのベスト</span></span>
               </div>
               <label class="field-row" for="player-name">
-                <span>名前（必須・12文字まで）</span>
-                <input id="player-name" name="player-name" type="text" maxlength="12" autocomplete="nickname" inputmode="text" placeholder="プレイヤー名" required aria-required="true" />
+                <span><span data-i18n="名前（任意・12文字まで）">名前（任意・12文字まで）</span></span>
+                <input id="player-name" name="player-name" type="text" maxlength="12" autocomplete="nickname" inputmode="text" placeholder="プレイヤー名" aria-describedby="player-name-consent"  data-i18n-attrs="{&quot;placeholder&quot;: &quot;プレイヤー名&quot;}"/>
               </label>
-              <p id="profile-error" class="field-error" role="alert" hidden>名前は1〜12文字で入力してください。</p>
+              <p id="player-name-consent"><span data-i18n="名前を入力すると、名前と記録がランキングに公開されます。空欄でも遊べます。">名前を入力すると、名前と記録がランキングに公開されます。空欄でも遊べます。</span></p>
+              <p id="profile-error" class="field-error" role="alert" hidden><span data-i18n="名前は空欄にするか、12文字以内で入力してください。">名前は空欄にするか、12文字以内で入力してください。</span></p>
               <div class="profile-settings-grid">
                 <label class="field-row" for="quality-select">
-                  <span>演出品質</span>
+                  <span><span data-i18n="演出品質">演出品質</span></span>
                   <select id="quality-select" name="quality">
-                    <option value="auto">自動</option>
-                    <option value="high">高</option>
-                    <option value="medium">中</option>
-                    <option value="low">低</option>
+                    <option value="auto" data-i18n="自動">自動</option>
+                    <option value="high" data-i18n="高">高</option>
+                    <option value="medium" data-i18n="中">中</option>
+                    <option value="low" data-i18n="低">低</option>
                   </select>
                 </label>
                 <label class="toggle-row" for="sound-toggle">
                   <input id="sound-toggle" type="checkbox" />
-                  <span>音を有効にする</span>
+                  <span><span data-i18n="音を有効にする">音を有効にする</span></span>
                 </label>
               </div>
-              <p id="quality-active-label" class="quality-active-label">自動調整：高</p>
-              <div class="profile-best" aria-label="自己ベスト記録">
-                <span>SCORE <strong id="home-best-score">0</strong></span>
-                <span>CHAIN <strong id="home-best-chain">0</strong></span>
+              <label class="field-row" for="sound-volume"><span data-i18n="音量">音量</span><input id="sound-volume" type="range" min="0" max="1" step="0.05" value="0.5" /></label>
+              <p id="quality-active-label" class="quality-active-label"><span data-i18n="自動調整：高">自動調整：高</span></p>
+              <div class="profile-best" aria-label="自己ベスト記録" data-i18n-attrs="{&quot;aria-label&quot;: &quot;自己ベスト記録&quot;}">
+                <span><span data-i18n="SCORE">SCORE</span> <strong id="home-best-score">0</strong></span>
+                <span><span data-i18n="CHAIN">CHAIN</span> <strong id="home-best-chain">0</strong></span>
               </div>
             </div>
-            <div class="home-rules" aria-label="操作の要点">
-              <span><i class="rule-dot rule-dot--cyan" aria-hidden="true"></i>同じ色を3つ以上つなぐ</span>
-              <span><i class="rule-dot rule-dot--gold" aria-hidden="true"></i>指を離すと爆発</span>
-              <span><i class="rule-dot rule-dot--pink" aria-hidden="true"></i>近くへ広がるほど高得点</span>
+            <div class="home-rules" aria-label="操作の要点" data-i18n-attrs="{&quot;aria-label&quot;: &quot;操作の要点&quot;}">
+              <span><i class="rule-dot rule-dot--cyan" aria-hidden="true"></i><span data-i18n="同じ色を3つ以上つなぐ">同じ色を3つ以上つなぐ</span></span>
+              <span><i class="rule-dot rule-dot--gold" aria-hidden="true"></i><span data-i18n="指を離すと爆発">指を離すと爆発</span></span>
+              <span><i class="rule-dot rule-dot--pink" aria-hidden="true"></i><span data-i18n="近くへ広がるほど高得点">近くへ広がるほど高得点</span></span>
             </div>
             <details id="score-guide" class="score-guide">
-              <summary>得点・爆発範囲を確認</summary>
+              <summary><span data-i18n="得点・爆発範囲を確認">得点・爆発範囲を確認</span></summary>
               <div class="score-guide__body">
-                <h3>加点</h3>
+                <p><span data-i18n="同じ色の花火を1本指でつなぎ、指を離すと爆発します。爆発が近くの花火に届くほど高得点です。">同じ色の花火を1本指でつなぎ、指を離すと爆発します。爆発が近くの花火に届くほど高得点です。</span></p>
+                <h3><span data-i18n="加点">加点</span></h3>
                 <ul>
                   <li id="rule-direct"></li>
                   <li id="rule-preparation"></li>
@@ -109,93 +129,95 @@
                   <li id="rule-forecast"></li>
                   <li id="rule-choices"></li>
                 </ul>
-                <h3>減点</h3>
+                <h3><span data-i18n="減点">減点</span></h3>
                 <p id="rule-penalty"></p>
-                <h3>操作と爆発範囲</h3>
+                <h3><span data-i18n="操作と爆発範囲">操作と爆発範囲</span></h3>
                 <p id="rule-selection"></p>
                 <p id="rule-explosion-ranges"></p>
               </div>
             </details>
-            <p class="home-hint">詳しい操作と得点は「得点・爆発範囲を確認」で見られます。</p>
+            <p class="home-hint"><span data-i18n="詳しい操作と得点は「得点・爆発範囲を確認」で見られます。">詳しい操作と得点は「得点・爆発範囲を確認」で見られます。</span></p>
           </div>
           <div class="home-actions">
-            <button id="start-button" class="primary-button" type="button">ゲームを開始</button>
-            <button id="practice-button" class="secondary-button" type="button">操作練習</button>
+            <button id="home-share-button" class="secondary-button x-share-action" type="button"><span data-i18n="Xでシェア">Xでシェア</span></button>
+            <a class="secondary-button" href="https://chameleonjp-lab.github.io/chameleonjp_lab/ranking.html?game=hanabin"><span data-i18n="ランキング">ランキング</span></a>
+            <button id="start-button" class="primary-button" type="button"><span data-i18n="ゲームを開始">ゲームを開始</span></button>
+            <button id="practice-button" class="secondary-button" type="button"><span data-i18n="操作練習">操作練習</span></button>
           </div>
         </section>
 
         <section id="practice-screen" class="screen screen--practice" data-screen="practice" hidden aria-labelledby="practice-title">
-          <p class="home-kicker">OPERATION PRACTICE</p>
-          <h2 id="practice-title">18秒で2つの操作を練習</h2>
-          <p id="practice-stage" class="practice-stage-label">STEP 1 / 2 · まずは3つつなぐ</p>
-          <p id="practice-message" class="practice-message">まずは静止した同じ色を3つつなぎます。成功すると、動く花火の巻き込みへ進みます。</p>
-          <div class="practice-value" aria-live="polite"><strong id="practice-value">18秒</strong></div>
+          <p class="home-kicker"><span data-i18n="操作練習">OPERATION PRACTICE</span></p>
+          <h2 id="practice-title"><span data-i18n="18秒で2つの操作を練習">18秒で2つの操作を練習</span></h2>
+          <p id="practice-stage" class="practice-stage-label"><span data-i18n="STEP 1 / 2 · まずは3つつなぐ">STEP 1 / 2 · まずは3つつなぐ</span></p>
+          <p id="practice-message" class="practice-message"><span data-i18n="まずは静止した同じ色を3つつなぎます。成功すると、動く花火の巻き込みへ進みます。">まずは静止した同じ色を3つつなぎます。成功すると、動く花火の巻き込みへ進みます。</span></p>
+          <div class="practice-value" aria-live="polite"><strong id="practice-value"><span data-i18n="18秒">18秒</span></strong></div>
           <div id="practice-board" class="practice-board" data-practice-state="ready">
             <canvas
               id="practice-canvas"
               width="960"
               height="540"
               aria-label="練習用の花火盤。同じ色の花火を3つつなぎ、近くの花火へ爆発を届かせます"
-            ></canvas>
+             data-i18n-attrs="{&quot;aria-label&quot;: &quot;練習用の花火盤。同じ色の花火を3つつなぎ、近くの花火へ爆発を届かせます&quot;}"></canvas>
             <div class="practice-board-status" aria-live="polite">
               <span id="practice-progress">0 / 3</span>
-              <span id="practice-feedback">光っている3つをつないでください</span>
+              <span id="practice-feedback"><span data-i18n="光っている3つをつないでください">光っている3つをつないでください</span></span>
             </div>
           </div>
-          <div class="practice-steps" aria-label="練習の手順">
-            <div><span>STEP 1</span><strong>3つつなぐ</strong><small>同じ色を選び、外輪が一周するまで短く止めます</small></div>
-            <div><span>STEP 2</span><strong>巻き込む</strong><small>動く3つをつなぎ、近くの花火へ爆発を届かせます</small></div>
+          <div class="practice-steps" aria-label="練習の手順" data-i18n-attrs="{&quot;aria-label&quot;: &quot;練習の手順&quot;}">
+            <div><span><span data-i18n="STEP 1">STEP 1</span></span><strong><span data-i18n="3つつなぐ">3つつなぐ</span></strong><small><span data-i18n="同じ色を選び、外輪が一周するまで短く止めます">同じ色を選び、外輪が一周するまで短く止めます</span></small></div>
+            <div><span><span data-i18n="STEP 2">STEP 2</span></span><strong><span data-i18n="巻き込む">巻き込む</span></strong><small><span data-i18n="動く3つをつなぎ、近くの花火へ爆発を届かせます">動く3つをつなぎ、近くの花火へ爆発を届かせます</span></small></div>
           </div>
           <div class="practice-actions">
-            <button id="practice-start" class="primary-button" type="button">練習を始める</button>
-            <button id="practice-continue" class="primary-button" type="button" hidden>本番へ進む</button>
-            <button id="practice-skip" class="secondary-button" type="button">練習をスキップ</button>
-            <button id="practice-home" class="secondary-button" type="button">ホームへ戻る</button>
+            <button id="practice-start" class="primary-button" type="button"><span data-i18n="練習を始める">練習を始める</span></button>
+            <button id="practice-continue" class="primary-button" type="button" hidden><span data-i18n="本番へ進む">本番へ進む</span></button>
+            <button id="practice-skip" class="secondary-button" type="button"><span data-i18n="練習をスキップ">練習をスキップ</span></button>
+            <button id="practice-home" class="secondary-button" type="button"><span data-i18n="ホームへ戻る">ホームへ戻る</span></button>
           </div>
         </section>
 
         <section id="countdown-screen" class="screen screen--countdown" data-screen="countdown" hidden aria-live="assertive">
-          <p class="countdown-label">準備してください</p>
+          <p class="countdown-label"><span data-i18n="準備してください">準備してください</span></p>
           <strong id="countdown-value" class="countdown-value">3</strong>
-          <p id="countdown-message">最初の花火を探しましょう</p>
+          <p id="countdown-message"><span data-i18n="最初の花火を探しましょう">最初の花火を探しましょう</span></p>
         </section>
 
-        <section id="play-screen" class="screen screen--play" data-screen="play" hidden aria-label="ゲーム画面">
+        <section id="play-screen" class="screen screen--play" data-screen="play" hidden aria-label="ゲーム画面" data-i18n-attrs="{&quot;aria-label&quot;: &quot;ゲーム画面&quot;}">
           <div class="play-stage">
             <div class="play-toolbar">
               <div id="game-hud" class="game-hud" aria-live="off">
                 <div class="hud-pill hud-pill--score">
-                  <span class="hud-label">SCORE</span>
+                  <span class="hud-label"><span data-i18n="SCORE">SCORE</span></span>
                   <strong id="hud-score">0</strong>
                 </div>
                 <div class="hud-pill hud-pill--time">
-                  <span class="hud-label">TIME</span>
+                  <span class="hud-label"><span data-i18n="TIME">TIME</span></span>
                   <strong id="hud-time">60.0</strong>
                 </div>
                 <div class="hud-pill hud-pill--combo">
-                  <span class="hud-label">CHAIN</span>
+                  <span class="hud-label"><span data-i18n="CHAIN">CHAIN</span></span>
                   <strong id="hud-combo">0</strong>
                 </div>
                 <div class="hud-pill hud-pill--selection" id="hud-selection" data-selection-count="0">
-                  <span class="hud-label">SELECTION</span>
+                  <span class="hud-label"><span data-i18n="SELECTION">SELECTION</span></span>
                   <span id="hud-selection-color" class="forecast-swatch" aria-hidden="true">—</span>
                   <strong id="hud-selection-count">0</strong>
                   <span id="hud-selection-time" class="hud-subvalue">—</span>
                 </div>
-                <div class="hud-pill hud-pill--blast" aria-label="現在の爆発範囲">
-                  <span class="hud-label">RANGE</span>
-                  <strong id="hud-blast-range">3個で 1,800</strong>
+                <div class="hud-pill hud-pill--blast" aria-label="現在の爆発範囲" data-i18n-attrs="{&quot;aria-label&quot;: &quot;現在の爆発範囲&quot;}">
+                  <span class="hud-label"><span data-i18n="RANGE">RANGE</span></span>
+                  <strong id="hud-blast-range"><span data-i18n="3個で 1,800">3個で 1,800</span></strong>
                 </div>
-                <div class="hud-pill hud-pill--choices" aria-label="現在選べる同色グループ">
-                  <span class="hud-label">CHOICES</span>
+                <div class="hud-pill hud-pill--choices" aria-label="現在選べる同色グループ" data-i18n-attrs="{&quot;aria-label&quot;: &quot;現在選べる同色グループ&quot;}">
+                  <span class="hud-label"><span data-i18n="CHOICES">CHOICES</span></span>
                   <strong id="hud-choice-count" data-minimum="4">4</strong>
                 </div>
-                <div class="hud-forecast" id="hud-forecast" aria-label="次の2波の予告">
-                  <span class="hud-label">NEXT WAVES</span>
+                <div class="hud-forecast" id="hud-forecast" aria-label="次の2波の予告" data-i18n-attrs="{&quot;aria-label&quot;: &quot;次の2波の予告&quot;}">
+                  <span class="hud-label"><span data-i18n="NEXT WAVES">NEXT WAVES</span></span>
                   <span id="hud-forecast-items">—</span>
                 </div>
               </div>
-              <button id="pause-button" class="pause-button secondary-button" type="button">一時停止</button>
+              <button id="pause-button" class="pause-button secondary-button" type="button"><span data-i18n="一時停止">一時停止</span></button>
             </div>
             <div class="game-frame" id="game-frame">
               <canvas
@@ -205,96 +227,97 @@
                 data-board-width="16000"
                 data-board-height="9000"
                 aria-label="花火を選ぶキャンバス"
-              ></canvas>
+               data-i18n-attrs="{&quot;aria-label&quot;: &quot;花火を選ぶキャンバス&quot;}"></canvas>
               <div id="pause-menu" class="pause-menu" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
                 <div class="pause-menu__card">
-                  <p class="home-kicker">GAME PAUSED</p>
-                  <h2 id="pause-title">一時停止</h2>
-                  <p id="pause-message">プレイを一時停止しています。</p>
+                  <p class="home-kicker"><span data-i18n="一時停止中">GAME PAUSED</span></p>
+                  <h2 id="pause-title"><span data-i18n="一時停止">一時停止</span></h2>
+                  <p id="pause-message"><span data-i18n="プレイを一時停止しています。">プレイを一時停止しています。</span></p>
                   <div class="pause-menu__actions">
-                    <button id="pause-resume-button" class="primary-button" type="button">再開</button>
-                    <button id="pause-retire-button" class="secondary-button" type="button">リタイア</button>
-                    <button id="pause-rules-button" class="secondary-button" type="button" aria-expanded="false" aria-controls="pause-rules-panel">ルール説明</button>
+                    <button id="pause-resume-button" class="primary-button" type="button"><span data-i18n="再開">再開</span></button>
+                    <button id="pause-retire-button" class="secondary-button" type="button"><span data-i18n="リタイア">リタイア</span></button>
+                    <button id="pause-rules-button" class="secondary-button" type="button" aria-expanded="false" aria-controls="pause-rules-panel"><span data-i18n="ルール説明">ルール説明</span></button>
                   </div>
                   <div id="pause-rules-panel" class="pause-rules" hidden>
-                    <p>同じ色を3つ以上、1本指で押したままつなぎます。外輪が一周するまで待ってから離すと起爆し、2.5秒で自動判定されます。</p>
-                    <p>CHOICESは現在つなげる同色グループの最大数です。常に4個以上を目標に補充します。</p>
+                    <p><span data-i18n="同じ色を3つ以上、1本指で押したままつなぎます。外輪が一周するまで待ってから離すと起爆し、2.5秒で自動判定されます。">同じ色を3つ以上、1本指で押したままつなぎます。外輪が一周するまで待ってから離すと起爆し、2.5秒で自動判定されます。</span></p>
+                    <p><span data-i18n="CHOICESは現在つなげる同色グループの最大数です。常に4個以上を目標に補充します。">CHOICESは現在つなげる同色グループの最大数です。常に4個以上を目標に補充します。</span></p>
                   </div>
                 </div>
               </div>
               <div id="resume-overlay" class="resume-overlay" hidden aria-live="assertive">
-                <span>再開準備中</span>
+                <span><span data-i18n="再開準備中">再開準備中</span></span>
                 <strong id="resume-value">3</strong>
-                <small>現在の選択は解除されました</small>
+                <small><span data-i18n="現在の選択は解除されました">現在の選択は解除されました</span></small>
               </div>
             </div>
             <div id="play-message" class="play-message" aria-live="polite"></div>
           </div>
-          <p class="play-instruction">同じ色を3つ以上つないで離す（2.5秒で自動起爆）／ 予告は金色の二重リングが目印</p>
+          <p class="play-instruction"><span data-i18n="同じ色を3つ以上つないで離す（2.5秒で自動起爆）／ 予告は金色の二重リングが目印">同じ色を3つ以上つないで離す（2.5秒で自動起爆）／ 予告は金色の二重リングが目印</span></p>
         </section>
 
         <section id="finalizing-screen" class="screen screen--finalizing" data-screen="finalizing" hidden aria-live="polite">
           <div class="finalizing-mark" aria-hidden="true"></div>
-          <h2>連鎖を確定中</h2>
-          <p>最後の花火が開いています…</p>
+          <h2><span data-i18n="連鎖を確定中">連鎖を確定中</span></h2>
+          <p><span data-i18n="最後の花火が開いています…">最後の花火が開いています…</span></p>
         </section>
 
         <section id="result-screen" class="screen screen--result" data-screen="result" hidden aria-labelledby="result-title">
-          <p class="home-kicker">RUN COMPLETE</p>
-          <h2 id="result-title">今回の結果</h2>
-          <p id="result-player-name" class="result-player-name">ゲストプレイヤー</p>
-          <p id="result-status" class="result-status">プレイ完了</p>
+          <p class="home-kicker"><span data-i18n="プレイ完了">RUN COMPLETE</span></p>
+          <h2 id="result-title"><span data-i18n="今回の結果">今回の結果</span></h2>
+          <p id="result-player-name" class="result-player-name"><span data-i18n="ゲストプレイヤー">ゲストプレイヤー</span></p>
+          <p id="result-status" class="result-status"><span data-i18n="プレイ完了">プレイ完了</span></p>
           <div class="result-score">
-            <span class="hud-label">SCORE</span>
+            <span class="hud-label"><span data-i18n="SCORE">SCORE</span></span>
             <strong id="result-score">0</strong>
           </div>
           <div class="result-grid">
-            <div><span>最大連鎖</span><strong id="result-chain">0</strong></div>
-            <div><span>起爆回数</span><strong id="result-detonations">0</strong></div>
-            <div><span>直接選択</span><strong id="result-direct">0</strong></div>
-            <div><span>連鎖捕捉</span><strong id="result-chain-targets">0</strong></div>
-            <div><span>予告成功</span><strong id="result-forecast-successes">0</strong></div>
+            <div><span><span data-i18n="最大連鎖">最大連鎖</span></span><strong id="result-chain">0</strong></div>
+            <div><span><span data-i18n="起爆回数">起爆回数</span></span><strong id="result-detonations">0</strong></div>
+            <div><span><span data-i18n="直接選択">直接選択</span></span><strong id="result-direct">0</strong></div>
+            <div><span><span data-i18n="連鎖捕捉">連鎖捕捉</span></span><strong id="result-chain-targets">0</strong></div>
+            <div><span><span data-i18n="予告成功">予告成功</span></span><strong id="result-forecast-successes">0</strong></div>
           </div>
           <div class="result-actions">
-            <button id="retry-button" class="primary-button" type="button">もう一度遊ぶ</button>
-            <button id="home-button" class="secondary-button" type="button">ホームへ戻る</button>
+            <button id="retry-button" class="primary-button" type="button"><span data-i18n="もう一度遊ぶ">もう一度遊ぶ</span></button>
+            <button id="home-button" class="secondary-button" type="button"><span data-i18n="ホームへ戻る">ホームへ戻る</span></button>
           </div>
           <details class="result-breakdown" open>
-            <summary>得点内訳</summary>
+            <summary><span data-i18n="得点内訳">得点内訳</span></summary>
             <dl>
-              <div><dt>直接起爆</dt><dd>+<span id="result-score-direct">0</span></dd></div>
-              <div><dt>連鎖</dt><dd>+<span id="result-score-chain">0</span></dd></div>
-              <div><dt>巻き込み</dt><dd>+<span id="result-score-inclusion">0</span></dd></div>
-              <div><dt>多く選択</dt><dd>+<span id="result-score-preparation">0</span></dd></div>
-              <div><dt>予告ボーナス</dt><dd>+<span id="result-score-forecast">0</span></dd></div>
-              <div><dt>その他</dt><dd>+<span id="result-score-other">0</span></dd></div>
-              <div class="result-breakdown__deduction"><dt>減点</dt><dd>−<span id="result-score-deductions">0</span></dd></div>
+              <div><dt><span data-i18n="直接起爆">直接起爆</span></dt><dd>+<span id="result-score-direct">0</span></dd></div>
+              <div><dt><span data-i18n="連鎖">連鎖</span></dt><dd>+<span id="result-score-chain">0</span></dd></div>
+              <div><dt><span data-i18n="巻き込み">巻き込み</span></dt><dd>+<span id="result-score-inclusion">0</span></dd></div>
+              <div><dt><span data-i18n="多く選択">多く選択</span></dt><dd>+<span id="result-score-preparation">0</span></dd></div>
+              <div><dt><span data-i18n="予告ボーナス">予告ボーナス</span></dt><dd>+<span id="result-score-forecast">0</span></dd></div>
+              <div><dt><span data-i18n="その他">その他</span></dt><dd>+<span id="result-score-other">0</span></dd></div>
+              <div class="result-breakdown__deduction"><dt><span data-i18n="減点">減点</span></dt><dd>−<span id="result-score-deductions">0</span></dd></div>
             </dl>
           </details>
-          <p id="result-best-mark" class="result-best-mark" hidden>自己ベスト更新</p>
-          <div class="result-record"><span>自己ベスト</span><strong><span id="result-best-score">0</span> / 連鎖 <span id="result-best-chain">0</span></strong></div>
-          <p id="result-replay" class="result-replay" role="status">プレイ結果を確認しています…</p>
-          <p id="result-hint" class="result-hint">次の波の予告を使ってみましょう。</p>
+          <p id="result-best-mark" class="result-best-mark" hidden><span data-i18n="自己ベスト更新">自己ベスト更新</span></p>
+          <div class="result-record"><span><span data-i18n="自己ベスト">自己ベスト</span></span><strong><span id="result-best-score">0</span> <span data-i18n="/ 連鎖">/ 連鎖</span> <span id="result-best-chain">0</span></strong></div>
+          <p id="result-replay" class="result-replay" role="status"><span data-i18n="プレイ結果を確認しています…">プレイ結果を確認しています…</span></p>
+          <p id="result-hint" class="result-hint"><span data-i18n="次の波の予告を使ってみましょう。">次の波の予告を使ってみましょう。</span></p>
           <section class="result-ranking" aria-labelledby="result-ranking-title">
             <div class="result-ranking__heading">
-              <h3 id="result-ranking-title">カメレオンJP公式ランキング TOP10</h3>
-              <span id="result-ranking-meta">スコア / プレイ回数</span>
+              <h3 id="result-ranking-title"><span data-i18n="カメレオンJP公式ランキング TOP30">カメレオンJP公式ランキング TOP30</span></h3>
+              <span id="result-ranking-meta"><span data-i18n="スコア / プレイ回数">スコア / プレイ回数</span></span>
             </div>
             <ol id="result-ranking-list" class="result-ranking__list"></ol>
-            <p id="result-ranking-status" class="result-ranking__status" role="status" aria-live="polite">ランキングを読み込んでいます…</p>
-            <button id="ranking-retry-button" class="secondary-button result-ranking__retry" type="button" hidden>ランキングを再取得</button>
-            <p id="result-ranking-note" class="result-ranking__note">カメレオンJPの実験場と共有している現在のランキングです。</p>
+            <p id="result-ranking-status" class="result-ranking__status" role="status" aria-live="polite"><span data-i18n="ランキングを読み込んでいます…">ランキングを読み込んでいます…</span></p>
+            <button id="ranking-retry-button" class="secondary-button result-ranking__retry" type="button" hidden><span data-i18n="ランキングを再取得">ランキングを再取得</span></button>
+            <p id="result-ranking-note" class="result-ranking__note"><span data-i18n="カメレオンJPの実験場と共有している現在のランキングです。">カメレオンJPの実験場と共有している現在のランキングです。</span></p>
           </section>
           <section id="legacy-ranking" class="result-ranking result-ranking--legacy" hidden aria-labelledby="legacy-ranking-title">
             <div class="result-ranking__heading">
-              <h3 id="legacy-ranking-title">以前のルールの記録</h3>
-              <span>参考表示</span>
+              <h3 id="legacy-ranking-title"><span data-i18n="以前のルールの記録">以前のルールの記録</span></h3>
+              <span><span data-i18n="参考表示">参考表示</span></span>
             </div>
             <ol id="legacy-ranking-list" class="result-ranking__list"></ol>
-            <p class="result-ranking__note">以前のルールや、ルール版を確認できない保存済み記録です。現在のランキングには含めません。</p>
+            <p class="result-ranking__note"><span data-i18n="以前のルールや、ルール版を確認できない保存済み記録です。現在のランキングには含めません。">以前のルールや、ルール版を確認できない保存済み記録です。現在のランキングには含めません。</span></p>
           </section>
           <div class="share-panel">
-            <button id="share-button" class="secondary-button" type="button">結果を共有</button>
+            <a class="secondary-button" href="https://chameleonjp-lab.github.io/chameleonjp_lab/ranking.html?game=hanabin"><span data-i18n="ランキング">ランキング</span></a>
+            <button id="share-button" class="secondary-button" type="button"><span data-i18n="Xでシェア">Xでシェア</span></button>
             <p id="share-status" class="share-status" role="status" aria-live="polite"></p>
           </div>
         </section>
@@ -302,14 +325,14 @@
     </main>
 
     <section id="app-error" class="app-error" role="alert" hidden>
-      <h2>読み込みに失敗しました</h2>
-      <p data-error-detail>ページを再読み込みしてください。</p>
+      <h2><span data-i18n="読み込みに失敗しました">読み込みに失敗しました</span></h2>
+      <p data-error-detail><span data-i18n="ページを再読み込みしてください。">ページを再読み込みしてください。</span></p>
     </section>
 
     <noscript>
       <section class="app-error app-error--noscript" role="alert">
-        <h2>JavaScriptを有効にしてください</h2>
-        <p>このページを表示するには、ブラウザのJavaScriptを有効にしてください。</p>
+        <h2><span data-i18n="JavaScriptを有効にしてください">JavaScriptを有効にしてください</span></h2>
+        <p><span data-i18n="このページを表示するには、ブラウザのJavaScriptを有効にしてください。">このページを表示するには、ブラウザのJavaScriptを有効にしてください。</span></p>
       </section>
     </noscript>
 

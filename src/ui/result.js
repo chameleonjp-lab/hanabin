@@ -1,6 +1,7 @@
+import { t, getLocale } from '../i18n/index.js';
 import { forecastSuccessCountFor } from "./forecast-feedback.js";
 
-const formatScore = (value) => Math.max(0, Math.trunc(Number(value) || 0)).toLocaleString("ja-JP");
+const formatScore = (value) => Math.max(0, Math.trunc(Number(value) || 0)).toLocaleString(getLocale());
 
 const safeText = (value, fallback = "") => typeof value === "string" ? value : fallback;
 
@@ -81,36 +82,29 @@ export const resultStatsFor = (state = {}) => {
 export const resultHintFor = (state = {}) => {
   const metrics = resultStatsFor(state);
   if (Math.max(0, Number(state.finalScore ?? state.score) || 0) <= 0) {
-    return "まずは同じ色の花火を3つ見つけ、指を押したまま少し待ってから離してみましょう。";
+    return t("まずは同じ色の花火を3つ見つけ、指を押したまま少し待ってから離してみましょう。");
   }
   if (metrics.averageSelectionCount !== null && metrics.averageSelectionCount < 3.4) {
-    return `平均${metrics.averageSelectionCount.toFixed(1)}個で起爆しました。次は4個目を足し、爆発範囲を広げてみましょう。`;
+    return t("平均{0}個で起爆しました。次は4個目を足し、爆発範囲を広げてみましょう。", [metrics.averageSelectionCount.toFixed(1)]);
   }
   if (metrics.selectionDrops >= 2 && metrics.selectionDrops > metrics.detonationCount) {
-    return "外輪が一周してから次へ動き、選択中の花火が消える前に離してみましょう。";
+    return t("外輪が一周してから次へ動き、選択中の花火が消える前に離してみましょう。");
   }
   if (metrics.forecastSuccesses === 0 && metrics.maxChain < 5 && metrics.detonationCount > 0) {
-    return "金色の二重リングを3つ含め、次の波が近づいたときに離してみましょう。";
+    return t("金色の二重リングを3つ含め、次の波が近づいたときに離してみましょう。");
   }
   if (metrics.detonationCount > 0 && metrics.chainRatio < 0.35) {
-    return "選ぶ花火を次の花火の近くに集めてから離すと、連鎖が伸びやすくなります。";
+    return t("選ぶ花火を次の花火の近くに集めてから離すと、連鎖が伸びやすくなります。");
   }
   if (metrics.directTargets > metrics.chainTargets) {
-    return "次は選択した花火を5個まで増やし、予告対象を準備に使ってみましょう。";
+    return t("次は選択した花火を5個まで増やし、予告対象を準備に使ってみましょう。");
   }
-  return "連鎖の途中で次の色へ視線を移し、起爆後の短い待ち時間に次の花火を準備してみましょう。";
+  return t("連鎖の途中で次の色へ視線を移し、起爆後の短い待ち時間に次の花火を準備してみましょう。");
 };
 
-export const publicUrlFor = (location = globalThis.location) => {
-  try {
-    const url = new URL(location?.href ?? "", location?.href ?? undefined);
-    url.search = "";
-    url.hash = "";
-    return url.href;
-  } catch {
-    return "https://github.com/chameleonjp-lab/hanabin";
-  }
-};
+// The public play page was verified independently of the repository name.
+export const CANONICAL_GAME_URL = "https://chameleonjp-lab.github.io/hanabin/";
+export const publicUrlFor = () => CANONICAL_GAME_URL;
 
 export const buildShareText = ({
   name = "",
@@ -118,9 +112,21 @@ export const buildShareText = ({
   maxChain = 0,
   url = publicUrlFor(),
 } = {}) => {
-  const player = safeText(name).trim();
-  const title = player ? `${player}さんのHANABIN結果` : "HANABINプレイ結果";
-  return `${title}\nSCORE ${formatScore(score)} / 最大連鎖 ${Math.max(0, Math.trunc(Number(maxChain) || 0))}\n${url}`;
+  const title = t("HANABINプレイ結果");
+  return t("{0}\nSCORE {1} / 最大連鎖 {2}\n{3}", [title, formatScore(score), Math.max(0, Math.trunc(Number(maxChain) || 0)), url]);
+};
+
+export const openXComposer = (text, { windowObject = globalThis.window } = {}) => {
+  try {
+    const intent = new URL("https://x.com/intent/tweet");
+    intent.searchParams.set("text", text);
+    const composer = windowObject?.open?.(intent.href, "_blank");
+    if (!composer) return false;
+    try { composer.opener = null; } catch { /* The composer is already open. */ }
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 const renderRankingList = (listElement, entries, ownerDocument, {
@@ -133,7 +139,7 @@ const renderRankingList = (listElement, entries, ownerDocument, {
   if (!entries.length) {
     const empty = ownerDocument.createElement("li");
     empty.className = "result-ranking__empty";
-    empty.textContent = "まだ記録がありません";
+    empty.textContent = t("まだ記録がありません");
     listElement.append(empty);
     return;
   }
@@ -144,7 +150,7 @@ const renderRankingList = (listElement, entries, ownerDocument, {
     rank.textContent = `${Number.isInteger(entry?.rankNo) ? entry.rankNo : index + 1}`;
     const name = ownerDocument.createElement("span");
     name.className = "result-ranking__name";
-    name.textContent = safeText(entry?.name ?? entry?.displayName) || "名無し";
+    name.textContent = safeText(entry?.name ?? entry?.displayName) || t("名無し");
     const nameCell = showRuleVersion
       ? ownerDocument.createElement("span")
       : name;
@@ -153,15 +159,15 @@ const renderRankingList = (listElement, entries, ownerDocument, {
       const version = ownerDocument.createElement("small");
       version.className = "result-ranking__version";
       version.textContent = entry?.ruleVersion
-        ? `ルール ${entry.ruleVersion}`
-        : "ルール版不明";
+        ? t("ルール {0}", [entry.ruleVersion])
+        : t("ルール版不明");
       nameCell.append(name, version);
     }
     const value = ownerDocument.createElement("strong");
     value.className = "result-ranking__score";
     value.textContent = mode === "remote"
-      ? `${formatScore(entry?.score)}点 / ${Math.max(0, Math.trunc(Number(entry?.playCount) || 0))}プレイ`
-      : `${formatScore(entry?.score)} / ${Math.max(0, Math.trunc(Number(entry?.maxChain) || 0))}連鎖`;
+      ? t("{0}点 / {1}プレイ", [formatScore(entry?.score), Math.max(0, Math.trunc(Number(entry?.playCount) || 0))])
+      : t("{0} / {1}連鎖", [formatScore(entry?.score), Math.max(0, Math.trunc(Number(entry?.maxChain) || 0))]);
     item.append(rank, nameCell, value);
     listElement.append(item);
   });
@@ -200,17 +206,17 @@ export const renderResult = (root, state, {
   setText("result-score-forecast", formatScore(breakdown.forecast));
   setText("result-score-other", formatScore(breakdown.other));
   setText("result-score-deductions", "0");
-  setText("result-player-name", safeText(profile.name) || "ゲストプレイヤー");
+  setText("result-player-name", safeText(profile.name) || t("ゲストプレイヤー"));
   const replayInvalid = state.status === "finished" && isReplayValid !== true;
   const invalidResult = Boolean(state.simulationFault) || replayInvalid;
-  setText("result-status", isRetired ? "リタイアしました" : invalidResult ? "このプレイは無効です" : "プレイ完了");
+  setText("result-status", isRetired ? t("リタイアしました") : invalidResult ? t("このプレイは無効です") : t("プレイ完了"));
   setText("result-best-score", formatScore(profile.bestScore ?? 0));
   setText("result-best-chain", Math.max(0, Math.trunc(profile.bestChain ?? 0)));
   setText("result-hint", resultHintFor(state));
   const bestMark = root.querySelector("#result-best-mark");
   if (bestMark) {
     bestMark.hidden = !isBestScore;
-    bestMark.textContent = isBestScore ? "自己ベスト更新" : "";
+    bestMark.textContent = isBestScore ? t("自己ベスト更新") : "";
   }
   const shareText = buildShareText({
     name: profile.name,
@@ -222,15 +228,15 @@ export const renderResult = (root, state, {
   if (shareButton) shareButton.dataset.shareText = shareText;
   const ownerDocument = root.ownerDocument ?? (typeof document !== "undefined" ? document : null);
   const rankingList = root.querySelector("#result-ranking-list");
-  const entries = Array.isArray(ranking) ? ranking.slice(0, 10) : [];
   const remoteRanking = rankingMode === "remote";
-  setText("result-ranking-title", remoteRanking ? "カメレオンJP公式ランキング TOP10" : "端末内ランキング TOP10");
-  setText("result-ranking-meta", remoteRanking ? "スコア / プレイ回数" : "スコア / 最大連鎖");
+  const entries = Array.isArray(ranking) ? ranking.slice(0, remoteRanking ? 30 : 10) : [];
+  setText("result-ranking-title", remoteRanking ? t("カメレオンJP公式ランキング TOP30") : t("端末内ランキング TOP10"));
+  setText("result-ranking-meta", remoteRanking ? t("スコア / プレイ回数") : t("スコア / 最大連鎖"));
   setText(
     "result-ranking-note",
     rankingNote || (remoteRanking
-      ? "カメレオンJPの実験場と共有している現在のランキングです。"
-      : "公式ランキングを取得できないため、この端末の記録を表示しています。"),
+      ? t("カメレオンJPの実験場と共有している現在のランキングです。")
+      : t("公式ランキングを取得できないため、この端末の記録を表示しています。")),
   );
   renderRankingList(rankingList, entries, ownerDocument, { mode: remoteRanking ? "remote" : "local" });
   const legacyEntries = Array.isArray(legacyRanking) ? legacyRanking.slice(0, 10) : [];
@@ -278,16 +284,12 @@ export const copyShareText = async (text, {
 } = {}) => {
   if (!text) return false;
   try {
-    if (navigatorObject?.share) {
-      await navigatorObject.share({ text });
-      return true;
-    }
     if (navigatorObject?.clipboard?.writeText) {
       await navigatorObject.clipboard.writeText(text);
       return true;
     }
   } catch {
-    return false;
+    // Clipboard permission can be denied even after a user gesture.
   }
   return fallbackCopy(text);
 };

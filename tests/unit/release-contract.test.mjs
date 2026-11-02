@@ -69,3 +69,8 @@ test("Pages CI gate checks both required workflows for the exact commit", async 
   assert.match(gate, /run\?\.conclusion === "success"/u);
   assert.match(gate, /Required CI has not passed/u);
 });
+
+
+test('PR browser installation avoids recursive forced filesystem cleanup',async()=>{
+ const {readFile}=await import('node:fs/promises');const workflow=await readFile(new URL('../../.github/workflows/ci-browser.yml',import.meta.url),'utf8');assert.doesNotMatch(workflow,/sudo rm -rf/);
+});

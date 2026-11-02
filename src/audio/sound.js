@@ -98,12 +98,14 @@ const disconnect = (node) => {
 export class SoundController {
   constructor({
     enabled = false,
+    volume = 0.5,
     contextFactory = null,
     variant = "touch",
     maxVoices = null,
     now = defaultNow,
   } = {}) {
     this.enabled = enabled === true;
+    this.volume = typeof volume === "number" && Number.isFinite(volume) ? clamp(volume, 0, 1) : 0.5;
     this.variant = normalizePresentationVariant(variant);
     this.explicitMaxVoices = maxVoices !== null && maxVoices !== undefined &&
       Number.isFinite(Number(maxVoices));
@@ -132,12 +134,21 @@ export class SoundController {
     const master = this.masterGainNode?.gain;
     const currentTime = finite(this.context?.currentTime);
     try {
-      if (master?.setValueAtTime) master.setValueAtTime(next === "desktop" ? 0.82 : 0.72, currentTime);
-      else if (master) master.value = next === "desktop" ? 0.82 : 0.72;
+      if (master?.setValueAtTime) master.setValueAtTime((next === "desktop" ? 0.82 : 0.72) * this.volume, currentTime);
+      else if (master) master.value = (next === "desktop" ? 0.82 : 0.72) * this.volume;
     } catch {
       // Variant changes must never interrupt the game.
     }
     return changed;
+  }
+
+  setVolume(volume) {
+    const value = Number(volume);
+    if (!Number.isFinite(value)) return this.volume;
+    this.volume = clamp(value, 0, 1);
+    if (this.volume === 0) { this.stopAllVoices(); this.lastPlayedAt.clear(); }
+    this.setVariant(this.variant);
+    return this.volume;
   }
 
   setEnabled(enabled) {
@@ -164,6 +175,7 @@ export class SoundController {
     if (this.context) return this.context;
     try {
       this.context = this.contextFactory?.() ?? null;
+      if(this.context){const context=this.context;context.onstatechange=()=>{if(context===this.context&&context.state!=='running'){this.stopAllVoices();this.lastPlayedAt.clear();}};}
     } catch {
       this.context = null;
     }
@@ -184,7 +196,7 @@ export class SoundController {
 
   /** Call from a click/pointer gesture to satisfy iOS/WebKit audio policies. */
   async unlock() {
-    if (!this.enabled) return false;
+    if (!this.enabled || this.volume === 0) return false;
     const context = this.ensureContext();
     if (!context) return false;
     return this.resumeContext(context);
@@ -212,7 +224,7 @@ export class SoundController {
       }
       if (typeof context.createGain === "function") {
         const master = context.createGain();
-        const gain = this.variant === "desktop" ? 0.82 : 0.72;
+        const gain = (this.variant === "desktop" ? 0.82 : 0.72) * this.volume;
         if (master.gain?.setValueAtTime) master.gain.setValueAtTime(gain, finite(context.currentTime));
         else if (master.gain) master.gain.value = gain;
         master.connect(target);
@@ -245,7 +257,7 @@ export class SoundController {
     try {
       oscillator = context.createOscillator();
       gainNode = context.createGain();
-      if (!oscillator?.connect || !oscillator?.start || !oscillator?.stop || !gainNode?.connect) return false;
+      if (!oscillator?.connect || !oscillator?.start || !oscillator?.stop || !gainNode?.connect) throw new Error("Incomplete audio nodes");
       const start = finite(context.currentTime) + Math.max(0, finite(layer.delay));
       const duration = Math.max(0.015, finite(layer.duration, 0.05));
       const frequency = Math.max(30, finite(layer.frequency, 440) * pitchMultiplier);
@@ -273,6 +285,8 @@ export class SoundController {
       return true;
     } catch {
       if (voice) this.activeVoices.delete(voice);
+      if (oscillator) oscillator.onended = null;
+      try { oscillator?.stop?.(); } catch {}
       disconnect(oscillator);
       disconnect(gainNode);
       return false;
@@ -280,18 +294,23 @@ export class SoundController {
   }
 
   play(kind = "select", options = {}) {
-    if (!this.enabled) return false;
+    if (!this.enabled || this.volume === 0) return false;
     const cue = SOUND_CUES.includes(kind) ? kind : "select";
     const timestamp = finite(this.now(), 0);
     const last = this.lastPlayedAt.get(cue) ?? Number.NEGATIVE_INFINITY;
     if (timestamp - last < CUE_INTERVAL_MS[cue]) return false;
     const context = this.ensureContext();
     if (!context?.createOscillator || !context?.createGain || context.state === "closed") return false;
-    if (context.state !== "running") void this.resumeContext(context);
+    if (context.state !== "running") {
+      this.stopAllVoices();
+      this.lastPlayedAt.clear();
+      void this.resumeContext(context);
+      return false;
+    }
     const output = this.ensureOutput(context);
     if (!output) return false;
     const pitchMultiplier = pitchMultiplierFor(cue, options);
-    const gainScale = clamp(finite(options.gainScale, 1), 0.1, 2);
+    const gainScale = clamp(finite(options.gainScale, 1), 0.1, 2) * (this.masterGainNode ? 1 : this.volume);
     let played = false;
     for (const layer of this.cueLayers(cue)) {
       if (this.activeVoices.size >= this.maxVoices) break;
@@ -329,6 +348,7 @@ export class SoundController {
   snapshot() {
     return {
       enabled: this.enabled,
+      volume: this.volume,
       variant: this.variant,
       maxVoices: this.maxVoices,
       activeVoices: this.activeVoices.size,
@@ -357,3 +377,4 @@ export class SoundController {
 export { TONES };
 
 export default SoundController;
+

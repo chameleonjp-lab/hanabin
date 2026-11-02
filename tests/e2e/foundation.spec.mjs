@@ -50,7 +50,7 @@ test("loads cleanly in the 375x667 portrait viewport", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 667 });
   const diagnostics = await openAndTrack(page, "/");
 
-  await expect(page.locator("#orientation-guide")).toBeVisible();
+  await expect(page.locator("#orientation-guide")).toBeHidden();
   await expect(page.locator("#app-status")).toHaveText("準備できました");
   await assertNoHorizontalOverflow(page);
   assertCleanPage(diagnostics);

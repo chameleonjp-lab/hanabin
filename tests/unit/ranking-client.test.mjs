@@ -7,6 +7,7 @@ import {
   normalizeRankingRows,
   RankingClientError,
 } from "../../src/ranking/client.js";
+import { setLanguage } from "../../src/i18n/index.js";
 import { RANKING_CONFIG } from "../../src/config/ranking.js";
 
 const ids = {
@@ -33,12 +34,13 @@ const response = (payload, status = 200) => ({
 test("ranking client uses the shared idempotent RPC contract in order", async () => {
   const calls = [];
   const payloads = [
-    { accepted: true, duplicate: false, play_id: ids.play, display_name: "花火" },
-    { accepted: true, duplicate: false, play_id: ids.play, result_type: "game_over" },
+    { accepted:true,duplicate:false,start_id:ids.start,play_id:ids.play,display_name:"花火",normalized_name:"花火",game_slug:"hanabin",client_version:RANKING_CONFIG.clientVersion },
+    {accepted:true,duplicate:false,play_id:ids.play,result_type:"game_over",game_slug:"hanabin",score:1234,reached_wave:3},
     [{
       accepted: true,
       result_submission_id: ids.submission,
       result_play_id: ids.play,
+      result_normalized_name:"花火", result_display_name:"花火",result_first_score:1234,is_first_play:true,is_new_best:true,
       result_best_score: 1_234,
       result_play_count: 2,
       was_duplicate: false,
@@ -90,21 +92,10 @@ test("ranking client uses the shared idempotent RPC contract in order", async ()
   assert.match(calls[0].options.headers.Authorization, /^Bearer sb_publishable_/);
 });
 
-test("ranking rows keep server rank and show only the requested top ten", () => {
-  const rows = normalizeRankingRows([
-    { rank_no: 4, display_name: "A", best_score: "900", play_count: "5" },
-    { rank_no: 5, display_name: "", best_score: -4, play_count: null },
-    ...Array.from({ length: 10 }, (_, index) => ({
-      rank_no: index + 6,
-      display_name: `N${index}`,
-      best_score: index,
-      play_count: 1,
-    })),
-  ], 10);
-  assert.equal(rows.length, 10);
-  assert.equal(rows[0].rankNo, 4);
-  assert.equal(rows[1].name, "名無し");
-  assert.equal(rows[1].score, 0);
+test("ranking rows preserve server ties and typed fields without inventing missing data",()=>{
+ const rows=normalizeRankingRows(Array.from({length:12},(_,i)=>({rank_no:i<2?1:i+1,display_name:i===1?'同名':'A',best_score:900-i,play_count:5})),10);
+ assert.equal(rows.length,10);assert.equal(rows[1].rankNo,1);assert.equal(rows[0].score,900);
+ assert.throws(()=>normalizeRankingRows([{rank_no:1,display_name:'A',best_score:'900'}]));
 });
 
 test("pending submission storage survives a normal reload and clears only its own ID", () => {
@@ -126,3 +117,17 @@ test("server and network failures preserve retryability", async () => {
     (error) => error instanceof RankingClientError && error.retryable === true && error.status === 503,
   );
 });
+
+test("localized rejection labels never become internal error identifiers", async()=>{
+ const client=createRankingClient({storage:null,fetchImpl:async()=>response({accepted:false})});
+ setLanguage('ko',{storage:null});
+ try {await assert.rejects(()=>client.startPlay({startId:ids.start,displayName:'Player'}),error=>error.code==='request_rejected');}
+ finally {setLanguage('ja',{storage:null});}
+});
+
+
+test('independent: missing acceptance is retryable for start and finish, not permanent rejection',async()=>{for(const payload of [{},{accepted:'true'},{accepted:null}]){const c=createRankingClient({storage:null,fetchImpl:async()=>response(payload)});for(const action of [()=>c.startPlay({startId:ids.start,displayName:'A'}),()=>c.finishPlay({playId:ids.play,displayName:'A',resultType:'game_over',reachedWave:1,score:1})])await assert.rejects(action,e=>e.retryable===true)}});
+test('independent: malformed server play UUID is retryable, valid request IDs remain unchanged',async()=>{const c=createRankingClient({storage:null,fetchImpl:async()=>response({accepted:true,play_id:'bad'})});await assert.rejects(()=>c.startPlay({startId:ids.start,displayName:'A'}),e=>e.retryable===true)});
+test('independent: request timeout covers a stalled response body, not just headers',async()=>{const c=createRankingClient({config:{...RANKING_CONFIG,timeoutMs:5},storage:null,fetchImpl:async(_url,{signal})=>({ok:true,status:200,json:()=>new Promise((_,reject)=>signal.addEventListener('abort',()=>reject(Object.assign(Error('aborted body'),{name:'AbortError'})))),text:async()=>{throw Error('body unavailable')}})});const outcome=await Promise.race([c.fetchTopRanking().then(()=> 'accepted',e=>e.code),new Promise(resolve=>setTimeout(()=>resolve('still-pending'),30))]);assert.notEqual(outcome,'still-pending')});
+
+test('independent: v1 same-ID different payload is not shadowed by a new v3 record',()=>{const values=new Map();const storage={get length(){return values.size},key:i=>[...values.keys()][i],getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};const old={submissionId:ids.submission,startId:ids.start,playId:ids.play,displayName:'A',score:10,resultType:'game_over',reachedWave:1};const raw=JSON.stringify(old);storage.setItem(RANKING_CONFIG.pendingSubmissionStorageKey,raw);const c=createRankingClient({storage});assert.throws(()=>c.savePendingSubmission({...old,score:20}),e=>e.code==='pending_conflict');assert.equal(storage.getItem(RANKING_CONFIG.pendingSubmissionStorageKey),raw);assert.equal(storage.getItem(RANKING_CONFIG.pendingSubmissionStorageKey+':entry:v3:'+ids.submission),null)});

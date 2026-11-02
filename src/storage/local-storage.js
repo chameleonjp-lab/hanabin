@@ -13,7 +13,8 @@ export const DEFAULT_PROFILE = Object.freeze({
   bestRuleVersion: "",
   quality: "high",
   qualityManual: false,
-  soundEnabled: false,
+  soundEnabled: true,
+  soundVolume: 0.5,
   practiceCompleted: false,
   practiceSkipped: false,
 });
@@ -51,7 +52,9 @@ export const normalizeProfile = (value = {}) => {
       : DEFAULT_PROFILE.bestRuleVersion,
     quality: QUALITY_LEVELS.includes(source.quality) ? source.quality : DEFAULT_PROFILE.quality,
     qualityManual: source.qualityManual === true,
-    soundEnabled: source.soundEnabled === true,
+    soundEnabled: typeof source.soundEnabled === "boolean" ? source.soundEnabled : DEFAULT_PROFILE.soundEnabled,
+    soundVolume: typeof source.soundVolume === "number" && Number.isFinite(source.soundVolume) && source.soundVolume >= 0 && source.soundVolume <= 1
+      ? source.soundVolume : DEFAULT_PROFILE.soundVolume,
     practiceCompleted: source.practiceCompleted === true,
     practiceSkipped: source.practiceSkipped === true,
   };

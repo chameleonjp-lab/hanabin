@@ -1,3 +1,4 @@
+import { t, getLocale } from '../i18n/index.js';
 import { DEFAULT_RULES, mergeRules } from "../config/rules.js";
 import { replayGame } from "../core/replay.js";
 import { PointerController } from "../input/pointer-controller.js";
@@ -14,7 +15,7 @@ import {
 import { GameSession } from "./session.js";
 import { PresentationEventTracker } from "./presentation-events.js";
 import { updateHud, updatePlayMessage } from "../ui/hud.js";
-import { copyShareText, publicUrlFor, renderResult } from "../ui/result.js";
+import { copyShareText, openXComposer, publicUrlFor, renderResult } from "../ui/result.js";
 import { renderRulesGuide } from "../ui/rules-guide.js";
 import ScreenController from "../ui/screens.js";
 import { TutorialController } from "../ui/tutorial.js";
@@ -101,6 +102,7 @@ export class GameController {
     });
     this.sound = new SoundController({
       enabled: this.profile.soundEnabled,
+      volume: this.profile.soundVolume,
       variant: this.experience.variant,
     });
     this.presentationEvents = new PresentationEventTracker();
@@ -142,6 +144,7 @@ export class GameController {
     this.qualitySelect = root.querySelector("#quality-select");
     this.qualityActiveLabel = root.querySelector("#quality-active-label");
     this.soundToggle = root.querySelector("#sound-toggle");
+    this.soundVolumeInput = root.querySelector("#sound-volume");
     this.resumeOverlay = root.querySelector("#resume-overlay");
     this.resumeValue = root.querySelector("#resume-value");
     this.pauseButton = root.querySelector("#pause-button");
@@ -217,11 +220,21 @@ export class GameController {
     };
     this.transitions = this.screens.history();
 
-    this.playerNameInput?.addEventListener("input", () => this.validateNameField());
+    const saveHomeName = (event) => {
+      if (this.validateNameField() && !event.isComposing) {
+        this.profile = this.profileStore.update({ name: sanitizePlayerName(this.playerNameInput.value) });
+      }
+    };
+    this.playerNameInput?.addEventListener("input", saveHomeName);
+    this.playerNameInput?.addEventListener("compositionend", saveHomeName);
     this.qualitySelect?.addEventListener("change", () => this.setQualityPreference(this.qualitySelect.value));
     this.soundToggle?.addEventListener("change", () => {
       this.setSoundEnabled(this.soundToggle.checked);
       if (this.soundToggle.checked) void this.sound.unlock();
+    });
+    this.soundVolumeInput?.addEventListener("input", () => {
+      this.profile = this.profileStore.update({ soundVolume: this.sound.setVolume(this.soundVolumeInput.value) });
+      if (this.profile.soundVolume > 0 && this.profile.soundEnabled) void this.sound.unlock();
     });
     this.startButton?.addEventListener("click", () => {
       void this.sound.unlock();
@@ -241,6 +254,10 @@ export class GameController {
     });
     this.homeButton?.addEventListener("click", () => this.goHome());
     this.shareButton?.addEventListener("click", () => this.shareResult());
+    root.querySelector('#home-share-button')?.addEventListener('click', async () => {
+      const text=t("ハナビン\n同じ色の花火をつなぎ、連鎖を広げよう。\nhttps://chameleonjp-lab.github.io/hanabin/");
+      if (!openXComposer(text) && !(await copyShareText(text))) window.prompt(t("共有文をコピー"), text);
+    });
     this.pauseButton?.addEventListener("click", () => this.pauseGame());
     this.pauseResumeButton?.addEventListener("click", () => this.resumeGame());
     this.pauseRetireButton?.addEventListener("click", () => this.retireGame());
@@ -265,6 +282,7 @@ export class GameController {
       this.qualitySelect.value = this.profile.qualityManual ? this.profile.quality : "auto";
     }
     if (this.soundToggle) this.soundToggle.checked = this.profile.soundEnabled;
+    if (this.soundVolumeInput) this.soundVolumeInput.value = String(this.profile.soundVolume);
     this.updateHomeBest();
     this.root.dataset.soundEnabled = this.profile.soundEnabled ? "true" : "false";
     this.root.dataset.practiceComplete = this.profile.practiceCompleted || this.profile.practiceSkipped
@@ -295,20 +313,20 @@ export class GameController {
   updateQualityLabel() {
     const snapshot = this.renderer?.qualityController?.snapshot?.();
     if (!snapshot) return;
-    const mode = snapshot.auto ? "自動調整" : "固定";
+    const mode = snapshot.auto ? t("自動調整") : t("固定");
     if (this.qualityActiveLabel) {
-      this.qualityActiveLabel.textContent = `${mode}：${QUALITY_LABELS[snapshot.level] ?? snapshot.level}`;
+      this.qualityActiveLabel.textContent = `${mode}：${t(QUALITY_LABELS[snapshot.level] ?? snapshot.level)}`;
     }
   }
 
   updateHomeBest() {
-    if (this.homeBestScore) this.homeBestScore.textContent = Math.max(0, Math.trunc(this.profile.bestScore ?? 0)).toLocaleString("ja-JP");
+    if (this.homeBestScore) this.homeBestScore.textContent = Math.max(0, Math.trunc(this.profile.bestScore ?? 0)).toLocaleString(getLocale());
     if (this.homeBestChain) this.homeBestChain.textContent = String(Math.max(0, Math.trunc(this.profile.bestChain ?? 0)));
   }
 
   validateNameField() {
     const raw = this.playerNameInput?.value ?? "";
-    const valid = raw.trim() !== "" && sanitizePlayerName(raw) !== "";
+    const valid = raw.trim() === "" || sanitizePlayerName(raw) !== "";
     if (this.profileError) this.profileError.hidden = valid;
     return valid;
   }
@@ -328,7 +346,7 @@ export class GameController {
 
   setPlayerName(value) {
     const normalized = sanitizePlayerName(String(value ?? ""));
-    if (!normalized) {
+    if (String(value ?? "").trim() && !normalized) {
       if (this.profileError) this.profileError.hidden = false;
       return false;
     }
@@ -376,10 +394,10 @@ export class GameController {
       this.sound.tap(change);
     }
     if (change.type === "secondary-pointer-ignored") {
-      this.pointerHintText = "操作は1本指のみです。最初の指をそのまま使ってください";
+      this.pointerHintText = t("操作は1本指のみです。最初の指をそのまま使ってください");
       this.pointerHintUntilMs = nowMs() + 1_200;
     } else if (change.type === "pointerdown-ignored-pending-boundary") {
-      this.pointerHintText = "短い連続タップでは選択しません。外輪が一周するまで押してください";
+      this.pointerHintText = t("短い連続タップでは選択しません。外輪が一周するまで押してください");
       this.pointerHintUntilMs = nowMs() + 1_200;
     }
     // Production pointer events only update the sampler and immediate SE.
@@ -411,20 +429,20 @@ export class GameController {
     this.screens.show("practice", this.screens.phase);
     this.tutorial.resizeCanvas();
     this.tutorial.render();
-    if (this.status) this.status.textContent = "何度でも操作を練習できます";
+    if (this.status) this.status.textContent = t("何度でも操作を練習できます");
     this.render();
     return this.tutorial.snapshot();
   }
 
   requestStart(seed = null) {
     if (!this.persistProfileControls()) {
-      if (this.status) this.status.textContent = "名前を入力してから開始してください";
+      if (this.status) this.status.textContent = t("名前は空欄にするか、12文字以内で入力してください");
       this.playerNameInput?.focus?.();
       return null;
     }
     if (!this.profile.practiceCompleted && !this.profile.practiceSkipped) {
       this.openPractice({ returnHome: false, seed });
-      if (this.status) this.status.textContent = "最初の操作を練習しましょう";
+      if (this.status) this.status.textContent = t("最初の操作を練習しましょう");
       return null;
     }
     return this.start(seed);
@@ -432,7 +450,7 @@ export class GameController {
 
   requestPractice() {
     if (!this.persistProfileControls()) {
-      if (this.status) this.status.textContent = "名前を入力してから練習してください";
+      if (this.status) this.status.textContent = t("名前は空欄にするか、12文字以内で入力してください");
       this.playerNameInput?.focus?.();
       return null;
     }
@@ -454,7 +472,7 @@ export class GameController {
       return this.session.state;
     }
     if (!this.persistProfileControls()) {
-      if (this.status) this.status.textContent = "名前を入力してから本番を開始してください";
+      if (this.status) this.status.textContent = t("名前は空欄にするか、12文字以内で入力してください");
       this.playerNameInput?.focus?.();
       return this.session.state;
     }
@@ -464,13 +482,15 @@ export class GameController {
   }
 
   rankingNoteFor(hasRemoteRanking = false) {
-    if (hasRemoteRanking) return "カメレオンJPの実験場と共有している現在のランキングです。";
-    if (this.deterministicTestMode) return "テスト用のため、端末内ランキングを表示しています。";
-    if (this.rankingStatus === RANKING_STATES.submitting) return "結果をカメレオンJPの実験場へ送信しています。";
+    if (hasRemoteRanking) return t("カメレオンJPの実験場と共有している現在のランキングです。");
+    if (this.deterministicTestMode) return t("テスト用のため、端末内ランキングを表示しています。");
+    if (this.rankingStatus === RANKING_STATES.submitting) return this.rankingPlay?.guest
+      ? t("カメレオンJPの実験場からランキングを取得しています。")
+      : t("結果をカメレオンJPの実験場へ送信しています。");
     if ([RANKING_STATES.retryableFailed, RANKING_STATES.permanentFailed].includes(this.rankingStatus)) {
-      return "オンラインランキングを取得できないため、この端末の記録を表示しています。";
+      return t("オンラインランキングを取得できないため、この端末の記録を表示しています。");
     }
-    return "カメレオンJPの実験場からランキングを取得しています。";
+    return t("カメレオンJPの実験場からランキングを取得しています。");
   }
 
   updateRankingUi() {
@@ -479,16 +499,16 @@ export class GameController {
     if (this.resultRankingStatus) {
       const retired = this.session?.state?.status === "retired";
       const messages = {
-        [RANKING_STATES.idle]: "ランキングを読み込んでいます…",
-        [RANKING_STATES.starting]: "プレイ開始を記録しています…",
-        [RANKING_STATES.submitting]: "プレイ回数とスコアを連携しています…",
-        [RANKING_STATES.submitted]: retired
-          ? "プレイ回数を記録しました。リタイアはランキング対象外です。"
-          : "カメレオンJP公式ランキングを表示しています。",
-        [RANKING_STATES.retryableFailed]: "ランキング連携に失敗しました。結果は保持されています。",
-        [RANKING_STATES.permanentFailed]: "この結果はランキングへ登録できませんでした。",
+        [RANKING_STATES.idle]: t("ランキングを読み込んでいます…"),
+        [RANKING_STATES.starting]: t("プレイ開始を記録しています…"),
+        [RANKING_STATES.submitting]: this.rankingPlay?.guest ? t("ランキングを読み込んでいます…") : t("プレイ回数とスコアを連携しています…"),
+        [RANKING_STATES.submitted]: retired && !this.rankingPlay?.guest
+          ? t("プレイ回数を記録しました。リタイアはランキング対象外です。")
+          : t("カメレオンJP公式ランキングを表示しています。"),
+        [RANKING_STATES.retryableFailed]: t("ランキング連携に失敗しました。結果は保持されています。"),
+        [RANKING_STATES.permanentFailed]: t("この結果はランキングへ登録できませんでした。"),
       };
-      this.resultRankingStatus.textContent = messages[this.rankingStatus] ?? messages[RANKING_STATES.idle];
+      this.resultRankingStatus.textContent = this.rankingStorageFailed ? t("端末に記録を保存できません。結果を失わないため、再読み込みせず保存できる状態で再送してください。") : messages[this.rankingStatus] ?? messages[RANKING_STATES.idle];
       this.resultRankingStatus.dataset.state = this.rankingStatus;
     }
     if (this.rankingRetryButton) {
@@ -506,7 +526,7 @@ export class GameController {
     const localRanking = this.rankingStore?.list?.() ?? [];
     const legacyRanking = this.rankingStore?.legacyList?.() ?? [];
     const rendered = renderResult(this.root, state, {
-      profile: this.profile,
+      profile: { ...this.profile, name: this.rankingPlay?.displayName ?? this.profile.name },
       publicUrl: publicUrlFor(),
       isBestScore: this.lastBestScore,
       isRetired: state.status === "retired",
@@ -523,134 +543,136 @@ export class GameController {
         (state.status === "finished" && this.session.replayCheck?.ok !== true);
       this.resultReplay.dataset.fault = invalid ? "true" : "false";
       this.resultReplay.textContent = invalid
-        ? "このプレイは無効です"
+        ? t("このプレイは無効です")
         : state.status === "retired"
-          ? "リタイアしたため、記録には残していません（ランキング登録なし・プレイ回数は開始時に記録）"
-        : this.session.replayCheck?.ok ? "プレイ結果を確認しました" : "プレイ結果を確認できませんでした";
+          ? t("リタイアしました")
+        : this.session.replayCheck?.ok ? t("プレイ結果を確認しました") : t("プレイ結果を確認できませんでした");
     }
     return rendered;
+  }
+
+  persistRankingSubmission(record) {
+    const saved=this.rankingClient.savePendingSubmission?.(record);
+    if(saved?.persisted===false){const error=new Error('Result storage unavailable');error.code='result_storage_unavailable';error.retryable=true;throw error;}
+    return saved;
   }
 
   async syncRankingResult(state, resultKey) {
     const play = this.rankingPlay;
     if (!play || !this.rankingClient) return null;
-    const check = this.session?.replayCheck;
-    const recordable = isRecordableResult(state, check);
+    if (play.guest) {
+      const isCurrent = () => this.rankingPlay === play && this.currentResultKey === resultKey;
+      try {
+        const entries = await this.rankingClient.fetchTopRanking(30);
+        if (isCurrent()) {
+          this.rankingEntries = entries;
+          this.rankingEntriesResultKey = resultKey;
+          this.rankingStatus = RANKING_STATES.submitted;
+        }
+      } catch {
+        if (isCurrent()) this.rankingStatus = RANKING_STATES.retryableFailed;
+      }
+      if (isCurrent()) this.populateResult();
+      return isCurrent() ? this.rankingStatus : null;
+    }
+    const recordable = isRecordableResult(state, this.session?.replayCheck);
     const score = Math.max(0, Math.trunc(state.finalScore ?? state.score ?? 0));
     const reachedWave = Math.max(1, Math.trunc(Number(state.stats?.wavesSpawned) || 1));
     const resultType = recordable ? "game_over" : "retire";
-    const isCurrentRun = () => this.rankingPlay?.playId === play.playId &&
-      this.currentResultKey === resultKey;
-    let submission = this.rankingSubmission?.playId === play.playId
-      ? this.rankingSubmission
-      : null;
-    let submissionSubmitted = submission !== null && this.rankingSubmissionSubmitted === true;
+    const isCurrentRun = () => this.rankingPlay === play && this.currentResultKey === resultKey;
+    let failure = null;
     try {
-      if (recordable && !submission) {
-        const saved = this.rankingClient.loadPendingSubmission?.();
-        const sameRun = saved?.playId === play.playId &&
-          saved?.displayName === play.displayName &&
-          Number(saved?.score) === score;
-        submission = sameRun
-          ? {
-            ...saved,
-            resultType,
-            reachedWave,
-          }
-          : {
-            submissionId: createRequestId(),
-            playId: play.playId,
-            displayName: play.displayName,
-            score,
-            resultType,
-            reachedWave,
-          };
-        if (isCurrentRun()) this.rankingSubmission = submission;
-        this.rankingClient.savePendingSubmission?.(submission);
+      // Snapshot the finalized result before any await. A later home name,
+      // new play, or language change cannot change the queued request.
+      if (!play.submission) {
+        play.submission = {
+          submissionId: createRequestId(), startId: play.startId,
+          playId: play.playId, displayName: play.displayName,
+          score: recordable ? score : 0, resultType, reachedWave,
+        };
       }
-
-      await this.rankingClient.finishPlay({
-        playId: play.playId,
-        displayName: play.displayName,
-        resultType,
-        reachedWave,
-        score: recordable ? score : 0,
-      });
-
-      if (recordable && !submissionSubmitted) {
-        await this.rankingClient.submitScore({
-          playId: play.playId,
-          submissionId: submission.submissionId,
-          displayName: play.displayName,
-          score,
-        });
-        submissionSubmitted = true;
-        this.rankingClient.clearPendingSubmission?.(submission.submissionId);
-        if (isCurrentRun()) this.rankingSubmissionSubmitted = true;
+      this.persistRankingSubmission(play.submission);
+      if (isCurrentRun()) this.rankingSubmission = play.submission;
+      if (!await this.startRankingPlay(play)) throw play.startError ?? new Error("Ranking start unavailable");
+      if (!play.submission.playId) {
+        play.submission = { ...play.submission, playId: play.playId };
+        this.persistRankingSubmission(play.submission);
       }
-
-      const entries = await this.rankingClient.fetchTopRanking(10);
-      if (isCurrentRun()) {
-        this.rankingEntries = entries;
-        this.rankingEntriesResultKey = resultKey;
-        this.rankingStatus = RANKING_STATES.submitted;
+      if (!play.finished) {
+        await this.rankingClient.finishPlay({ playId: play.playId, displayName: play.displayName,
+          resultType, reachedWave, score: recordable ? score : 0 });
+        play.finished = true;
       }
+      if (recordable && !play.submitted) {
+        await this.rankingClient.submitScore({ playId: play.playId,
+          submissionId: play.submission.submissionId, displayName: play.displayName, score });
+        play.submitted = true;
+      }
+      this.rankingClient.clearPendingSubmission?.(play.submission.submissionId);
+      if (isCurrentRun()) this.rankingSubmissionSubmitted = play.submitted === true;
     } catch (error) {
-      if (isCurrentRun()) {
-        this.rankingStatus = error?.retryable === false
-          ? RANKING_STATES.permanentFailed
-          : RANKING_STATES.retryableFailed;
-      }
+      failure = error;
     }
-    if (isCurrentRun()) this.populateResult();
+    // Reading the leaderboard is independent of participation and submission.
+    try {
+      const entries = await this.rankingClient.fetchTopRanking(30);
+      if (isCurrentRun()) { this.rankingEntries = entries; this.rankingEntriesResultKey = resultKey; }
+    } catch (error) { failure ??= error; }
+    if (isCurrentRun()) {
+      this.rankingStorageFailed=failure?.code==='result_storage_unavailable';
+      this.rankingStatus = !failure ? RANKING_STATES.submitted : failure.retryable === false
+        ? RANKING_STATES.permanentFailed : RANKING_STATES.retryableFailed;
+      this.populateResult();
+    }
     return isCurrentRun() ? this.rankingStatus : null;
   }
 
-  async resumePendingRankingSubmission() {
-    const pending = this.rankingClient?.loadPendingSubmission?.();
-    if (!pending) return true;
-
-    const resultType = ["clear", "game_over"].includes(String(pending.resultType ?? "").trim().toLowerCase())
-      ? String(pending.resultType).trim().toLowerCase()
-      : "game_over";
-    const score = Math.max(0, Math.trunc(Number(pending.score) || 0));
-    const reachedWave = Math.max(1, Math.trunc(Number(pending.reachedWave) || 1));
-
-    try {
-      await this.rankingClient.finishPlay({
-        playId: pending.playId,
-        displayName: pending.displayName,
-        resultType,
-        reachedWave,
-        score,
-      });
-      await this.rankingClient.submitScore({
-        playId: pending.playId,
-        submissionId: pending.submissionId,
-        displayName: pending.displayName,
-        score,
-      });
-      this.rankingClient.clearPendingSubmission?.(pending.submissionId);
-    } catch (error) {
-      // Keep transient failures for the next load or explicit start retry.
-      // An invalid/expired record cannot be repaired and must not block new play.
-      if (error?.retryable === false) {
-        this.rankingClient.clearPendingSubmission?.(pending.submissionId);
+  startRankingPlay(play) {
+    if (play.playId) return Promise.resolve(play);
+    if (play.startPromise) return play.startPromise;
+    if (!play.startId || play.startError?.retryable === false) return Promise.resolve(null);
+    const operation = Promise.resolve().then(async () => {
+      try {
+        const started = await this.rankingClient.startPlay({ startId: play.startId, displayName: play.displayName });
+        play.playId = started.playId;
+        play.startError = null;
+        return play;
+      } catch (error) {
+        play.startError = error;
+        return null;
       }
-    }
-
-    return !this.rankingClient.loadPendingSubmission?.();
+    }).finally(() => { if (play.startPromise === operation) play.startPromise = null; });
+    play.startPromise = operation;
+    return operation;
   }
 
-  async ensurePendingRankingSubmission() {
-    if (this.rankingResumePromise) {
-      await this.rankingResumePromise;
-      this.rankingResumePromise = null;
+  async resumePendingRankingSubmission() {
+    const pending = this.rankingClient?.listPendingSubmissions?.() ??
+      [this.rankingClient?.loadPendingSubmission?.()].filter(Boolean);
+    for (const saved of pending) {
+      if(this.rankingClient.validatePendingSubmission && !this.rankingClient.validatePendingSubmission(saved))continue;
+      const resultType = ["clear", "game_over", "retire"].includes(saved.resultType) ? saved.resultType : "game_over";
+      const score = Math.max(0, Math.trunc(Number(saved.score) || 0));
+      const reachedWave = Math.max(1, Math.trunc(Number(saved.reachedWave) || 1));
+      let record = { ...saved };
+      try {
+        this.persistRankingSubmission(record);
+        if (!record.playId) {
+          const started = await this.rankingClient.startPlay({ startId: record.startId, displayName: record.displayName });
+          record = { ...record, playId: started.playId };
+          this.persistRankingSubmission(record);
+        }
+        await this.rankingClient.finishPlay({ playId: record.playId, displayName: record.displayName,
+          resultType, reachedWave, score });
+        if (resultType !== "retire") await this.rankingClient.submitScore({ playId: record.playId,
+          submissionId: record.submissionId, displayName: record.displayName, score });
+        this.rankingClient.clearPendingSubmission?.(record.submissionId);
+      } catch {
+        // Keep the original IDs and result for another reload or explicit retry.
+        // A failed old request never blocks another play.
+      }
     }
-
-    if (!this.rankingClient?.loadPendingSubmission?.()) return true;
-    await this.resumePendingRankingSubmission();
-    return !this.rankingClient.loadPendingSubmission?.();
+    return !this.rankingClient?.loadPendingSubmission?.();
   }
 
   beginRankingSync(state, resultKey, { force = false } = {}) {
@@ -659,11 +681,13 @@ export class GameController {
     this.rankingSyncKey = resultKey;
     this.rankingStatus = RANKING_STATES.submitting;
     this.updateRankingUi();
+    const play = this.rankingPlay;
     const promise = this.syncRankingResult(state, resultKey);
-    this.rankingSyncPromise = promise?.finally(() => {
-      if (this.currentResultKey === resultKey) this.updateRankingUi();
-      if (this.rankingSyncKey === resultKey) this.rankingSyncPromise = null;
+    const tracked = promise?.finally(() => {
+      if (this.rankingPlay === play && this.currentResultKey === resultKey) this.updateRankingUi();
+      if (this.rankingSyncPromise === tracked) this.rankingSyncPromise = null;
     }) ?? null;
+    this.rankingSyncPromise = tracked;
     return this.rankingSyncPromise;
   }
 
@@ -686,8 +710,10 @@ export class GameController {
 
   async shareResult() {
     const text = this.shareButton?.dataset.shareText ?? "";
+    if (openXComposer(text)) { if (this.shareStatus) this.shareStatus.textContent = t("Xの投稿画面を開きました"); return true; }
     const copied = await copyShareText(text);
-    if (this.shareStatus) this.shareStatus.textContent = copied ? "共有文を準備しました" : "共有文を準備できませんでした";
+    if (!copied) window.prompt(t("共有文をコピー"), text);
+    if (this.shareStatus) this.shareStatus.textContent = copied ? t("共有文を準備しました") : t("共有文を準備できませんでした");
     return copied;
   }
 
@@ -718,7 +744,7 @@ export class GameController {
     this.pointer.interrupt("user-pause");
     this.pauseClock("user-pause");
     this.setPauseMenu(true);
-    if (this.status) this.status.textContent = "一時停止中";
+    if (this.status) this.status.textContent = t("一時停止中");
     this.render();
     this.pauseResumeButton?.focus?.();
     return true;
@@ -729,7 +755,7 @@ export class GameController {
     this.userPaused = false;
     this.setPauseMenu(false);
     this.resumeClock();
-    if (this.status) this.status.textContent = "プレイ中 — 60秒";
+    if (this.status) this.status.textContent = t("プレイ中 — 60秒");
     this.render();
     return true;
   }
@@ -768,9 +794,9 @@ export class GameController {
     this.root.dataset.phase = phase;
     this.transitions = this.screens.history();
     if (phase === "home") {
-      if (this.status) this.status.textContent = "準備できました";
+      if (this.status) this.status.textContent = t("準備できました");
     } else if (phase === "countdown") {
-      if (this.status) this.status.textContent = "開始準備中…";
+      if (this.status) this.status.textContent = t("開始準備中…");
     } else if (phase === "playing") {
       // The canvas is hidden during the countdown.  A mobile browser can
       // still deliver a lifecycle/orientation boundary while that hidden
@@ -782,15 +808,15 @@ export class GameController {
         this.pointer.clear();
         this.interruptPending = false;
       }
-      if (this.status) this.status.textContent = "プレイ中 — 60秒";
+      if (this.status) this.status.textContent = t("プレイ中 — 60秒");
     } else if (phase === "finalizing") {
-      if (this.status) this.status.textContent = "連鎖を確定中…";
+      if (this.status) this.status.textContent = t("連鎖を確定中…");
       this.finalizeOnFrame = true;
     } else if (phase === "result") {
-      if (this.status) this.status.textContent = "プレイ結果";
+      if (this.status) this.status.textContent = t("プレイ結果");
       this.populateResult();
     } else if (phase === "fault") {
-      if (this.status) this.status.textContent = "判定エラー";
+      if (this.status) this.status.textContent = t("判定エラー");
       this.populateResult();
     }
     this.render();
@@ -857,6 +883,7 @@ export class GameController {
   }
 
   pauseClock() {
+    this.sound?.stopAllVoices?.();
     if (this.phase === "countdown" && this.countdownPausedAtMs === null) {
       this.countdownPausedAtMs = nowMs();
     }
@@ -929,67 +956,21 @@ export class GameController {
 
   start(seed = null) {
     if (this.destroyed) return null;
-    if (this.deterministicTestMode || !this.rankingClient || typeof this.rankingClient.startPlay !== "function") {
-      return this.startGameplay(seed);
-    }
-    if (this.rankingStartPromise) return this.rankingStartPromise;
     const displayName = String(this.profile?.name ?? "").trim();
     if (!displayName) {
-      if (this.status) this.status.textContent = "名前を入力してから開始してください";
-      return null;
+      this.rankingPlay = Object.freeze({ guest: true, displayName: "" });
+    } else if (this.deterministicTestMode || !this.rankingClient?.startPlay) {
+      this.rankingPlay = null;
+    } else {
+      const play = { displayName, startId: null, playId: null, startPromise: null, startError: null };
+      try { play.startId = createRequestId(); }
+      catch (error) { play.startError = error; }
+      this.rankingPlay = play;
+      // Sending the start record is parallel to gameplay, never a start gate.
+      void this.startRankingPlay(play);
     }
-    if (this.rankingStartRequest && this.rankingStartRequest.displayName !== displayName) {
-      if (this.status) this.status.textContent = "開始記録の再試行は、最初に入力した名前で行ってください";
-      return null;
-    }
-    try {
-      this.rankingStartRequest ??= {
-        startId: createRequestId(),
-        displayName,
-      };
-    } catch (error) {
-      this.rankingStartState = RANKING_STATES.permanentFailed;
-      if (this.status) this.status.textContent = error?.message ?? "開始記録を準備できませんでした";
-      return null;
-    }
-    const requestToken = this.lifecycleToken;
-    this.rankingStartState = RANKING_STATES.starting;
-    if (this.startButton) this.startButton.disabled = true;
-    if (this.status) this.status.textContent = "プレイ開始をランキングへ記録しています…";
-    const operation = (async () => {
-      try {
-        if (!await this.ensurePendingRankingSubmission()) {
-          this.rankingStartState = RANKING_STATES.retryableFailed;
-          if (this.status) this.status.textContent = "前回のランキング記録を送信できるまで開始できません。再試行してください";
-          return null;
-        }
-        const started = await this.rankingClient.startPlay(this.rankingStartRequest);
-        if (this.destroyed || requestToken !== this.lifecycleToken) return null;
-        this.rankingPlay = {
-          playId: started.playId,
-          startId: started.startId,
-          displayName: started.displayName || displayName,
-        };
-        this.rankingStartRequest = null;
-        this.rankingStartState = RANKING_STATES.idle;
-        return this.startGameplay(seed);
-      } catch (error) {
-        this.rankingStartState = error?.retryable === false
-          ? RANKING_STATES.permanentFailed
-          : RANKING_STATES.retryableFailed;
-        if (this.status) {
-          this.status.textContent = error?.retryable === false
-            ? "ランキング連携を確認できないため開始できません。再試行してください"
-            : "ランキング連携に失敗しました。再試行してください";
-        }
-        return null;
-      } finally {
-        if (this.rankingStartPromise === operation) this.rankingStartPromise = null;
-        if (this.startButton) this.startButton.disabled = false;
-      }
-    })();
-    this.rankingStartPromise = operation;
-    return operation;
+    this.rankingStartRequest = null;
+    return this.startGameplay(seed);
   }
 
   startGameplay(seed = null) {
@@ -1069,7 +1050,7 @@ export class GameController {
       this.screens.show("home", this.screens.phase);
       this.root.dataset.phase = "home";
       this.transitions = this.screens.history();
-      if (this.status) this.status.textContent = "準備できました";
+      if (this.status) this.status.textContent = t("準備できました");
       this.render();
     }
     this.stopLoop();
@@ -1178,10 +1159,10 @@ export class GameController {
   updateCountdownPresentation(remaining) {
     if (!this.countdownValue || !this.countdownMessage) return;
     const display = Math.max(1, Math.ceil(remaining));
-    this.countdownValue.textContent = remaining <= 0 ? "GO" : String(display);
+    this.countdownValue.textContent = remaining <= 0 ? t("GO") : String(display);
     this.countdownMessage.textContent = remaining <= 0
-      ? "花火を選びましょう"
-      : display === 1 ? "あと少し…" : "最初の花火を探しましょう";
+      ? t("花火を選びましょう")
+      : display === 1 ? t("あと少し…") : t("最初の花火を探しましょう");
   }
 
   populateResult() {
@@ -1208,7 +1189,7 @@ export class GameController {
         this.lastBestScore = score > previousBest && this.profile.bestScore === score;
         this.updateHomeBest();
         this.rankingStore.record({
-          name: this.profile.name,
+          name: this.rankingPlay?.displayName ?? this.profile.name,
           score,
           maxChain,
           ruleVersion: this.rules.ruleVersion,
@@ -1379,3 +1360,4 @@ export class GameController {
 }
 
 export default GameController;
+

@@ -2014,3 +2014,20 @@
     justify-self: center;
   }
 }
+
+#share-button, #home-share-button { background:#000; color:#fff; min-height:44px; white-space:normal; overflow-wrap:anywhere; }
+
+/* Locale labels can be longer than the Japanese source. */
+.language-setting { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-block:12px; }
+.language-setting select { min-height:44px; max-width:100%; font:inherit; background:#0b1630; color:#fff; border:1px solid #7185b5; border-radius:8px; padding:8px; }
+.primary-button,.secondary-button { white-space:normal; overflow-wrap:anywhere; height:auto; min-height:44px; }
+.hud-label { overflow-wrap:anywhere; white-space:normal; }
+.result-ranking__name { overflow-wrap:anywhere; min-width:0; }
+
+/* The board-direction hint is only useful while learning or playing. */
+.app-shell[data-screen="home"] #orientation-guide,
+.app-shell[data-screen="result"] #orientation-guide { display:none; }
+.screen--home .home-scroll { gap:12px; padding-block:16px; }
+.screen--home .language-setting { margin-block:0; }
+#player-name { min-height:44px; font-size:16px; }
+.profile-panel__heading .hud-label { letter-spacing:normal; font-size:0.76rem; }
