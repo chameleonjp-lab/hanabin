@@ -467,7 +467,7 @@ test("M6 forecast success is announced during play and counted in the result", a
   await expect(page.locator("#result-forecast-successes")).toHaveText("1");
 });
 
-test("M6 profile name is rendered as text, best record is saved, and share URL is last", async ({ page }) => {
+test("M6 profile name is rendered as text, best record is saved, and share URL precedes the exact game tags", async ({ page }) => {
   await openPage(page);
   await callApi(page, "setPlayerName", "<b>A</b>");
   await callApi(page, "start", 404);
@@ -495,7 +495,8 @@ test("M6 profile name is rendered as text, best record is saved, and share URL i
   await expect(page.locator("#result-hint")).toContainText("4個目を足し");
   const share = await callApi(page, "shareText");
   const expectedUrl = "https://chameleonjp-lab.github.io/hanabin/";
-  expect(share.endsWith(expectedUrl)).toBe(true);
+  expect(share.split("\n").at(-2)).toBe(expectedUrl);
+  expect(share.split("\n").at(-1)).toBe("#ハナビン #ゲーム制作");
 
   await page.locator("#home-button").click();
   await expect(page.locator("#home-best-score")).not.toHaveText("0");
