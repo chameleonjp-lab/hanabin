@@ -10,3 +10,12 @@ test('pending conflict and corrupt raw are preserved instead of overwritten',()=
 test('a pending playId may be filled once, not replaced by another play',()=>{const s=storage(),c=createRankingClient({storage:s});c.savePendingSubmission({...record(),playId:null});assert.equal(c.savePendingSubmission(record()).playId,ids.play);assert.throws(()=>c.savePendingSubmission({...record(),playId:ids.start}));});
 
 test('start and finish acknowledgements must belong to the captured request',async()=>{for(const data of [{accepted:true,play_id:ids.play},{accepted:true,duplicate:false,start_id:ids.start,play_id:ids.play,display_name:'Other',normalized_name:'Other',game_slug:'hanabin',client_version:RANKING_CONFIG.clientVersion}]){const c=createRankingClient({fetchImpl:async()=>({ok:true,json:async()=>data})});await assert.rejects(()=>c.startPlay({startId:ids.start,displayName:'A'}));}const c=createRankingClient({fetchImpl:async()=>({ok:true,json:async()=>({accepted:true,play_id:ids.start,result_type:'game_over',score:999})})});await assert.rejects(()=>c.finishPlay({playId:ids.play,displayName:'A',resultType:'game_over',score:123,reachedWave:1}));});
+
+test('receipt integers obey PostgreSQL int4 bounds without rejecting signed historical scores',async()=>{
+ for(const patch of [{result_first_score:2147483648},{result_first_score:-2147483649},{result_best_score:2147483648},{result_best_score:-2147483649},{result_play_count:2147483648},{result_best_score:122}]){
+ const c=createRankingClient({fetchImpl:async()=>({ok:true,json:async()=>[{...receipt(),...patch}]})});
+ await assert.rejects(()=>c.submitScore({playId:ids.play,submissionId:ids.submission,displayName:'A',score:123}),{code:'invalid_response',retryable:true});
+ }
+ const c=createRankingClient({fetchImpl:async()=>({ok:true,json:async()=>[{...receipt(),result_first_score:-2147483648,result_play_count:2147483647}]})});
+ assert.equal((await c.submitScore({playId:ids.play,submissionId:ids.submission,displayName:'A',score:123})).accepted,true);
+});

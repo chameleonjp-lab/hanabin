@@ -4,6 +4,8 @@ import {
   SUPABASE_PUBLISHABLE_KEY,
 } from "../config/ranking.js";
 
+const isReceiptInteger = value => Number.isInteger(value) && value >= -2147483648 && value <= 2147483647;
+
 export const RANKING_STATES = Object.freeze({
   idle: "idle",
   starting: "starting",
@@ -397,7 +399,7 @@ export const createRankingClient = ({
       p_client_version: config.clientVersion,
     });
     const row = Array.isArray(payload)&&payload.length===1 ? payload[0] : null;
-    if(row?.accepted===true && (row.result_submission_id!==safeSubmissionId || row.result_play_id!==safePlayId || row.result_normalized_name!==safeName || typeof row.result_display_name!=='string' || !Number.isSafeInteger(row.result_first_score) || !Number.isSafeInteger(row.result_best_score) || !Number.isSafeInteger(row.result_play_count) || row.result_play_count<1 || !['is_first_play','is_new_best','was_duplicate'].every(k=>typeof row[k]==='boolean'))) {
+    if(row?.accepted===true && (row.result_submission_id!==safeSubmissionId || row.result_play_id!==safePlayId || row.result_normalized_name!==safeName || typeof row.result_display_name!=='string' || !isReceiptInteger(row.result_first_score) || !isReceiptInteger(row.result_best_score) || row.result_best_score<Math.max(0,finiteInteger(score)) || !isReceiptInteger(row.result_play_count) || row.result_play_count<1 || !['is_first_play','is_new_best','was_duplicate'].every(k=>typeof row[k]==='boolean'))) {
       throw new RankingClientError(t("スコアをランキングへ送信できませんでした。"),{code:'invalid_response',retryable:true,payload});
     }
     if (!row || row.accepted !== true) {
@@ -448,4 +450,5 @@ export const createRankingClient = ({
 };
 
 export default createRankingClient;
+
 
