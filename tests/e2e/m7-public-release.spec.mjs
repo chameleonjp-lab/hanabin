@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { installPublicSmokeNetworkGuard } from "./helpers/public-smoke-network.mjs";
 import { createGame } from "../../src/core/engine.js";
 
 const BOARD_WIDTH = 16_000;
@@ -35,15 +36,16 @@ const assertClean = (diagnostics) => {
   expect(diagnostics.failedRequests).toEqual([]);
 };
 
-test("published Pages scores a real selection and reaches the result screen", async ({ page }) => {
+test("published Pages scores a real selection and reaches the result screen", async ({ page, context, baseURL }) => {
   test.setTimeout(110_000);
+  const network = await installPublicSmokeNetworkGuard(context, baseURL);
   const diagnostics = diagnosticsFor(page);
 
   await page.setViewportSize({ width: 667, height: 375 });
   await page.goto("./?public-smoke=1", { waitUntil: "networkidle", timeout: 30_000 });
   await expect(page.locator("#app")).not.toHaveAttribute("data-state", "loading");
   await expect(page.locator("#start-button")).toBeVisible();
-  await page.locator("#player-name").fill("公開テスト");
+  await page.locator("#player-name").fill("");
 
   await page.locator("#start-button").click();
   await expect(page.locator("#practice-screen")).toBeVisible();
@@ -86,6 +88,7 @@ test("published Pages scores a real selection and reaches the result screen", as
   await expect(page.locator("#result-replay")).toContainText("プレイ結果を確認しました");
   await expect(page.locator("#app")).toHaveAttribute("data-result-entries", "1");
 
+  expect(network.unexpected).toEqual([]);
   assertClean(diagnostics);
 });
 
@@ -100,7 +103,7 @@ test("published Pages does not expose repository-only files", async ({ request }
   ];
 
   for (const path of repositoryOnlyPaths) {
-    const response = await request.get(path, { failOnStatusCode: false });
+    const response = await request.get(path, { failOnStatusCode: false, maxRedirects: 0 });
     expect(response.status(), `${path} must not be part of the public artifact`).toBe(404);
   }
 });

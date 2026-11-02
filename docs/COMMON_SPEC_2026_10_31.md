@@ -82,3 +82,13 @@ localStorageが拒否/容量不足の場合は同じタブのメモリだけで�
 検証の最新件数・固定head CIはPR追記を参照。Node全件/決定的simulation/Chromium+WebKitの既存シナリオを維持し、実clientとcontroller prototypeの固定結果fixtureでquota拒否→finish/submit0→回復同UUID1回→reload後新clientの明示resume追加0の全通信mockを追加（実60秒プレイ完走/画面操作全体の証明とは区別）。実DBへのテスト送信は0。元の60秒・同色3個・2.5秒・スコア式・retire/replay判定とcore/configは変更しない。
 
 残件: 本人identity・厳密30参加者、Pages Sourceの現時点設定照合、母語話者評価、実音/長時間、iPhone Safari実機、本人マージ後の配備確認。現在登録済みGitHub正式URLを旧Codebergへ戻さない。本人マージ→同SHA Core/Browser成功→既存配備→実URL確認、問題時revert PRの順。既存記録/旧pending/旧正常版は削除しない。
+
+## 2026-11-02 公開 smoke の非送信化と表示言語固定
+
+公開 smoke は匿名プレイに変更し、navigation前のcontext境界で同originのGET/HEAD以外を実送信しない。ランキング読取RPCは空のfixtureで返し、開始/終了/スコア送信・未知通信・WebSocketは遮断してテスト失敗にする。Service Workerを無効化し、静的GETもredirectを追跡せずfail-closedにする。公開限定ファイル404確認もredirectなし。
+
+日本語期待値に対応して公開smokeのlocaleをja-JPへ固定。PR内ローカル検査ではja-JP/en-US双方の匿名結果と検証メッセージを確認する。元のゲーム選択・得点・結果・console/network検査は削除せず、timeoutも変更しない。ゲーム・採点・ランキング本番構成は変更しない。
+
+変更前公開smokeは名前「公開テスト」でゲームを開始するコードだったが、実際のDB書込み有無は未確認。過去記録は削除・変更していない。この変更準備中に本番smokeを再実行していない。
+
+ローカル: 構造回帰2失敗→成功、redirect回帰1失敗→成功、境界unit計4成功。初版修正後の全Node検査は222成功/1既存skip（10,000 safety / 1,000×8 full simulationは専用CI）。ブラウザ検査はCDNブラウザarchive不正でローカル実行できず、PR CIのChromium/WebKit結果を別途確認する。公開/iPhone実機成功とは扱わない。
