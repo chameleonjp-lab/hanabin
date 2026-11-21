@@ -40,7 +40,7 @@
             const id = parts[0] === 'zh' ? (traditional ? 'zh-Hant' : 'zh-Hans') : parts[0] === 'pt' ? 'pt-BR' : parts[0];
             if (Object.hasOwn(bootMessages, id)) return id;
           }
-          return preferences.length ? 'en' : 'ja';
+          return 'en';
         };
         const showError = (message) => {
           const language = bootLanguage();
