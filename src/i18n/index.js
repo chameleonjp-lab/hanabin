@@ -44,7 +44,7 @@ export function resolveLanguage({storage=safeStorage(),navigatorObject=globalThi
   const preferences=[...(navigatorObject?.languages||[]),navigatorObject?.language]
     .filter(value=>typeof value==='string'&&value.trim());
   for(const locale of preferences) {const found=languageFromLocale(locale);if(found)return found;}
-  return preferences.length?'en':'ja';
+  return 'en';
 }
 // Pure core tests without a browser retain the original Japanese presentation.
 let language = typeof window==='undefined'?'ja':resolveLanguage();
