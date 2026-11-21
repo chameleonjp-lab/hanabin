@@ -1,6 +1,34 @@
 import {test,expect} from '@playwright/test';
 import {SUPPORTED_LANGUAGES,translate} from '../../src/i18n/index.js';
 
+test('home language selector leads the scroll area at the upper-left',async({page,baseURL})=>{
+ const testOrigin=new URL(baseURL).origin;
+ await page.route('**/*',route=>new URL(route.request().url()).origin===testOrigin ? route.continue() : route.abort());
+ for(const viewport of [{width:320,height:568},{width:402,height:700},{width:844,height:390}]){
+  await page.setViewportSize(viewport);
+  await page.goto('/?e2e=1');
+  const picker=page.locator('#language-select');
+  await expect(picker).toBeVisible();
+  await expect(picker.locator('option')).toHaveCount(15);
+  await picker.selectOption('pt-BR');
+  await expect(page.locator('html')).toHaveAttribute('lang','pt-BR');
+  const fits=await picker.evaluate(select=>{
+   const group=select.closest('label').getBoundingClientRect();
+   const scroll=select.closest('.home-scroll');
+   const bounds=scroll.getBoundingClientRect();
+   const styles=getComputedStyle(scroll);
+   const title=scroll.querySelector('#home-title').getBoundingClientRect();
+   const control=select.getBoundingClientRect();
+   return Math.abs(group.left-(bounds.left+parseFloat(styles.paddingLeft)))<=1 &&
+    Math.abs(group.top-(bounds.top+parseFloat(styles.paddingTop)))<=1 &&
+    group.bottom<=title.top && control.height>=44 &&
+    control.right<=bounds.right-parseFloat(styles.paddingRight)+1 &&
+    document.documentElement.scrollWidth<=innerWidth;
+  });
+  expect(fits,`selector remains in-flow above the title at ${viewport.width}×${viewport.height}`).toBe(true);
+ }
+});
+
 for (const {id} of SUPPORTED_LANGUAGES) {
  test(`all home, dynamic rules, practice and result messages use ${id}`, async({page})=>{
   await page.setViewportSize({width:393,height:700});
