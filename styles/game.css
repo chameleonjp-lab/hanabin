@@ -2028,6 +2028,6 @@
 .app-shell[data-screen="home"] #orientation-guide,
 .app-shell[data-screen="result"] #orientation-guide { display:none; }
 .screen--home .home-scroll { gap:12px; padding-block:16px; }
-.screen--home .language-setting { margin-block:0; }
+.screen--home .language-setting { justify-self:start; max-width:100%; margin-block:0; }
 #player-name { min-height:44px; font-size:16px; }
 .profile-panel__heading .hud-label { letter-spacing:normal; font-size:0.76rem; }
