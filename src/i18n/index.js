@@ -27,16 +27,24 @@ export const CATALOGS = Object.freeze(Object.fromEntries(Object.entries({ja:keys
 const supported = value => SUPPORTED_LANGUAGES.some(item=>item.id===value);
 export function languageFromLocale(value) {
   if(typeof value!=='string')return null;
-  const parts=value.toLowerCase().replaceAll('_','-').split('-');
-  if(parts[0]==='zh')return parts.includes('hant')||(!parts.includes('hans')&&parts.some(x=>['tw','hk','mo'].includes(x)))?'zh-Hant':'zh-Hans';
+  const parts=value.trim().toLowerCase().replaceAll('_','-').split('-');
+  if(parts[0]==='zh'){
+    const extension = parts.findIndex((part, index) => index > 0 && part.length === 1);
+    const core = extension < 0 ? parts : parts.slice(0, extension);
+    const script=core.find(part=>part==='hans'||part==='hant');
+    if(script)return script==='hant'?'zh-Hant':'zh-Hans';
+    return core.some(part=>['tw','hk','mo'].includes(part))?'zh-Hant':'zh-Hans';
+  }
   if(parts[0]==='pt')return 'pt-BR';
   return supported(parts[0])?parts[0]:null;
 }
 function safeStorage(){try{return globalThis.localStorage;}catch{return null;}}
 export function resolveLanguage({storage=safeStorage(),navigatorObject=globalThis.navigator}={}) {
   try {const saved=storage?.getItem(LANGUAGE_STORAGE_KEY);if(supported(saved))return saved;}catch{}
-  for(const locale of [...(navigatorObject?.languages||[]),navigatorObject?.language]) {const found=languageFromLocale(locale);if(found)return found;}
-  return 'en';
+  const preferences=[...(navigatorObject?.languages||[]),navigatorObject?.language]
+    .filter(value=>typeof value==='string'&&value.trim());
+  for(const locale of preferences) {const found=languageFromLocale(locale);if(found)return found;}
+  return preferences.length?'en':'ja';
 }
 // Pure core tests without a browser retain the original Japanese presentation.
 let language = typeof window==='undefined'?'ja':resolveLanguage();
