@@ -28,9 +28,15 @@
         const bootMessages = {"ja":["読み込みに失敗しました","ページの読み込みに失敗しました。再読み込みしてください。"],"en":["Loading failed","The page could not load. Please reload it."],"es":["No se pudo cargar","No se pudo cargar la página. Vuelve a cargarla."],"pt-BR":["Falha ao carregar","Não foi possível carregar a página. Recarregue-a."],"zh-Hans":["加载失败","页面加载失败，请重新加载。"],"fr":["Échec du chargement","Impossible de charger la page. Rechargez-la."],"de":["Laden fehlgeschlagen","Die Seite konnte nicht geladen werden. Lade sie neu."],"ko":["불러오지 못했습니다","페이지를 불러오지 못했습니다. 새로고침해 주세요."],"ru":["Не удалось загрузить","Не удалось загрузить страницу. Перезагрузите её."],"it":["Caricamento non riuscito","Impossibile caricare la pagina. Ricaricala."],"zh-Hant":["載入失敗","頁面載入失敗，請重新載入。"],"id":["Gagal memuat","Gagal memuat halaman. Silakan muat ulang."],"tr":["Yükleme başarısız","Sayfa yüklenemedi. Lütfen yeniden yükleyin."],"vi":["Tải thất bại","Không tải được trang. Hãy tải lại."],"th":["โหลดไม่สำเร็จ","โหลดหน้าไม่สำเร็จ โปรดโหลดใหม่"]};
         const bootLanguage = () => {
           try { const saved = localStorage.getItem('hanabin.language.v1'); if (Object.hasOwn(bootMessages, saved)) return saved; } catch {}
-          for (const value of [...(navigator.languages || []), navigator.language]) {
-            const parts = String(value || '').toLowerCase().replaceAll('_', '-').split('-');
-            const traditional = parts.includes('hant') || (!parts.includes('hans') && parts.some(part => ['tw', 'hk', 'mo'].includes(part)));
+          const nav = globalThis.navigator;
+          const preferences = [...(nav?.languages || []), nav?.language]
+            .filter(value => typeof value === 'string' && value.trim());
+          for (const value of preferences) {
+            const parts = value.trim().toLowerCase().replaceAll('_', '-').split('-');
+            const extension = parts.findIndex((part, index) => index > 0 && part.length === 1);
+            const core = extension < 0 ? parts : parts.slice(0, extension);
+            const script = core.find(part => part === 'hans' || part === 'hant');
+            const traditional = script ? script === 'hant' : core.some(part => ['tw', 'hk', 'mo'].includes(part));
             const id = parts[0] === 'zh' ? (traditional ? 'zh-Hant' : 'zh-Hans') : parts[0] === 'pt' ? 'pt-BR' : parts[0];
             if (Object.hasOwn(bootMessages, id)) return id;
           }
@@ -86,11 +92,11 @@
 
         <section id="home-screen" class="screen screen--home" data-screen="home" aria-labelledby="home-title">
           <div class="home-scroll">
+            <label class="language-setting"><span data-i18n="言語">言語</span><select id="language-select" aria-label="言語" data-i18n-attrs="{&quot;aria-label&quot;:&quot;言語&quot;}"></select></label>
             <div class="home-intro">
               <p class="home-kicker"><span data-i18n="60秒 SCORE ATTACK">60秒 SCORE ATTACK</span></p>
               <h2 id="home-title"><span data-i18n="同じ色を3つつないで、連鎖を起こす">同じ色を3つつないで、連鎖を起こす</span></h2>
             </div>
-            <label class="language-setting"><span data-i18n="言語">言語</span><select id="language-select" aria-label="言語" data-i18n-attrs="{&quot;aria-label&quot;:&quot;言語&quot;}"></select></label>
             <div class="profile-panel" aria-label="プレイヤー設定" data-i18n-attrs="{&quot;aria-label&quot;: &quot;プレイヤー設定&quot;}">
               <div class="profile-panel__heading">
                 <span class="hud-label"><span data-i18n="プレイヤー設定">PLAYER SETTINGS</span></span>
