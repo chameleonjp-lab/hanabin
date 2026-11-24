@@ -966,8 +966,6 @@ export class GameController {
       try { play.startId = createRequestId(); }
       catch (error) { play.startError = error; }
       this.rankingPlay = play;
-      // Sending the start record is parallel to gameplay, never a start gate.
-      void this.startRankingPlay(play);
     }
     this.rankingStartRequest = null;
     return this.startGameplay(seed);
@@ -1059,7 +1057,10 @@ export class GameController {
   ensureLoop() {
     if (this.destroyed || this.rafId !== null) return;
     this.running = true;
-    this.rafId = requestAnimationFrame((time) => this.frame(time));
+    const frameId = requestAnimationFrame((time) => {
+      if (this.rafId === frameId) this.frame(time);
+    });
+    this.rafId = frameId;
   }
 
   stopLoop() {
@@ -1074,6 +1075,11 @@ export class GameController {
     const timestampMs = Number.isFinite(timestamp) ? timestamp : nowMs();
     this.renderer.observeAnimationFrame(timestampMs);
     if (this.phase === "countdown") {
+      // Visibility can change before its event is delivered.
+      if (!this.clockPaused && !this.deterministicTestMode &&
+          typeof document !== "undefined" && document.visibilityState === "hidden") {
+        this.pauseClock();
+      }
       if (this.clockPaused) {
         this.render();
         return;
@@ -1085,6 +1091,11 @@ export class GameController {
       if (this.phase === "playing") {
         this.lastFrameMs = timestampMs;
         this.accumulatorMs = 0;
+        const play = this.rankingPlay;
+        if (!this.deterministicTestMode && play?.startId && !play.guest) {
+          // Record real GO without making the network a gate for gameplay.
+          void this.startRankingPlay(play);
+        }
       }
       this.render();
     } else if (this.phase === "playing") {
