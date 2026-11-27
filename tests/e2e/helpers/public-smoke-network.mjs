@@ -3,10 +3,19 @@ export async function installPublicSmokeNetworkGuard(context, baseURL) {
   const base = new URL(baseURL);
   const unexpected = [];
   const mockedRankingReads = [];
+  const officialOrigin = 'https://chameleonjp-lab.github.io';
+  const playStartModule = new URL('/chameleonjp_lab/play-start.js', officialOrigin);
   await context.route('**/*', async route => {
     const request = route.request();
     const url = new URL(request.url());
     const method = request.method();
+    if (base.origin === officialOrigin && method === 'GET' && url.href === playStartModule.href) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        body: 'export function recordPlayStart() {}',
+      });
+    }
     if (url.origin === base.origin && url.pathname.startsWith(base.pathname) &&
         ['GET', 'HEAD'].includes(method)) {
       // Routing is not reapplied to redirect hops; do not follow them.
