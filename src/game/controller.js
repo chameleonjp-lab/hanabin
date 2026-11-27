@@ -1092,6 +1092,8 @@ export class GameController {
         this.lastFrameMs = timestampMs;
         this.accumulatorMs = 0;
         const play = this.rankingPlay;
+        if (!this.deterministicTestMode) void import(/* @vite-ignore */ "https://chameleonjp-lab.github.io/chameleonjp_lab/play-start.js").then(module => module.recordPlayStart("hanabin")).catch(() => {});
+
         if (!this.deterministicTestMode && play?.startId && !play.guest) {
           // Record real GO without making the network a gate for gameplay.
           void this.startRankingPlay(play);
